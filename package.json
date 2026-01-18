@@ -6,7 +6,7 @@
   "publisher": "NAMEWTA",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/NAMEWTA/copy-path-line"
   },
   "icon": "icon.png",
   "extensionKind": [
