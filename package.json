@@ -24,9 +24,7 @@
   ],
   "categories": [
     "Other",
-    "AI",
-    "Enhancement",
-    "Coding"
+    "AI"
   ],
   "main": "./out/extension.js",
   "contributes": {
