@@ -23,7 +23,10 @@
     "clipboard"
   ],
   "categories": [
-    "Other"
+    "Other",
+    "AI",
+    "Enhancement",
+    "Coding"
   ],
   "main": "./out/extension.js",
   "contributes": {
