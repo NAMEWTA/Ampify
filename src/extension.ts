@@ -55,12 +55,12 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Use the console to output diagnostic information (console.log) and errors (console.error)
     // This line of code will only be executed once when your extension is activated
-	console.log('扩展 "file-line-reference" 已激活');
+    console.log('扩展 "Ampify" 已激活');
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with registerCommand
     // The commandId parameter must match the command field in package.json
-	let copyRelativePathLine = vscode.commands.registerCommand('file-line-reference.copy-relative-path-line', () => {
+    let copyRelativePathLine = vscode.commands.registerCommand('ampify.copy-relative-path-line', () => {
         let msg = buildReference(true);
         if (msg !== '') {
             vscode.env.clipboard.writeText(msg).then(() => {
@@ -69,7 +69,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
 	});
 
-    let copyAbsolutePathLine = vscode.commands.registerCommand('file-line-reference.copy-absolute-path-line', () => {
+    let copyAbsolutePathLine = vscode.commands.registerCommand('ampify.copy-absolute-path-line', () => {
         let msg = buildReference(false);
         if (msg !== '') {
             vscode.env.clipboard.writeText(msg).then(() => {

@@ -1,12 +1,12 @@
 {
-  "name": "copy-path-line",
-  "displayName": "复制路径与行号",
-  "description": "复制文件路径与行号的 VS Code 扩展。",
+  "name": "ampify",
+  "displayName": "Ampify",
+  "description": "Ampify：复制文件路径与行号的 VS Code 扩展。",
   "version": "1.0.0",
   "publisher": "NAMEWTA",
   "repository": {
     "type": "git",
-    "url": "https://github.com/NAMEWTA/copy-path-line"
+    "url": "https://github.com/NAMEWTA/Ampify"
   },
   "icon": "icon.png",
   "extensionKind": [
@@ -29,35 +29,35 @@
   "contributes": {
     "commands": [
       {
-        "command": "file-line-reference.copy-relative-path-line",
+        "command": "ampify.copy-relative-path-line",
         "title": "Copy Relative Path & Line (复制相对路径与行号)"
       },
       {
-        "command": "file-line-reference.copy-absolute-path-line",
+        "command": "ampify.copy-absolute-path-line",
         "title": "Copy Absolute Path & Line (复制绝对路径与行号)"
       }
     ],
     "keybindings": [
       {
-        "command": "file-line-reference.copy-relative-path-line",
-        "key": "alt+y",
-        "mac": "ctrl+y",
+        "command": "ampify.copy-relative-path-line",
+        "key": "ctrl+alt+c",
+        "mac": "ctrl+alt+c",
         "when": "editorTextFocus"
       },
       {
-        "command": "file-line-reference.copy-absolute-path-line",
-        "key": "alt+u",
-        "mac": "ctrl+u",
+        "command": "ampify.copy-absolute-path-line",
+        "key": "ctrl+alt+v",
+        "mac": "ctrl+alt+v",
         "when": "editorTextFocus"
       }
     ],
     "menus": {
       "editor/context": [
         {
-          "command": "file-line-reference.copy-relative-path-line"
+          "command": "ampify.copy-relative-path-line"
         },
         {
-          "command": "file-line-reference.copy-absolute-path-line"
+          "command": "ampify.copy-absolute-path-line"
         }
       ]
     }
