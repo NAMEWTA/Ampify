@@ -78,9 +78,15 @@ export class ProcessEngine {
             ...instance.vscodeArgs
         ];
 
-        if (instance.defaultProject) {
+        // 优先使用当前工作区目录，否则回退到 defaultProject 配置
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+            // 使用当前工作区的第一个目录
+            args.push(workspaceFolders[0].uri.fsPath);
+        } else if (instance.defaultProject) {
+            // 没有打开的工作区时，回退到配置的默认项目
             let projectPath = instance.defaultProject;
-             if (projectPath.startsWith('~')) {
+            if (projectPath.startsWith('~')) {
                 projectPath = projectPath.replace(/^~/, os.homedir());
             }
             args.push(projectPath);
