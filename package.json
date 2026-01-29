@@ -2,7 +2,7 @@
   "name": "ampify",
   "displayName": "Ampify",
   "description": "Ampify：复制文件路径与行号的 VS Code 扩展。",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "publisher": "NAMEWTA",
   "repository": {
     "type": "git",
@@ -13,21 +13,41 @@
     "workspace"
   ],
   "engines": {
-    "vscode": "^1.108.0"
+    "vscode": "^1.107.0"
   },
   "keywords": [
     "copy",
     "file name",
     "line number",
-    "function name",
-    "clipboard"
+    "launcher",
+    "multi-account"
   ],
   "categories": [
     "Other",
     "AI"
   ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ampify-launcher",
+          "title": "Multi Launcher",
+          "icon": "$(account)"
+        }
+      ]
+    },
+    "views": {
+      "ampify-launcher": [
+        {
+          "id": "ampify-launcher-instances",
+          "name": "Instances"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "ampify.copy-relative-path-line",
@@ -36,6 +56,31 @@
       {
         "command": "ampify.copy-absolute-path-line",
         "title": "Copy Absolute Path & Line (复制绝对路径与行号)"
+      },
+      {
+        "command": "ampify.launcher.add",
+        "title": "Add Instance",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ampify.launcher.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ampify.launcher.editConfig",
+        "title": "Edit Config",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "ampify.launcher.launch",
+        "title": "Launch Instance",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "ampify.launcher.delete",
+        "title": "Delete Instance",
+        "icon": "$(trash)"
       }
     ],
     "keybindings": [
@@ -60,7 +105,50 @@
         {
           "command": "ampify.copy-absolute-path-line"
         }
+      ],
+      "view/title": [
+        {
+          "command": "ampify.launcher.add",
+          "when": "view == ampify-launcher-instances",
+          "group": "navigation"
+        },
+        {
+          "command": "ampify.launcher.refresh",
+          "when": "view == ampify-launcher-instances",
+          "group": "navigation"
+        },
+        {
+          "command": "ampify.launcher.editConfig",
+          "when": "view == ampify-launcher-instances",
+          "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "ampify.launcher.launch",
+          "when": "view == ampify-launcher-instances",
+          "group": "inline"
+        },
+        {
+          "command": "ampify.launcher.delete",
+          "when": "view == ampify-launcher-instances",
+          "group": "inline"
+        }
       ]
+    },
+    "configuration": {
+      "title": "Ampify",
+      "properties": {
+        "ampify.language": {
+          "type": "string",
+          "enum": [
+            "en",
+            "zh-cn"
+          ],
+          "default": "zh-cn",
+          "description": "Language for Ampify extension messages (Ampify 扩展的语言设置)"
+        }
+      }
     }
   },
   "scripts": {
