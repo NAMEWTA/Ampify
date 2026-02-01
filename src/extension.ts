@@ -3,7 +3,7 @@ import { registerCopier } from './modules/copier';
 import { registerLauncher } from './modules/launcher';
 import { registerSkillManager } from './modules/skills';
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     console.log('Activating Ampify Extension...');
     
     // Register the original "Copier" module
@@ -14,7 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Register the "Skills Manager" module
     try {
-        registerSkillManager(context);
+        await registerSkillManager(context);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         console.error('Failed to register Skills Manager:', message);

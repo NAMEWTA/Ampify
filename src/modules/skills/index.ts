@@ -9,21 +9,22 @@ import { SkillTreeProvider, SkillTreeItem } from './views/skillTreeProvider';
 import { LoadedSkill } from '../../common/types';
 import { I18n } from '../../common/i18n';
 
-export function registerSkillManager(context: vscode.ExtensionContext) {
+export async function registerSkillManager(context: vscode.ExtensionContext): Promise<void> {
     console.log('Loading Skills Manager...');
 
     try {
         // 初始化核心组件
         const configManager = new SkillConfigManager();
+        await configManager.ensureInit();
+
         const gitManager = new SkillGitManager(configManager);
+        await gitManager.init();
+
         const applier = new SkillApplier(configManager);
         const importer = new SkillImporter(configManager);
         const creator = new SkillCreator(configManager);
         const diffViewer = new SkillDiffViewer(gitManager);
         const treeProvider = new SkillTreeProvider(configManager, gitManager);
-
-        // 初始化目录和 Git
-        initializeSkillsManager(configManager, gitManager);
 
         // 注册 TreeDataProvider（带拖拽支持）
         const treeView = vscode.window.createTreeView('ampify-skills-tree', {
@@ -440,27 +441,6 @@ export function registerSkillManager(context: vscode.ExtensionContext) {
         const message = error instanceof Error ? error.message : String(error);
         console.error('Skills Manager failed to load:', message);
         vscode.window.showErrorMessage(`Skills Manager failed to load: ${message}`);
-    }
-}
-
-/**
- * 初始化 Skills Manager
- */
-async function initializeSkillsManager(
-    configManager: SkillConfigManager,
-    gitManager: SkillGitManager
-): Promise<void> {
-    try {
-        // 确保目录存在
-        await configManager.ensureInit();
-        
-        // 初始化 Git
-        await gitManager.init();
-
-        console.log(I18n.get('skills.initialized'));
-    } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(I18n.get('skills.initFailed', message));
     }
 }
 
