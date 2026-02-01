@@ -150,27 +150,6 @@ export class SkillApplier {
     }
 
     /**
-     * 批量应用 Skills
-     */
-    public async applyMultiple(skills: LoadedSkill[], workspaceRoot: string): Promise<{ success: number; failed: number; errors: string[] }> {
-        const result = { success: 0, failed: 0, errors: [] as string[] };
-
-        for (const skill of skills) {
-            const applyResult = await this.apply(skill, workspaceRoot);
-            if (applyResult.success) {
-                result.success++;
-            } else {
-                result.failed++;
-                if (applyResult.error) {
-                    result.errors.push(`${skill.meta.name}: ${applyResult.error}`);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /**
      * 从项目移除 Skill
      */
     public remove(skillName: string, workspaceRoot: string): boolean {
@@ -186,35 +165,6 @@ export class SkillApplier {
         } catch (error) {
             console.error(`Failed to remove skill ${skillName}:`, error);
             return false;
-        }
-    }
-
-    /**
-     * 检查 Skill 是否已应用到项目
-     */
-    public isApplied(skillName: string, workspaceRoot: string): boolean {
-        const targetDir = this.getInjectTarget(workspaceRoot);
-        const skillTargetPath = path.join(targetDir, skillName);
-        return fs.existsSync(skillTargetPath);
-    }
-
-    /**
-     * 获取项目中已应用的 Skills
-     */
-    public getAppliedSkills(workspaceRoot: string): string[] {
-        const targetDir = this.getInjectTarget(workspaceRoot);
-        
-        if (!fs.existsSync(targetDir)) {
-            return [];
-        }
-
-        try {
-            const entries = fs.readdirSync(targetDir, { withFileTypes: true });
-            return entries
-                .filter(entry => entry.isDirectory())
-                .map(entry => entry.name);
-        } catch {
-            return [];
         }
     }
 }

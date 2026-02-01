@@ -7,10 +7,7 @@ import { DiffFile } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
 
 export class SkillDiffViewer {
-    private rootDir: string;
-
     constructor(private gitManager: SkillGitManager) {
-        this.rootDir = path.join(os.homedir(), '.vscodeskillsmanager');
     }
 
     /**

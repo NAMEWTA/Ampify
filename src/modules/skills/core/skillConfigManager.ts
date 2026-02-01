@@ -79,12 +79,6 @@ export class SkillConfigManager {
         return this.rootDir;
     }
 
-    /**
-     * 获取配置文件路径
-     */
-    public getConfigPath(): string {
-        return this.configPath;
-    }
 
     /**
      * 获取 Skills 目录
@@ -140,33 +134,6 @@ export class SkillConfigManager {
         return skills;
     }
 
-    /**
-     * 加载单个 Skill
-     */
-    public loadSkill(skillName: string): LoadedSkill | null {
-        const skillPath = this.getSkillPath(skillName);
-        const skillMdPath = path.join(skillPath, 'SKILL.md');
-
-        if (!fs.existsSync(skillMdPath)) {
-            return null;
-        }
-
-        try {
-            const meta = this.parseSkillMetaFromMarkdown(skillMdPath, skillName);
-            if (!meta) return null;
-
-            return {
-                dirName: skillName,
-                path: skillPath,
-                meta,
-                hasSkillMd: true,
-                skillMdPath
-            };
-        } catch (error) {
-            console.error(`Failed to load skill ${skillName}:`, error);
-            return null;
-        }
-    }
 
     /**
      * 保存 SKILL.md 内容

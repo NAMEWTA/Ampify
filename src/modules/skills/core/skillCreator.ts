@@ -6,13 +6,9 @@ import { generateSkillMdContent } from '../templates/skillMdTemplate';
 
 // 预定义标签列表
 const PREDEFINED_TAGS = [
-    'typescript', 'javascript', 'python', 'java', 'go', 'rust',
-    'frontend', 'backend', 'fullstack', 'devops', 'database',
-    'react', 'vue', 'angular', 'nodejs', 'nextjs',
-    'testing', 'debugging', 'documentation', 'code-review',
-    'ai', 'machine-learning', 'data-science',
-    'security', 'performance', 'architecture',
-    'git', 'ci-cd', 'docker', 'kubernetes'
+    'ai', 'backend', 'frontend',
+    'git', 'ci-cd',
+    'vue', 'react'
 ];
 
 export class SkillCreator {
