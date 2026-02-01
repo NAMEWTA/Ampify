@@ -4,6 +4,7 @@
 Ampify 是一个 VS Code 扩展，包含两大能力：
 1. 快速复制“文件路径 + 行号”，以便在报告和代码评审中引用。
 2. VS Code 多实例启动器，用于管理与启动不同的用户配置。
+3. Skills Manager：全局 Skills 库管理、SKILL.md 元数据、注入项目。
 
 扩展在启动完成后激活（`onStartupFinished`），注册复制路径命令与启动器命令，并在 Activity Bar 提供实例视图。
 
@@ -20,6 +21,10 @@ Ampify 是一个 VS Code 扩展，包含两大能力：
       - [src/modules/launcher/core/](src/modules/launcher/core/)：配置与进程启动
       - [src/modules/launcher/views/](src/modules/launcher/views/)：TreeView 视图
     - [src/modules/copier/](src/modules/copier/)：复制路径与行号
+      - [src/modules/skills/](src/modules/skills/)：Skills Manager
+        - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、Git、Diff
+        - [src/modules/skills/templates/](src/modules/skills/templates/)：SKILL.md 模板
+        - [src/modules/skills/views/](src/modules/skills/views/)：Skills TreeView
 - [package.json](package.json)：扩展清单、命令、快捷键、脚本与依赖
 - [tsconfig.json](tsconfig.json)：TypeScript 编译配置
 - [.eslintrc.json](.eslintrc.json)：ESLint 规则
@@ -55,6 +60,12 @@ Ampify 是一个 VS Code 扩展，包含两大能力：
 2. `ProcessEngine` 解析 VS Code 可执行路径，组装参数并启动新实例。
 3. `InstanceTreeProvider` 提供实例列表与交互入口。
 
+Skills Manager 核心逻辑：
+1. [src/modules/skills/core/skillConfigManager.ts](src/modules/skills/core/skillConfigManager.ts) 负责全局目录与配置（含 SKILL.md 解析）。
+2. [src/modules/skills/templates/skillMdTemplate.ts](src/modules/skills/templates/skillMdTemplate.ts) 生成 SKILL.md 模板与 YAML frontmatter。
+3. Skills 通过 TreeView 展示，支持搜索、标签过滤、导入、预览与 Diff。
+4. 注入目标默认 `.claude/skills/`，可通过 `ampify.skills.injectTarget` 修改。
+
 ## 命令与快捷键
 - 复制相对路径与行号：`ampify.copy-relative-path-line`（`Ctrl+Alt+C`）
 - 复制绝对路径与行号：`ampify.copy-absolute-path-line`（`Ctrl+Alt+V`）
@@ -63,6 +74,20 @@ Ampify 是一个 VS Code 扩展，包含两大能力：
 - 编辑配置：`ampify.launcher.editConfig`
 - 启动实例：`ampify.launcher.launch`
 - 删除实例：`ampify.launcher.delete`
+- Skills 刷新：`ampify.skills.refresh`
+- Skills 搜索：`ampify.skills.search`
+- Skills 标签过滤：`ampify.skills.filterByTag`
+- 清除过滤：`ampify.skills.clearFilter`
+- Skills 拉取/推送：`ampify.skills.pull` / `ampify.skills.push`
+- 新建 Skill：`ampify.skills.create`
+- 导入 Skill：`ampify.skills.import`
+- 应用到项目：`ampify.skills.apply`
+- 预览 SKILL.md：`ampify.skills.preview`
+- 显示变更：`ampify.skills.showDiff`
+- 编辑 Git 配置：`ampify.skills.editGitConfig`
+- 打开 Skills 目录：`ampify.skills.openFolder`
+- 删除 Skill：`ampify.skills.delete`
+- 从项目移除：`ampify.skills.remove`
 
 复制命令已注册到编辑器右键菜单，启动器命令在实例视图和条目菜单中提供。
 
@@ -92,3 +117,5 @@ TypeScript 严格模式已开启（见 [tsconfig.json](tsconfig.json)）。
 - 输出结果始终包裹反引号，适用于 Markdown 引用。
 - 单行输出：`path:line`，多行输出：`path:start-end`。
 - 启动器实例以独立用户目录运行，可共享扩展目录以复用已安装扩展。
+- Skills 元数据使用 SKILL.md 的 YAML frontmatter。
+- 全局 Skills 目录默认位于 ~/.vscodeskillsmanager/skills。
