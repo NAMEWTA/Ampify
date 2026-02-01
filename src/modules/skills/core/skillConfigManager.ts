@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { SkillsManagerConfig, SkillMeta, LoadedSkill, GitConfig } from '../../../common/types';
+import { parse as parseYaml } from 'yaml';
 
 export class SkillConfigManager {
     private configPath: string;
@@ -115,22 +116,21 @@ export class SkillConfigManager {
             if (!entry.isDirectory()) continue;
 
             const skillPath = path.join(this.skillsDir, entry.name);
-            const skillJsonPath = path.join(skillPath, 'skill.json');
             const skillMdPath = path.join(skillPath, 'SKILL.md');
 
-            // 必须有 skill.json
-            if (!fs.existsSync(skillJsonPath)) continue;
+            // 必须有 SKILL.md
+            if (!fs.existsSync(skillMdPath)) continue;
 
             try {
-                const metaContent = fs.readFileSync(skillJsonPath, 'utf8');
-                const meta: SkillMeta = JSON.parse(metaContent);
+                const meta = this.parseSkillMetaFromMarkdown(skillMdPath, entry.name);
+                if (!meta) continue;
 
                 skills.push({
                     dirName: entry.name,
                     path: skillPath,
                     meta,
-                    hasSkillMd: fs.existsSync(skillMdPath),
-                    skillMdPath: fs.existsSync(skillMdPath) ? skillMdPath : undefined
+                    hasSkillMd: true,
+                    skillMdPath
                 });
             } catch (error) {
                 console.error(`Failed to load skill ${entry.name}:`, error);
@@ -145,38 +145,27 @@ export class SkillConfigManager {
      */
     public loadSkill(skillName: string): LoadedSkill | null {
         const skillPath = this.getSkillPath(skillName);
-        const skillJsonPath = path.join(skillPath, 'skill.json');
         const skillMdPath = path.join(skillPath, 'SKILL.md');
 
-        if (!fs.existsSync(skillJsonPath)) {
+        if (!fs.existsSync(skillMdPath)) {
             return null;
         }
 
         try {
-            const metaContent = fs.readFileSync(skillJsonPath, 'utf8');
-            const meta: SkillMeta = JSON.parse(metaContent);
+            const meta = this.parseSkillMetaFromMarkdown(skillMdPath, skillName);
+            if (!meta) return null;
 
             return {
                 dirName: skillName,
                 path: skillPath,
                 meta,
-                hasSkillMd: fs.existsSync(skillMdPath),
-                skillMdPath: fs.existsSync(skillMdPath) ? skillMdPath : undefined
+                hasSkillMd: true,
+                skillMdPath
             };
         } catch (error) {
             console.error(`Failed to load skill ${skillName}:`, error);
             return null;
         }
-    }
-
-    /**
-     * 保存 Skill 元数据
-     */
-    public saveSkillMeta(skillName: string, meta: SkillMeta): void {
-        const skillPath = this.getSkillPath(skillName);
-        this.ensureDir(skillPath);
-        const skillJsonPath = path.join(skillPath, 'skill.json');
-        fs.writeFileSync(skillJsonPath, JSON.stringify(meta, null, 2), 'utf8');
     }
 
     /**
@@ -187,6 +176,49 @@ export class SkillConfigManager {
         this.ensureDir(skillPath);
         const skillMdPath = path.join(skillPath, 'SKILL.md');
         fs.writeFileSync(skillMdPath, content, 'utf8');
+    }
+
+    /**
+     * 解析 SKILL.md 的 YAML 元数据
+     */
+    public parseSkillMetaFromMarkdown(skillMdPath: string, fallbackName: string): SkillMeta | null {
+        try {
+            const content = fs.readFileSync(skillMdPath, 'utf8');
+            const match = content.match(/^---\s*\r?\n([\s\S]*?)\r?\n---/);
+
+            if (!match) {
+                return null;
+            }
+
+            const yamlContent = match[1];
+            const data = parseYaml(yamlContent) as Record<string, unknown> | undefined;
+
+            if (!data) {
+                return null;
+            }
+
+            const meta: SkillMeta = {
+                name: typeof data.name === 'string' ? data.name : fallbackName,
+                description: typeof data.description === 'string' ? data.description : '',
+                version: typeof data.version === 'string' ? data.version : '1.0.0',
+                tags: Array.isArray(data.tags) ? data.tags as string[] : undefined,
+                allowedTools: Array.isArray(data.allowedTools) ? data.allowedTools as string[] : undefined,
+                prerequisites: Array.isArray(data.prerequisites) ? data.prerequisites as SkillMeta['prerequisites'] : undefined
+            };
+
+            // 兼容 allowed-tools
+            const allowedTools = data['allowed-tools'];
+            if (!meta.allowedTools && Array.isArray(allowedTools)) {
+                meta.allowedTools = allowedTools as string[];
+            } else if (!meta.allowedTools && typeof allowedTools === 'string') {
+                meta.allowedTools = allowedTools.split(',').map(s => s.trim()).filter(Boolean);
+            }
+
+            return meta;
+        } catch (error) {
+            console.error('Failed to parse SKILL.md', error);
+            return null;
+        }
     }
 
     /**

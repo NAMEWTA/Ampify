@@ -12,47 +12,45 @@ export class SkillImporter {
      * 验证源目录是否为有效的 Skill 目录
      */
     public validateSkillDir(sourcePath: string): { valid: boolean; error?: string; meta?: SkillMeta } {
-        const skillJsonPath = path.join(sourcePath, 'skill.json');
         const skillMdPath = path.join(sourcePath, 'SKILL.md');
-
-        // 检查 skill.json
-        if (!fs.existsSync(skillJsonPath)) {
-            return { valid: false, error: 'skill.json not found' };
-        }
 
         // 检查 SKILL.md
         if (!fs.existsSync(skillMdPath)) {
             return { valid: false, error: 'SKILL.md not found' };
         }
 
-        // 尝试解析 skill.json
-        try {
-            const content = fs.readFileSync(skillJsonPath, 'utf8');
-            const meta: SkillMeta = JSON.parse(content);
-
-            // 验证必填字段
-            if (!meta.name || typeof meta.name !== 'string') {
-                return { valid: false, error: 'Invalid skill.json: missing or invalid name' };
-            }
-            if (!meta.description || typeof meta.description !== 'string') {
-                return { valid: false, error: 'Invalid skill.json: missing or invalid description' };
-            }
-            if (!meta.version || typeof meta.version !== 'string') {
-                return { valid: false, error: 'Invalid skill.json: missing or invalid version' };
-            }
-
-            // 验证 name 格式
-            if (!/^[a-z0-9-]+$/.test(meta.name)) {
-                return { valid: false, error: 'Invalid skill name: must be lowercase letters, numbers, and hyphens only' };
-            }
-            if (meta.name.length > 64) {
-                return { valid: false, error: 'Invalid skill name: max 64 characters' };
-            }
-
-            return { valid: true, meta };
-        } catch {
-            return { valid: false, error: 'Failed to parse skill.json' };
+        // 解析 SKILL.md frontmatter
+        const meta = this.configManager.parseSkillMetaFromMarkdown(skillMdPath, path.basename(sourcePath));
+        if (!meta) {
+            return { valid: false, error: 'Invalid SKILL.md frontmatter' };
         }
+
+        // 验证必填字段
+        if (!meta.name || typeof meta.name !== 'string') {
+            return { valid: false, error: 'Invalid SKILL.md: missing or invalid name' };
+        }
+        if (!meta.description || typeof meta.description !== 'string') {
+            return { valid: false, error: 'Invalid SKILL.md: missing or invalid description' };
+        }
+        if (!meta.version || typeof meta.version !== 'string') {
+            return { valid: false, error: 'Invalid SKILL.md: missing or invalid version' };
+        }
+
+        // 验证 name 格式
+        if (!/^[a-z0-9-]+$/.test(meta.name)) {
+            return { valid: false, error: 'Invalid skill name: must be lowercase letters, numbers, and hyphens only' };
+        }
+        if (meta.name.length > 64) {
+            return { valid: false, error: 'Invalid skill name: max 64 characters' };
+        }
+
+        // 验证目录名一致性
+        const dirName = path.basename(sourcePath);
+        if (meta.name !== dirName) {
+            return { valid: false, error: 'Skill name must match directory name' };
+        }
+
+        return { valid: true, meta };
     }
 
     /**

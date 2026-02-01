@@ -103,9 +103,6 @@ export class SkillCreator {
         };
 
         try {
-            // 保存 skill.json
-            this.configManager.saveSkillMeta(name, meta);
-
             // 生成并保存 SKILL.md
             const skillMdContent = generateSkillMdContent(meta);
             this.configManager.saveSkillMd(name, skillMdContent);

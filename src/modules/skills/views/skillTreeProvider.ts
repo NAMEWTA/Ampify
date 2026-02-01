@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { SkillConfigManager } from '../core/skillConfigManager';
 import { SkillGitManager } from '../core/skillGitManager';
 import { LoadedSkill, FilterState, GitStatus } from '../../../common/types';
@@ -13,6 +15,8 @@ type TreeItemType =
     | 'gitStatusItem'
     | 'skillItem' 
     | 'skillDetailItem' 
+    | 'skillFilesGroup'
+    | 'skillFileItem'
     | 'filterInfo'
     | 'empty';
 
@@ -118,6 +122,8 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
                 break;
             case 'skillItem':
                 return this.getSkillDetailChildren(element.data as LoadedSkill);
+            case 'skillFilesGroup':
+                return this.getSkillFileChildren(element.data as LoadedSkill);
         }
 
         return [];
@@ -394,7 +400,59 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
             items.push(prereqItem);
         }
 
+        // Files 目录按钮
+        const filesGroup = new SkillTreeItem(
+            'Files',
+            vscode.TreeItemCollapsibleState.Collapsed,
+            'skillFilesGroup',
+            skill
+        );
+        filesGroup.iconPath = new vscode.ThemeIcon('folder');
+        items.push(filesGroup);
+
         return items;
+    }
+
+    /**
+     * 获取 Skill 文件列表
+     */
+    private getSkillFileChildren(skill: LoadedSkill): SkillTreeItem[] {
+        const files = this.listAllFiles(skill.path);
+        return files.map(filePath => {
+            const relativePath = path.relative(skill.path, filePath);
+            const item = new SkillTreeItem(
+                relativePath,
+                vscode.TreeItemCollapsibleState.None,
+                'skillFileItem',
+                { filePath }
+            );
+            item.iconPath = new vscode.ThemeIcon('file');
+            item.command = {
+                command: 'ampify.skills.openFile',
+                title: 'Open Skill File',
+                arguments: [filePath]
+            };
+            return item;
+        });
+    }
+
+    /**
+     * 递归列出所有文件
+     */
+    private listAllFiles(dir: string): string[] {
+        const results: string[] = [];
+        if (!fs.existsSync(dir)) return results;
+
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+            const fullPath = path.join(dir, entry.name);
+            if (entry.isDirectory()) {
+                results.push(...this.listAllFiles(fullPath));
+            } else {
+                results.push(fullPath);
+            }
+        }
+        return results;
     }
 
     /**

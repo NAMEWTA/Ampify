@@ -31,7 +31,7 @@ export interface Prerequisite {
 }
 
 /**
- * Skill 元数据 (skill.json)
+ * Skill 元数据 (SKILL.md frontmatter)
  */
 export interface SkillMeta {
     /** Skill 名称，小写字母+连字符，≤64字符 */
@@ -75,7 +75,7 @@ export interface LoadedSkill {
     dirName: string;
     /** Skill 目录完整路径 */
     path: string;
-    /** skill.json 元数据 */
+    /** SKILL.md frontmatter 元数据 */
     meta: SkillMeta;
     /** SKILL.md 是否存在 */
     hasSkillMd: boolean;

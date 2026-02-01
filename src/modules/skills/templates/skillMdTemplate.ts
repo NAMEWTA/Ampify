@@ -10,8 +10,27 @@ export function generateSkillMdContent(meta: SkillMeta): string {
     lines.push('---');
     lines.push(`name: ${meta.name}`);
     lines.push(`description: ${meta.description}`);
+    lines.push(`version: ${meta.version}`);
+    if (meta.tags && meta.tags.length > 0) {
+        lines.push('tags:');
+        meta.tags.forEach(tag => lines.push(`  - ${tag}`));
+    }
     if (meta.allowedTools && meta.allowedTools.length > 0) {
-        lines.push(`allowed-tools: ${meta.allowedTools.join(', ')}`);
+        lines.push('allowed-tools:');
+        meta.allowedTools.forEach(tool => lines.push(`  - ${tool}`));
+    }
+    if (meta.prerequisites && meta.prerequisites.length > 0) {
+        lines.push('prerequisites:');
+        meta.prerequisites.forEach(prereq => {
+            lines.push(`  - type: ${prereq.type}`);
+            lines.push(`    name: ${prereq.name}`);
+            if (prereq.checkCommand) {
+                lines.push(`    checkCommand: ${prereq.checkCommand}`);
+            }
+            if (prereq.installHint) {
+                lines.push(`    installHint: ${prereq.installHint}`);
+            }
+        });
     }
     lines.push('---');
     lines.push('');
@@ -127,9 +146,3 @@ function getPrereqTypeLabel(type: string): string {
     }
 }
 
-/**
- * 生成 skill.json 内容
- */
-export function generateSkillJsonContent(meta: SkillMeta): string {
-    return JSON.stringify(meta, null, 2);
-}

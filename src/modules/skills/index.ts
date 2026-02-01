@@ -199,15 +199,11 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         })
     );
 
-    // 编辑 skill.json
+    // 打开 Skill 文件
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.editMeta', async (item: SkillTreeItem) => {
-            if (!item || item.itemType !== 'skillItem') return;
-            
-            const skill = item.data as LoadedSkill;
-            const skillJsonPath = configManager.getSkillPath(skill.meta.name) + '/skill.json';
-            
-            const doc = await vscode.workspace.openTextDocument(skillJsonPath);
+        vscode.commands.registerCommand('ampify.skills.openFile', async (filePath: string) => {
+            if (!filePath) return;
+            const doc = await vscode.workspace.openTextDocument(filePath);
             await vscode.window.showTextDocument(doc);
         })
     );
