@@ -151,16 +151,17 @@ export class ProcessEngine {
                 }
             });
             
-            child.on('error', (err) => {
-                const msg = err.message || String(err);
-                console.error('Failed to spawn VS Code process:', err);
-                if ((err as any).code === 'ENOENT') {
+              child.on('error', (err) => {
+                 const error = err as NodeJS.ErrnoException;
+                 const msg = error.message || String(error);
+                 console.error('Failed to spawn VS Code process:', error);
+                 if (error.code === 'ENOENT') {
                      vscode.window.showErrorMessage(I18n.get('launcher.codeNotFound'));
-                } else {
-                     const details = `${msg} (code=${(err as any).code ?? ''})`;
+                 } else {
+                     const details = `${msg} (code=${error.code ?? ''})`;
                      vscode.window.showErrorMessage(I18n.get('launcher.spawnError', details));
-                }
-            });
+                 }
+              });
 
             child.on('exit', (code, signal) => {
                 if (code === 0) {
@@ -180,9 +181,9 @@ export class ProcessEngine {
             child.unref();
             vscode.window.setStatusBarMessage(I18n.get('launcher.launchSuccess', instance.description), 5000);
         } catch (err) {
-            const anyErr = err as any;
-            const msg = err instanceof Error ? err.message : String(err);
-            const details = `${msg} (code=${anyErr?.code ?? ''})`;
+            const error = err as NodeJS.ErrnoException;
+            const msg = error instanceof Error ? error.message : String(error);
+            const details = `${msg} (code=${error.code ?? ''})`;
             vscode.window.showErrorMessage(I18n.get('launcher.launchFail', details));
         }
     }

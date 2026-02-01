@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { LauncherConfig, InstanceConfig } from '../../../common/types';
+import { LauncherConfig } from '../../../common/types';
 
 export class ConfigManager {
     private configPath: string;
