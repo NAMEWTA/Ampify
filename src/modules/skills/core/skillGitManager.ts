@@ -70,8 +70,15 @@ export class SkillGitManager {
             // 获取状态
             const gitStatus: StatusResult = await this.git.status();
             status.branch = gitStatus.current || undefined;
-            status.hasUnstagedChanges = gitStatus.modified.length > 0 || gitStatus.not_added.length > 0;
-            status.hasUncommittedChanges = gitStatus.staged.length > 0 || status.hasUnstagedChanges;
+            status.hasUnstagedChanges =
+                gitStatus.modified.length > 0 ||
+                gitStatus.not_added.length > 0 ||
+                gitStatus.deleted.length > 0 ||
+                gitStatus.created.length > 0 ||
+                gitStatus.renamed.length > 0;
+            status.hasUncommittedChanges =
+                gitStatus.staged.length > 0 ||
+                status.hasUnstagedChanges;
             status.changedFiles = gitStatus.files.length;
 
             // 检查远程
@@ -80,6 +87,16 @@ export class SkillGitManager {
             if (origin) {
                 status.hasRemote = true;
                 status.remoteUrl = origin.refs.fetch || origin.refs.push;
+            } else {
+                const synced = await this.syncRemotesFromConfig();
+                if (synced) {
+                    const refreshedRemotes = await this.git.getRemotes(true);
+                    const refreshedOrigin = refreshedRemotes.find(r => r.name === 'origin');
+                    if (refreshedOrigin) {
+                        status.hasRemote = true;
+                        status.remoteUrl = refreshedOrigin.refs.fetch || refreshedOrigin.refs.push;
+                    }
+                }
             }
 
             // 检查未推送的提交
@@ -112,19 +129,42 @@ export class SkillGitManager {
      * 设置远程仓库
      */
     public async setRemote(url: string): Promise<boolean> {
+        return this.setRemotes([url]);
+    }
+
+    /**
+     * 设置多个远程仓库
+     */
+    public async setRemotes(urls: string[]): Promise<boolean> {
         try {
             const remotes = await this.git.getRemotes();
-            const hasOrigin = remotes.some(r => r.name === 'origin');
+            const remoteNames = urls.map((_, index) => (index === 0 ? 'origin' : `origin-${index + 1}`));
 
-            if (hasOrigin) {
-                await this.git.removeRemote('origin');
+            for (const name of remoteNames) {
+                if (remotes.some(r => r.name === name)) {
+                    await this.git.removeRemote(name);
+                }
             }
-            await this.git.addRemote('origin', url);
+
+            for (let i = 0; i < urls.length; i++) {
+                const name = i === 0 ? 'origin' : `origin-${i + 1}`;
+                await this.git.addRemote(name, urls[i]);
+            }
+
             return true;
         } catch (error) {
-            console.error('Failed to set remote:', error);
+            console.error('Failed to set remotes:', error);
             return false;
         }
+    }
+
+    /**
+     * 从配置同步远程仓库
+     */
+    public async syncRemotesFromConfig(): Promise<boolean> {
+        const urls = this.getConfiguredRemoteUrls();
+        if (urls.length === 0) return false;
+        return this.setRemotes(urls);
     }
 
     /**
@@ -144,7 +184,7 @@ export class SkillGitManager {
      * 暂存所有更改
      */
     public async stageAll(): Promise<void> {
-        await this.git.add('.');
+        await this.git.add(['-A']);
     }
 
     /**
@@ -152,6 +192,10 @@ export class SkillGitManager {
      */
     public async commit(message: string): Promise<boolean> {
         try {
+            const user = this.getConfiguredUser();
+            if (user) {
+                await this.configureUser(user.userName, user.userEmail);
+            }
             await this.stageAll();
             await this.git.commit(message);
             return true;
@@ -164,24 +208,38 @@ export class SkillGitManager {
     /**
      * 拉取远程更新
      */
-    public async pull(): Promise<{ success: boolean; error?: string; authError?: boolean }> {
+    public async pull(): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean }> {
         try {
             const status = await this.getStatus();
             if (!status.hasRemote) {
-                return { success: false, error: 'No remote configured' };
+                const synced = await this.syncRemotesFromConfig();
+                if (!synced) {
+                    return { success: false, error: 'No remote configured' };
+                }
             }
 
-            await this.git.pull('origin', status.branch || 'main');
+            const refreshed = await this.getStatus();
+            await this.git.pull('origin', refreshed.branch || 'main');
+
+            const afterStatus = await this.git.status();
+            if (afterStatus.conflicted && afterStatus.conflicted.length > 0) {
+                return { success: false, conflict: true, error: 'Merge conflicts detected' };
+            }
+
             return { success: true };
         } catch (error: unknown) {
             const errorMsg = error instanceof Error ? error.message : String(error);
             const isAuthError = errorMsg.includes('Authentication') || 
                                errorMsg.includes('Permission denied') ||
                                errorMsg.includes('could not read Username');
+            const isConflict = errorMsg.includes('CONFLICT') ||
+                               errorMsg.includes('Merge conflict') ||
+                               errorMsg.includes('Automatic merge failed');
             return { 
                 success: false, 
                 error: errorMsg,
-                authError: isAuthError
+                authError: isAuthError,
+                conflict: isConflict
             };
         }
     }
@@ -189,31 +247,106 @@ export class SkillGitManager {
     /**
      * 推送到远程
      */
-    public async push(): Promise<{ success: boolean; error?: string; authError?: boolean }> {
+    public async push(options?: { skipPull?: boolean }): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean }> {
         try {
             const status = await this.getStatus();
             if (!status.hasRemote) {
+                const synced = await this.syncRemotesFromConfig();
+                if (!synced) {
+                    return { success: false, error: 'No remote configured' };
+                }
+            }
+
+            if (!options?.skipPull) {
+                const pullResult = await this.pull();
+                if (!pullResult.success) {
+                    return {
+                        success: false,
+                        error: pullResult.error,
+                        authError: pullResult.authError,
+                        conflict: pullResult.conflict
+                    };
+                }
+            }
+
+            const refreshed = await this.getStatus();
+
+            // pull 后再提交
+            if (refreshed.hasUncommittedChanges) {
+                const committed = await this.commit('Auto-commit before push');
+                if (!committed) {
+                    return { success: false, error: 'Commit failed' };
+                }
+            }
+
+            const branch = refreshed.branch || 'main';
+            const remotes = await this.getRemotesForPush();
+            if (remotes.length === 0) {
                 return { success: false, error: 'No remote configured' };
             }
 
-            // 先确保有提交
-            if (status.hasUncommittedChanges) {
-                await this.commit('Auto-commit before push');
+            for (const remote of remotes) {
+                if (remote === 'origin') {
+                    await this.git.push(remote, branch, ['--set-upstream']);
+                } else {
+                    await this.git.push(remote, branch);
+                }
             }
-
-            await this.git.push('origin', status.branch || 'main', ['--set-upstream']);
             return { success: true };
         } catch (error: unknown) {
             const errorMsg = error instanceof Error ? error.message : String(error);
             const isAuthError = errorMsg.includes('Authentication') || 
                                errorMsg.includes('Permission denied') ||
                                errorMsg.includes('could not read Username');
+            const isConflict = errorMsg.includes('CONFLICT') ||
+                               errorMsg.includes('Merge conflict') ||
+                               errorMsg.includes('Automatic merge failed');
             return { 
                 success: false, 
                 error: errorMsg,
-                authError: isAuthError
+                authError: isAuthError,
+                conflict: isConflict
             };
         }
+    }
+
+    private getConfiguredRemoteUrls(): string[] {
+        const config = this.configManager.getConfig();
+        const gitConfig = config.gitConfig || {};
+        const urls = (gitConfig.remoteUrls && gitConfig.remoteUrls.length > 0)
+            ? gitConfig.remoteUrls
+            : (gitConfig.remoteUrl ? [gitConfig.remoteUrl] : []);
+
+        return urls.filter(url => !!url);
+    }
+
+    private async getRemotesForPush(): Promise<string[]> {
+        const remotes = await this.git.getRemotes();
+        let remoteNames = remotes.map(r => r.name);
+
+        if (remoteNames.length === 0) {
+            const synced = await this.syncRemotesFromConfig();
+            if (!synced) return [];
+            const refreshed = await this.git.getRemotes();
+            remoteNames = refreshed.map(r => r.name);
+        }
+
+        const originIndex = remoteNames.indexOf('origin');
+        if (originIndex > 0) {
+            remoteNames.splice(originIndex, 1);
+            remoteNames.unshift('origin');
+        }
+
+        return remoteNames;
+    }
+
+    private getConfiguredUser(): { userName: string; userEmail: string } | null {
+        const config = this.configManager.getConfig();
+        const gitConfig = config.gitConfig || {};
+        if (gitConfig.userName && gitConfig.userEmail) {
+            return { userName: gitConfig.userName, userEmail: gitConfig.userEmail };
+        }
+        return null;
     }
 
     /**

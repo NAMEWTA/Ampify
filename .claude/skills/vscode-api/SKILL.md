@@ -3,7 +3,9 @@ name: vscode-api
 description:
   当用户询问 VS Code API 的定义、methods、interfaces、events、types，或希望了解可用的 VS Code APIs 时使用。
   触发场景包括类似 “what does vscode.X do”、“how to use VS Code API”、“VS Code type definition”，或检查 API compatibility 的问题。
-
+version: 1.0.0
+tags:
+  - vscode
 ---
 
 # VS Code API Lookup

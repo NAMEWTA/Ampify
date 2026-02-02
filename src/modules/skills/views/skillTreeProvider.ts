@@ -180,6 +180,9 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
         const items: SkillTreeItem[] = [];
         const config = this.configManager.getConfig();
         const gitConfig = config.gitConfig || {};
+        const remoteUrls = (gitConfig.remoteUrls && gitConfig.remoteUrls.length > 0)
+            ? gitConfig.remoteUrls
+            : (gitConfig.remoteUrl ? [gitConfig.remoteUrl] : []);
 
         // 获取 Git 状态
         if (!this.cachedGitStatus) {
@@ -226,13 +229,22 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
             'gitConfigItem',
             { field: 'remoteUrl', value: gitConfig.remoteUrl }
         );
-        remoteUrlItem.description = gitConfig.remoteUrl || I18n.get('skills.notConfigured');
+        if (remoteUrls.length === 0) {
+            remoteUrlItem.description = I18n.get('skills.notConfigured');
+        } else if (remoteUrls.length === 1) {
+            remoteUrlItem.description = remoteUrls[0];
+        } else {
+            remoteUrlItem.description = `${remoteUrls.length} remotes`;
+        }
         remoteUrlItem.iconPath = new vscode.ThemeIcon('cloud');
         remoteUrlItem.command = {
             command: 'ampify.skills.editGitConfig',
             title: 'Edit',
             arguments: ['remoteUrl']
         };
+        if (remoteUrls.length > 1) {
+            remoteUrlItem.tooltip = remoteUrls.join('\n');
+        }
         items.push(remoteUrlItem);
 
         // Git Status

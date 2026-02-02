@@ -25,9 +25,33 @@ export class SkillConfigManager extends BaseConfigManager<SkillsManagerConfig> {
      */
     protected getDefaultConfig(): SkillsManagerConfig {
         return {
-            gitConfig: {},
+            gitConfig: { remoteUrls: [] },
+            autoSyncMinutes: 10,
             injectTarget: '.claude/skills/'
         };
+    }
+
+    /**
+     * 读取配置并做兼容处理
+     */
+    public override getConfig(): SkillsManagerConfig {
+        const config = super.getConfig();
+        const gitConfig = config.gitConfig || {};
+
+        if (!gitConfig.remoteUrls || gitConfig.remoteUrls.length === 0) {
+            if (gitConfig.remoteUrl) {
+                gitConfig.remoteUrls = [gitConfig.remoteUrl];
+            } else {
+                gitConfig.remoteUrls = [];
+            }
+        }
+
+        if (!config.autoSyncMinutes || config.autoSyncMinutes <= 0) {
+            config.autoSyncMinutes = 10;
+        }
+
+        config.gitConfig = gitConfig;
+        return config;
     }
 
     /**
@@ -42,7 +66,11 @@ export class SkillConfigManager extends BaseConfigManager<SkillsManagerConfig> {
      */
     public updateGitConfig(gitConfig: Partial<GitConfig>): void {
         const config = this.getConfig();
-        config.gitConfig = { ...config.gitConfig, ...gitConfig };
+        const merged: GitConfig = { ...config.gitConfig, ...gitConfig };
+        if (gitConfig.remoteUrl) {
+            merged.remoteUrls = [gitConfig.remoteUrl];
+        }
+        config.gitConfig = merged;
         this.saveConfig(config);
     }
 

@@ -55,6 +55,7 @@ export interface GitConfig {
     userName?: string;
     userEmail?: string;
     remoteUrl?: string;
+    remoteUrls?: string[];
 }
 
 /**
@@ -63,6 +64,8 @@ export interface GitConfig {
 export interface SkillsManagerConfig {
     /** Git 配置 */
     gitConfig: GitConfig;
+    /** 自动同步间隔（分钟） */
+    autoSyncMinutes?: number;
     /** 默认注入目标目录 */
     injectTarget?: string;
 }
