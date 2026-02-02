@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.3.4 - 2026-02-02
+### Added
+- Skills Git 同步能力说明：Sync（拉取 → 自动提交 → 推送）与多远程支持。
+- Skills 变更查看（Show Changes）说明：支持本地/远程差异预览。
+- Skills Git 设置与状态说明：用户/邮箱/远程与状态展示。
+- Skills 自动同步说明：支持配置同步间隔。
+
 ## 1.3.1 - 2026-02-02
 ### Changed
 - 提取基础配置管理逻辑到 `BaseConfigManager` 基类，简化各模块配置管理实现。
