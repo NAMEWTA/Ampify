@@ -1,5 +1,15 @@
 # Change Log
 
+## 1.3.1 - 2026-02-02
+### Changed
+- 提取基础配置管理逻辑到 `BaseConfigManager` 基类，简化各模块配置管理实现。
+- 将目录复制功能移至 `paths` 工具模块，统一文件操作工具函数。
+- 更新全局目录路径为 `~/.vscode-ampify`，改善跨平台路径管理。
+- 精简 `SkillConfigManager` 与 `SkillApplier` 中的冗余代码。
+
+### Fixed
+- 修正文档中的路径引用，确保与新目录结构保持一致。
+
 ## 1.3.0 - 2026-02-02
 ### Added
 - Skills Manager 使用 SKILL.md frontmatter 作为元数据来源。
