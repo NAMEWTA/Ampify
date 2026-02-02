@@ -157,6 +157,11 @@
         "icon": "$(gear)"
       },
       {
+        "command": "ampify.skills.openConfigWizard",
+        "title": "Configure Skills Git",
+        "icon": "$(settings-gear)"
+      },
+      {
         "command": "ampify.skills.openFolder",
         "title": "Open Skills Folder",
         "icon": "$(folder-opened)"

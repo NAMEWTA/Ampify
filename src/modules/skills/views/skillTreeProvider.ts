@@ -11,6 +11,7 @@ import { I18n } from '../../../common/i18n';
  */
 type TreeItemType = 
     | 'group' 
+    | 'configItem'
     | 'gitConfigItem' 
     | 'gitStatusItem'
     | 'skillItem' 
@@ -189,6 +190,19 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
             this.cachedGitStatus = await this.gitManager.getStatus();
         }
         const status = this.cachedGitStatus;
+
+        // Config Wizard
+        const configItem = new SkillTreeItem(
+            I18n.get('skills.config'),
+            vscode.TreeItemCollapsibleState.None,
+            'configItem'
+        );
+        configItem.iconPath = new vscode.ThemeIcon('settings-gear');
+        configItem.command = {
+            command: 'ampify.skills.openConfigWizard',
+            title: 'Configure'
+        };
+        items.push(configItem);
 
         // User Name
         const userNameItem = new SkillTreeItem(
