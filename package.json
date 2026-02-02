@@ -117,14 +117,9 @@
         "icon": "$(clear-all)"
       },
       {
-        "command": "ampify.skills.pull",
-        "title": "Pull from Remote",
-        "icon": "$(cloud-download)"
-      },
-      {
-        "command": "ampify.skills.push",
-        "title": "Push to Remote",
-        "icon": "$(cloud-upload)"
+        "command": "ampify.skills.sync",
+        "title": "Sync Git",
+        "icon": "$(sync)"
       },
       {
         "command": "ampify.skills.create",
@@ -180,6 +175,11 @@
         "command": "ampify.skills.openFile",
         "title": "Open Skill File",
         "icon": "$(file-text)"
+      },
+      {
+        "command": "ampify.skills.syncToAgentMd",
+        "title": "Sync AGENT.md",
+        "icon": "$(book)"
       }
     ],
     "keybindings": [
@@ -232,24 +232,24 @@
           "group": "navigation@2"
         },
         {
-          "command": "ampify.skills.pull",
+          "command": "ampify.skills.sync",
           "when": "view == ampify-skills-tree",
           "group": "navigation@3"
         },
         {
-          "command": "ampify.skills.push",
+          "command": "ampify.skills.refresh",
           "when": "view == ampify-skills-tree",
           "group": "navigation@4"
         },
         {
-          "command": "ampify.skills.refresh",
+          "command": "ampify.skills.create",
           "when": "view == ampify-skills-tree",
           "group": "navigation@5"
         },
         {
-          "command": "ampify.skills.create",
+          "command": "ampify.skills.syncToAgentMd",
           "when": "view == ampify-skills-tree",
-          "group": "navigation@6"
+          "group": "navigation@7"
         }
       ],
       "view/item/context": [

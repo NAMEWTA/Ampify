@@ -269,6 +269,7 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
         );
         statusItem.description = this.getGitStatusDescription(status);
         statusItem.iconPath = this.getGitStatusIcon(status);
+        statusItem.tooltip = this.getGitStatusTooltip(status);
         items.push(statusItem);
 
         return items;
@@ -289,11 +290,37 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
         if (status.changedFiles > 0) {
             parts.push(`${status.changedFiles} changed`);
         }
-        if (status.hasUnpushedCommits) {
-            parts.push('unpushed');
+        if (status.unpushedCommitCount > 0) {
+            parts.push(`↑${status.unpushedCommitCount}`);
         }
 
         return parts.length > 0 ? parts.join(' | ') : 'Clean';
+    }
+
+    /**
+     * Git 状态 Tooltip
+     */
+    private getGitStatusTooltip(status: GitStatus): string {
+        if (!status.initialized) {
+            return 'Not initialized';
+        }
+
+        const parts: string[] = [];
+        const unpushed = status.unpushedCommitCount;
+        const changed = status.changedFiles;
+
+        if (unpushed > 0) {
+            parts.push(`${unpushed} 个未推送的提交`);
+        }
+        if (changed > 0) {
+            parts.push(`${changed} 个本地更改`);
+        }
+
+        if (parts.length === 0) {
+            return 'Clean';
+        }
+
+        return parts.join('，');
     }
 
     /**
@@ -303,7 +330,7 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
         if (!status.initialized) {
             return new vscode.ThemeIcon('warning', new vscode.ThemeColor('charts.yellow'));
         }
-        if (status.changedFiles > 0 || status.hasUnpushedCommits) {
+        if (status.changedFiles > 0 || status.unpushedCommitCount > 0) {
             return new vscode.ThemeIcon('sync', new vscode.ThemeColor('charts.orange'));
         }
         return new vscode.ThemeIcon('check', new vscode.ThemeColor('charts.green'));

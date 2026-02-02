@@ -7,6 +7,7 @@ import { SkillImporter } from './core/skillImporter';
 import { SkillCreator } from './core/skillCreator';
 import { SkillDiffViewer } from './core/skillDiffViewer';
 import { SkillTreeProvider, SkillTreeItem } from './views/skillTreeProvider';
+import { AgentMdManager } from './core/agentMdManager';
 import { LoadedSkill } from '../../common/types';
 import { I18n } from '../../common/i18n';
 
@@ -26,6 +27,7 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         const creator = new SkillCreator(configManager);
         const diffViewer = new SkillDiffViewer(gitManager);
         const treeProvider = new SkillTreeProvider(configManager, gitManager);
+        const agentMdManager = new AgentMdManager(configManager);
 
         const applyGitConfigFromFile = async (): Promise<void> => {
             try {
@@ -68,24 +70,8 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
 
         const runAutoSync = async (): Promise<void> => {
             try {
-                const status = await gitManager.getStatus();
-                if (!status.hasRemote) {
-                    const synced = await gitManager.syncRemotesFromConfig();
-                    if (!synced) return;
-                }
-
-                const pullResult = await gitManager.pull();
-                if (!pullResult.success) {
-                    return;
-                }
-
-                const refreshed = await gitManager.getStatus();
-                if (refreshed.hasUncommittedChanges) {
-                    const committed = await gitManager.commit('Auto-sync commit');
-                    if (!committed) return;
-                }
-
-                await gitManager.push({ skipPull: true });
+                await gitManager.sync();
+                treeProvider.refresh();
             } catch (error) {
                 console.error('Auto sync failed:', error);
             }
@@ -258,9 +244,36 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
             const result = await applier.apply(skill, workspaceRoot);
             
             if (result.success) {
+                try {
+                    const injectTarget = applier.getInjectTarget(workspaceRoot);
+                    agentMdManager.scanAndSync(workspaceRoot, injectTarget);
+                } catch (error) {
+                    console.error('Failed to sync AGENT.md:', error);
+                }
                 vscode.window.showInformationMessage(I18n.get('skills.applied', skill.meta.name));
             } else if (result.error && result.error !== 'User cancelled due to prerequisites') {
                 vscode.window.showErrorMessage(I18n.get('skills.applyFailed', result.error));
+            }
+        })
+    );
+
+    // 同步 AGENT.md（全量扫描 injectTarget）
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ampify.skills.syncToAgentMd', () => {
+            const workspaceRoot = getWorkspaceRoot();
+            if (!workspaceRoot) {
+                vscode.window.showErrorMessage(I18n.get('skills.noWorkspace'));
+                return;
+            }
+
+            try {
+                const config = configManager.getConfig();
+                const injectTarget = config.injectTarget || '.claude/skills/';
+                agentMdManager.scanAndSync(workspaceRoot, injectTarget);
+                vscode.window.showInformationMessage(I18n.get('skills.agentMdSynced'));
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(I18n.get('skills.applyFailed', message));
             }
         })
     );
@@ -435,53 +448,17 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         })
     );
 
-    // Pull
+    // Sync (init -> pull -> commit -> push)
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.pull', async () => {
-            const status = await gitManager.getStatus();
-            
-            if (!status.hasRemote) {
-                const synced = await gitManager.syncRemotesFromConfig();
-                if (!synced) {
-                    vscode.window.showErrorMessage(I18n.get('skills.noRemoteConfigured'));
-                    return;
-                }
-            }
+        vscode.commands.registerCommand('ampify.skills.sync', async () => {
+            const result = await gitManager.sync();
 
-            if (status.hasUncommittedChanges) {
-                const choice = await vscode.window.showWarningMessage(
-                    I18n.get('skills.hasUncommittedChanges'),
-                    I18n.get('skills.yes'),
-                    I18n.get('skills.cancel')
-                );
-                if (choice !== I18n.get('skills.yes')) {
-                    return;
-                }
-            }
-
-            // 显示远程变更预览
-            const remoteChanges = await gitManager.getRemoteDiff();
-            if (remoteChanges.length > 0) {
-                const choice = await vscode.window.showInformationMessage(
-                    I18n.get('skills.confirmPull', remoteChanges.length.toString()),
-                    I18n.get('skills.viewDiff'),
-                    I18n.get('skills.yes'),
-                    I18n.get('skills.cancel')
-                );
-
-                if (choice === I18n.get('skills.viewDiff')) {
-                    await diffViewer.showRemoteChanges();
-                    return;
-                }
-                if (choice !== I18n.get('skills.yes')) {
-                    return;
-                }
-            }
-
-            const result = await gitManager.pull();
-            
             if (result.success) {
-                vscode.window.showInformationMessage(I18n.get('skills.pullSuccess'));
+                if (result.localOnly) {
+                    vscode.window.showInformationMessage(I18n.get('skills.localOnlyCommit'));
+                } else {
+                    vscode.window.showInformationMessage(I18n.get('skills.syncSuccess'));
+                }
                 treeProvider.refresh();
             } else {
                 if (result.conflict) {
@@ -491,72 +468,7 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
                 if (result.authError) {
                     vscode.window.showErrorMessage(I18n.get('skills.configureAuth'));
                 } else {
-                    vscode.window.showErrorMessage(I18n.get('skills.pullFailed', result.error || 'Unknown error'));
-                }
-            }
-        })
-    );
-
-    // Push
-    context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.push', async () => {
-            const status = await gitManager.getStatus();
-            
-            if (!status.hasRemote) {
-                const synced = await gitManager.syncRemotesFromConfig();
-                if (!synced) {
-                    vscode.window.showErrorMessage(I18n.get('skills.noRemoteConfigured'));
-                    return;
-                }
-            }
-
-            const pullResult = await gitManager.pull();
-            if (!pullResult.success) {
-                if (pullResult.conflict) {
-                    vscode.window.showErrorMessage(I18n.get('skills.mergeConflict'));
-                    return;
-                }
-                if (pullResult.authError) {
-                    vscode.window.showErrorMessage(I18n.get('skills.configureAuth'));
-                    return;
-                }
-                vscode.window.showErrorMessage(I18n.get('skills.pullFailed', pullResult.error || 'Unknown error'));
-                return;
-            }
-
-            // 显示本地变更预览
-            const localChanges = await gitManager.getLocalChanges();
-            if (localChanges.length > 0) {
-                const choice = await vscode.window.showInformationMessage(
-                    I18n.get('skills.confirmPush', localChanges.length.toString()),
-                    I18n.get('skills.viewDiff'),
-                    I18n.get('skills.yes'),
-                    I18n.get('skills.cancel')
-                );
-
-                if (choice === I18n.get('skills.viewDiff')) {
-                    await diffViewer.showLocalChanges();
-                    return;
-                }
-                if (choice !== I18n.get('skills.yes')) {
-                    return;
-                }
-            }
-
-            const result = await gitManager.push({ skipPull: true });
-            
-            if (result.success) {
-                vscode.window.showInformationMessage(I18n.get('skills.pushSuccess'));
-                treeProvider.refresh();
-            } else {
-                if (result.conflict) {
-                    vscode.window.showErrorMessage(I18n.get('skills.mergeConflict'));
-                    return;
-                }
-                if (result.authError) {
-                    vscode.window.showErrorMessage(I18n.get('skills.configureAuth'));
-                } else {
-                    vscode.window.showErrorMessage(I18n.get('skills.pushFailed', result.error || 'Unknown error'));
+                    vscode.window.showErrorMessage(I18n.get('skills.syncFailed', result.error || 'Unknown error'));
                 }
             }
         })

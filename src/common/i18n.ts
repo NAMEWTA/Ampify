@@ -49,6 +49,9 @@ const translations = {
         'skills.pullFailed': 'Pull failed: {0}',
         'skills.pushSuccess': 'Successfully pushed to remote',
         'skills.pushFailed': 'Push failed: {0}',
+        'skills.syncSuccess': 'Sync completed',
+        'skills.syncFailed': 'Sync failed: {0}',
+        'skills.localOnlyCommit': 'Local commit completed (no remote configured)',
         'skills.mergeConflict': 'Merge conflict detected. Please resolve conflicts before continuing.',
         'skills.noRemoteConfigured': 'No remote repository configured. Please configure Git remote URL first.',
         'skills.configureAuth': 'Push/Pull failed due to authentication. Please configure SSH Key or Personal Access Token.',
@@ -91,7 +94,9 @@ const translations = {
         'skills.no': 'No',
         'skills.cancel': 'Cancel',
         'skills.openFolder': 'Open Folder',
-        'skills.noWorkspace': 'No workspace folder open'
+        'skills.noWorkspace': 'No workspace folder open',
+        'skills.syncToAgentMd': 'Sync AGENT.md',
+        'skills.agentMdSynced': 'AGENT.md updated'
     },
     'zh-cn': {
         'copier.noFilePath': '无法获取文件路径',
@@ -139,6 +144,9 @@ const translations = {
         'skills.pullFailed': '拉取失败：{0}',
         'skills.pushSuccess': '成功推送到远程',
         'skills.pushFailed': '推送失败：{0}',
+        'skills.syncSuccess': '同步完成',
+        'skills.syncFailed': '同步失败：{0}',
+        'skills.localOnlyCommit': '仅本地提交，未配置远程仓库',
         'skills.mergeConflict': '检测到合并冲突，请先处理冲突后再继续。',
         'skills.noRemoteConfigured': '未配置远程仓库，请先配置 Git 远程地址。',
         'skills.configureAuth': '推送/拉取失败，认证错误。请配置 SSH Key 或 Personal Access Token。',
@@ -181,7 +189,9 @@ const translations = {
         'skills.no': '否',
         'skills.cancel': '取消',
         'skills.openFolder': '打开文件夹',
-        'skills.noWorkspace': '未打开工作区文件夹'
+        'skills.noWorkspace': '未打开工作区文件夹',
+        'skills.syncToAgentMd': '同步 AGENT.md',
+        'skills.agentMdSynced': 'AGENT.md 已更新'
     }
 };
 

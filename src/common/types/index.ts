@@ -113,7 +113,7 @@ export interface GitStatus {
     /** 是否有未提交的更改 */
     hasUncommittedChanges: boolean;
     /** 是否有未推送的提交 */
-    hasUnpushedCommits: boolean;
+    unpushedCommitCount: number;
     /** 变更文件数 */
     changedFiles: number;
 }

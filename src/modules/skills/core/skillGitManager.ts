@@ -55,7 +55,7 @@ export class SkillGitManager {
             hasRemote: false,
             hasUnstagedChanges: false,
             hasUncommittedChanges: false,
-            hasUnpushedCommits: false,
+            unpushedCommitCount: 0,
             changedFiles: 0
         };
 
@@ -103,10 +103,10 @@ export class SkillGitManager {
             if (status.hasRemote && status.branch) {
                 try {
                     const log = await this.git.log([`origin/${status.branch}..HEAD`]);
-                    status.hasUnpushedCommits = log.total > 0;
+                    status.unpushedCommitCount = log.total;
                 } catch {
                     // 可能远程分支不存在
-                    status.hasUnpushedCommits = false;
+                    status.unpushedCommitCount = 0;
                 }
             }
 
@@ -208,17 +208,21 @@ export class SkillGitManager {
     /**
      * 拉取远程更新
      */
-    public async pull(): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean }> {
+    public async pull(): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean; noRemote?: boolean }> {
         try {
+            await this.init();
             const status = await this.getStatus();
             if (!status.hasRemote) {
                 const synced = await this.syncRemotesFromConfig();
                 if (!synced) {
-                    return { success: false, error: 'No remote configured' };
+                    return { success: true, noRemote: true };
                 }
             }
 
             const refreshed = await this.getStatus();
+            if (!refreshed.hasRemote) {
+                return { success: true, noRemote: true };
+            }
             await this.git.pull('origin', refreshed.branch || 'main');
 
             const afterStatus = await this.git.status();
@@ -247,13 +251,14 @@ export class SkillGitManager {
     /**
      * 推送到远程
      */
-    public async push(options?: { skipPull?: boolean }): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean }> {
+    public async push(options?: { skipPull?: boolean }): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean; noRemote?: boolean }> {
         try {
+            await this.init();
             const status = await this.getStatus();
             if (!status.hasRemote) {
                 const synced = await this.syncRemotesFromConfig();
                 if (!synced) {
-                    return { success: false, error: 'No remote configured' };
+                    return { success: true, noRemote: true };
                 }
             }
 
@@ -270,6 +275,9 @@ export class SkillGitManager {
             }
 
             const refreshed = await this.getStatus();
+            if (!refreshed.hasRemote) {
+                return { success: true, noRemote: true };
+            }
 
             // pull 后再提交
             if (refreshed.hasUncommittedChanges) {
@@ -282,7 +290,7 @@ export class SkillGitManager {
             const branch = refreshed.branch || 'main';
             const remotes = await this.getRemotesForPush();
             if (remotes.length === 0) {
-                return { success: false, error: 'No remote configured' };
+                return { success: true, noRemote: true };
             }
 
             for (const remote of remotes) {
@@ -307,6 +315,63 @@ export class SkillGitManager {
                 authError: isAuthError,
                 conflict: isConflict
             };
+        }
+    }
+
+    /**
+     * 统一同步：init -> pull -> commit -> push
+     */
+    public async sync(): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean; localOnly?: boolean }> {
+        try {
+            await this.init();
+
+            let status = await this.getStatus();
+            if (!status.hasRemote) {
+                const synced = await this.syncRemotesFromConfig();
+                if (synced) {
+                    status = await this.getStatus();
+                }
+            }
+
+            const hasRemote = status.hasRemote;
+
+            if (hasRemote) {
+                const pullResult = await this.pull();
+                if (!pullResult.success) {
+                    return {
+                        success: false,
+                        error: pullResult.error,
+                        authError: pullResult.authError,
+                        conflict: pullResult.conflict
+                    };
+                }
+            }
+
+            const refreshed = await this.getStatus();
+            if (refreshed.hasUncommittedChanges) {
+                const committed = await this.commit('Auto-sync commit');
+                if (!committed) {
+                    return { success: false, error: 'Commit failed' };
+                }
+            }
+
+            if (hasRemote) {
+                const pushResult = await this.push({ skipPull: true });
+                if (!pushResult.success) {
+                    return {
+                        success: false,
+                        error: pushResult.error,
+                        authError: pushResult.authError,
+                        conflict: pushResult.conflict
+                    };
+                }
+                return { success: true };
+            }
+
+            return { success: true, localOnly: true };
+        } catch (error: unknown) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            return { success: false, error: errorMsg };
         }
     }
 
