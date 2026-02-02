@@ -6,6 +6,7 @@ import { promisify } from 'util';
 import { SkillConfigManager } from './skillConfigManager';
 import { LoadedSkill, Prerequisite } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
+import { copyDir } from '../../../common/paths';
 
 const execAsync = promisify(exec);
 
@@ -140,7 +141,7 @@ export class SkillApplier {
             }
 
             // 复制 Skill 目录
-            this.configManager.copyDir(skill.path, skillTargetPath);
+            copyDir(skill.path, skillTargetPath);
 
             return { success: true };
         } catch (error: unknown) {

@@ -118,4 +118,4 @@ TypeScript 严格模式已开启（见 [tsconfig.json](tsconfig.json)）。
 - 单行输出：`path:line`，多行输出：`path:start-end`。
 - 启动器实例以独立用户目录运行，可共享扩展目录以复用已安装扩展。
 - Skills 元数据使用 SKILL.md 的 YAML frontmatter。
-- 全局 Skills 目录默认位于 ~/.vscodeskillsmanager/skills。
+- 全局 Skills 目录默认位于 ~/.vscode-ampify/vscodeskillsmanager/skills。

@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { SkillConfigManager } from './skillConfigManager';
 import { SkillMeta } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
+import { copyDir } from '../../../common/paths';
 
 export class SkillImporter {
     constructor(private configManager: SkillConfigManager) {}
@@ -85,7 +86,7 @@ export class SkillImporter {
         try {
             // 复制到全局目录
             const targetPath = this.configManager.getSkillPath(skillName);
-            this.configManager.copyDir(sourcePath, targetPath);
+            copyDir(sourcePath, targetPath);
 
             return { success: true, skillName };
         } catch (error: unknown) {

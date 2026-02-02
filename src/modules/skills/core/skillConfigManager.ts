@@ -1,66 +1,40 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import * as os from 'os';
 import { SkillsManagerConfig, SkillMeta, LoadedSkill, GitConfig } from '../../../common/types';
 import { parse as parseYaml } from 'yaml';
+import { BaseConfigManager } from '../../../common/baseConfigManager';
+import { ensureDir } from '../../../common/paths';
 
-export class SkillConfigManager {
-    private configPath: string;
-    private rootDir: string;
+export class SkillConfigManager extends BaseConfigManager<SkillsManagerConfig> {
     private skillsDir: string;
 
     constructor() {
-        this.rootDir = path.join(os.homedir(), '.vscodeskillsmanager');
-        this.configPath = path.join(this.rootDir, 'config.json');
+        super();
         this.skillsDir = path.join(this.rootDir, 'skills');
+    }
+
+    /**
+     * 获取模块名
+     */
+    protected getModuleName(): string {
+        return 'vscodeskillsmanager';
+    }
+
+    /**
+     * 默认配置
+     */
+    protected getDefaultConfig(): SkillsManagerConfig {
+        return {
+            gitConfig: {},
+            injectTarget: '.claude/skills/'
+        };
     }
 
     /**
      * 初始化目录结构
      */
-    public async ensureInit(): Promise<void> {
-        this.ensureDir(this.rootDir);
-        this.ensureDir(this.skillsDir);
-
-        if (!fs.existsSync(this.configPath)) {
-            const defaultConfig: SkillsManagerConfig = {
-                gitConfig: {},
-                injectTarget: '.claude/skills/'
-            };
-            fs.writeFileSync(this.configPath, JSON.stringify(defaultConfig, null, 2), 'utf8');
-        }
-    }
-
-    /**
-     * 确保目录存在
-     */
-    private ensureDir(dirPath: string): void {
-        if (!fs.existsSync(dirPath)) {
-            fs.mkdirSync(dirPath, { recursive: true });
-        }
-    }
-
-    /**
-     * 获取配置
-     */
-    public getConfig(): SkillsManagerConfig {
-        try {
-            if (!fs.existsSync(this.configPath)) {
-                return { gitConfig: {}, injectTarget: '.claude/skills/' };
-            }
-            const content = fs.readFileSync(this.configPath, 'utf8');
-            return JSON.parse(content);
-        } catch (error) {
-            console.error('Failed to read skills config', error);
-            return { gitConfig: {}, injectTarget: '.claude/skills/' };
-        }
-    }
-
-    /**
-     * 保存配置
-     */
-    public saveConfig(config: SkillsManagerConfig): void {
-        fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf8');
+    protected initializeDirectories(): void {
+        ensureDir(this.skillsDir);
     }
 
     /**
@@ -71,14 +45,6 @@ export class SkillConfigManager {
         config.gitConfig = { ...config.gitConfig, ...gitConfig };
         this.saveConfig(config);
     }
-
-    /**
-     * 获取根目录
-     */
-    public getRootDir(): string {
-        return this.rootDir;
-    }
-
 
     /**
      * 获取 Skills 目录
@@ -140,7 +106,7 @@ export class SkillConfigManager {
      */
     public saveSkillMd(skillName: string, content: string): void {
         const skillPath = this.getSkillPath(skillName);
-        this.ensureDir(skillPath);
+        ensureDir(skillPath);
         const skillMdPath = path.join(skillPath, 'SKILL.md');
         fs.writeFileSync(skillMdPath, content, 'utf8');
     }
@@ -229,22 +195,4 @@ export class SkillConfigManager {
         return Array.from(tagSet).sort();
     }
 
-    /**
-     * 复制目录
-     */
-    public copyDir(src: string, dest: string): void {
-        this.ensureDir(dest);
-        const entries = fs.readdirSync(src, { withFileTypes: true });
-
-        for (const entry of entries) {
-            const srcPath = path.join(src, entry.name);
-            const destPath = path.join(dest, entry.name);
-
-            if (entry.isDirectory()) {
-                this.copyDir(srcPath, destPath);
-            } else {
-                fs.copyFileSync(srcPath, destPath);
-            }
-        }
-    }
 }

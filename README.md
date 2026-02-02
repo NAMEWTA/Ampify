@@ -31,7 +31,7 @@ Ampify is a **multi-functional, practical VS Code extension** that helps you wor
 - Create or import Skills (must include **SKILL.md** frontmatter)
 - Apply Skills to the current workspace (default target: **.claude/skills/**)
 
-> Global Skills location: `~/.vscodeskillsmanager/skills`
+> Global Skills location: `~/.vscode-ampify/vscodeskillsmanager/skills`
 > Inject target can be customized via `ampify.skills.injectTarget`
 
 ---
@@ -69,5 +69,5 @@ Ampify 是一个**多功能实用型 VS Code 扩展**，整合了**文件路径 
 - 创建或导入 Skills（必须包含 **SKILL.md** frontmatter）
 - 将 Skills 注入当前项目（默认目标：**.claude/skills/**）
 
-> 全局 Skills 目录：`~/.vscodeskillsmanager/skills`
+> 全局 Skills 目录：`~/.vscode-ampify/vscodeskillsmanager/skills`
 > 注入目标可通过 `ampify.skills.injectTarget` 自定义
