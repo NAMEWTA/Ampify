@@ -230,11 +230,22 @@ export class AgentMdManager {
         const existing = fs.readFileSync(agentPath, 'utf8');
         const includeXml = this.buildIncludeXml(skillsMdPath);
 
-        const pattern = new RegExp(`<${SKILLS_TAG}>[\\s\\S]*?<\\/${SKILLS_TAG}>`);
+        // 匹配完整的 SKILLS MANAGER 块，包括标题和标签
+        // 支持可选的标题行 (# SKILLS MANAGER)，后跟 <skillsmanager>...</skillsmanager>
+        const pattern = new RegExp(
+            `(^|\\n)#\\s*SKILLS\\s+MANAGER\\s*\\n<${SKILLS_TAG}>[\\s\\S]*?<\\/${SKILLS_TAG}>|` +
+            `<${SKILLS_TAG}>[\\s\\S]*?<\\/${SKILLS_TAG}>`,
+            'g'
+        );
         let updated: string;
 
         if (pattern.test(existing)) {
-            updated = existing.replace(pattern, includeXml);
+            // 重置 lastIndex（因为使用了 g 标志进行 test）
+            pattern.lastIndex = 0;
+            updated = existing.replace(pattern, (match, prefix) => {
+                // 如果匹配到了换行前缀，保留换行
+                return (prefix === '\n' ? '\n' : '') + includeXml;
+            });
         } else if (existing.trim().length > 0) {
             updated = `${existing.trimEnd()}\n\n${includeXml}\n`;
         } else {
