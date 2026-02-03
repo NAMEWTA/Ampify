@@ -2,7 +2,7 @@
   "name": "ampify",
   "displayName": "Ampify",
   "description": "Ampify: A practical, multi-feature VS Code extension combining path+line copying and a multi-instance launcher (多功能实用扩展，集文件路径行号复制与多实例启动器于一体，持续发展中)。",
-  "version": "1.3.6",
+  "version": "1.4.0",
   "publisher": "NAMEWTA",
   "repository": {
     "type": "git",
@@ -37,28 +37,33 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "ampify-launcher",
-          "title": "Multi Launcher",
-          "icon": "$(account)"
-        },
-        {
-          "id": "ampify-skills",
-          "title": "Skills Manager",
-          "icon": "$(library)"
+          "id": "ampify",
+          "title": "Ampify",
+          "icon": "$(window)"
         }
       ]
     },
     "views": {
-      "ampify-launcher": [
+      "ampify": [
+        {
+          "id": "ampify-tab-bar",
+          "name": "Ampify",
+          "type": "webview"
+        },
         {
           "id": "ampify-launcher-instances",
-          "name": "Instances"
-        }
-      ],
-      "ampify-skills": [
+          "name": "Launcher",
+          "when": "ampify.activeTab == 'launcher'"
+        },
         {
           "id": "ampify-skills-tree",
-          "name": "Global Skills"
+          "name": "Skills",
+          "when": "ampify.activeTab == 'skills'"
+        },
+        {
+          "id": "ampify-commands-tree",
+          "name": "Commands",
+          "when": "ampify.activeTab == 'commands'"
         }
       ]
     },
@@ -180,6 +185,61 @@
         "command": "ampify.skills.syncToAgentMd",
         "title": "Sync AGENT.md",
         "icon": "$(book)"
+      },
+      {
+        "command": "ampify.commands.refresh",
+        "title": "Refresh Commands",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ampify.commands.search",
+        "title": "Search Commands",
+        "icon": "$(search)"
+      },
+      {
+        "command": "ampify.commands.filterByTag",
+        "title": "Filter by Tag",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "ampify.commands.clearFilter",
+        "title": "Clear Filter",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "ampify.commands.create",
+        "title": "Create New Command",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ampify.commands.import",
+        "title": "Import Command",
+        "icon": "$(folder-library)"
+      },
+      {
+        "command": "ampify.commands.apply",
+        "title": "Apply to Project",
+        "icon": "$(play)"
+      },
+      {
+        "command": "ampify.commands.preview",
+        "title": "Preview Command",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "ampify.commands.openFolder",
+        "title": "Open Commands Folder",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "ampify.commands.delete",
+        "title": "Delete Command",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ampify.commands.remove",
+        "title": "Remove from Project",
+        "icon": "$(close)"
       }
     ],
     "keybindings": [
@@ -250,6 +310,36 @@
           "command": "ampify.skills.syncToAgentMd",
           "when": "view == ampify-skills-tree",
           "group": "navigation@7"
+        },
+        {
+          "command": "ampify.commands.search",
+          "when": "view == ampify-commands-tree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ampify.commands.filterByTag",
+          "when": "view == ampify-commands-tree",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ampify.commands.refresh",
+          "when": "view == ampify-commands-tree",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ampify.commands.create",
+          "when": "view == ampify-commands-tree",
+          "group": "navigation@4"
+        },
+        {
+          "command": "ampify.commands.import",
+          "when": "view == ampify-commands-tree",
+          "group": "navigation@5"
+        },
+        {
+          "command": "ampify.commands.openFolder",
+          "when": "view == ampify-commands-tree",
+          "group": "navigation@6"
         }
       ],
       "view/item/context": [
@@ -292,6 +382,26 @@
           "command": "ampify.skills.editGitConfig",
           "when": "view == ampify-skills-tree && viewItem == gitConfigItem",
           "group": "inline"
+        },
+        {
+          "command": "ampify.commands.apply",
+          "when": "view == ampify-commands-tree && viewItem == commandItem",
+          "group": "inline@1"
+        },
+        {
+          "command": "ampify.commands.preview",
+          "when": "view == ampify-commands-tree && viewItem == commandItem",
+          "group": "inline@2"
+        },
+        {
+          "command": "ampify.commands.remove",
+          "when": "view == ampify-commands-tree && viewItem == commandItem",
+          "group": "1_edit@1"
+        },
+        {
+          "command": "ampify.commands.delete",
+          "when": "view == ampify-commands-tree && viewItem == commandItem",
+          "group": "2_delete"
         }
       ]
     },
@@ -311,6 +421,11 @@
           "type": "string",
           "default": ".claude/skills/",
           "description": "Default target directory to inject skills into projects (默认 Skill 注入目标目录)"
+        },
+        "ampify.commands.injectTarget": {
+          "type": "string",
+          "default": ".claude/commands/",
+          "description": "Default target directory to inject commands into projects (默认 Command 注入目标目录)"
         }
       }
     }

@@ -135,3 +135,39 @@ export interface DiffFile {
     /** 变更类型 */
     status: 'added' | 'modified' | 'deleted' | 'renamed';
 }
+
+// ==================== Commands Manager Types ====================
+
+/**
+ * Command 元数据 (MD frontmatter)
+ */
+export interface CommandMeta {
+    /** 命令名称，小写字母+连字符，≤64字符 */
+    command: string;
+    /** 简短描述，≤1024字符 */
+    description: string;
+    /** 标签列表 */
+    tags?: string[];
+}
+
+/**
+ * Commands Manager 全局配置 (config.json)
+ */
+export interface CommandsManagerConfig {
+    /** 默认注入目标目录 */
+    injectTarget?: string;
+}
+
+/**
+ * 加载的 Command 完整信息
+ */
+export interface LoadedCommand {
+    /** 命令文件名（不含扩展名） */
+    fileName: string;
+    /** 命令文件完整路径 */
+    path: string;
+    /** MD frontmatter 元数据 */
+    meta: CommandMeta;
+    /** 命令正文内容 */
+    content?: string;
+}

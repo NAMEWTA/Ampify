@@ -1,5 +1,14 @@
 # Change Log
 
+## 1.4.0 - 2026-02-04
+### Added
+- 侧边栏新增 Tab Bar（分段按钮）用于切换 Launcher/Skills/Commands。
+- Command 管理入口与说明更新。
+
+### Changed
+- Activity Bar 合并为单一 Ampify 入口。
+- 默认打开 Launcher 视图。
+
 ## 1.3.5 - 2026-02-03
 ### Added
 - 递归扫描注入目录并生成层级化 SKILLS.md 索引清单。

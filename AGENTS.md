@@ -1,12 +1,13 @@
 # AGENT.md
 
 ## 项目概述
-Ampify 是一个 VS Code 扩展，包含两大能力：
-1. 快速复制“文件路径 + 行号”，以便在报告和代码评审中引用。
+Ampify 是一个 VS Code 扩展，包含以下核心能力：
+1. 快速复制"文件路径 + 行号"，以便在报告和代码评审中引用。
 2. VS Code 多实例启动器，用于管理与启动不同的用户配置。
 3. Skills Manager：全局 Skills 库管理、SKILL.md 元数据、注入项目。
+4. Commands Manager：全局 Commands 库管理，单文件命令管理与项目注入。
 
-扩展在启动完成后激活（`onStartupFinished`），注册复制路径命令与启动器命令，并在 Activity Bar 提供实例视图。
+扩展在启动完成后激活（`onStartupFinished`），注册复制路径命令与各模块命令，并在 Activity Bar 提供统一入口与 Tab Bar 视图。
 
 - 入口文件： [src/extension.ts](src/extension.ts)
 - 扩展清单： [package.json](package.json)
@@ -21,10 +22,14 @@ Ampify 是一个 VS Code 扩展，包含两大能力：
       - [src/modules/launcher/core/](src/modules/launcher/core/)：配置与进程启动
       - [src/modules/launcher/views/](src/modules/launcher/views/)：TreeView 视图
     - [src/modules/copier/](src/modules/copier/)：复制路径与行号
-      - [src/modules/skills/](src/modules/skills/)：Skills Manager
-        - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、Git、Diff
-        - [src/modules/skills/templates/](src/modules/skills/templates/)：SKILL.md 模板
-        - [src/modules/skills/views/](src/modules/skills/views/)：Skills TreeView
+    - [src/modules/skills/](src/modules/skills/)：Skills Manager
+      - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、Git、Diff
+      - [src/modules/skills/templates/](src/modules/skills/templates/)：SKILL.md 模板
+      - [src/modules/skills/views/](src/modules/skills/views/)：Skills TreeView
+    - [src/modules/commands/](src/modules/commands/)：Commands Manager
+      - [src/modules/commands/core/](src/modules/commands/core/)：配置、导入、应用、创建
+      - [src/modules/commands/templates/](src/modules/commands/templates/)：Command MD 模板
+      - [src/modules/commands/views/](src/modules/commands/views/)：Commands TreeView
 - [package.json](package.json)：扩展清单、命令、快捷键、脚本与依赖
 - [tsconfig.json](tsconfig.json)：TypeScript 编译配置
 - [.eslintrc.json](.eslintrc.json)：ESLint 规则
@@ -66,6 +71,14 @@ Skills Manager 核心逻辑：
 3. Skills 通过 TreeView 展示，支持搜索、标签过滤、导入、预览与 Diff。
 4. 注入目标默认 `.claude/skills/`，可通过 `ampify.skills.injectTarget` 修改。
 
+Commands Manager 核心逻辑：
+1. [src/modules/commands/core/commandConfigManager.ts](src/modules/commands/core/commandConfigManager.ts) 负责全局目录与配置（含 MD frontmatter 解析）。
+2. [src/modules/commands/templates/commandMdTemplate.ts](src/modules/commands/templates/commandMdTemplate.ts) 生成命令 MD 模板。
+3. 命令采用扁平结构，每个 `.md` 文件即一个命令，文件名必须与 `command` 字段一致。
+4. 命令通过 TreeView 展示，支持搜索、标签过滤、拖拽导入。
+5. 注入目标默认 `.claude/commands/`，可通过 `ampify.commands.injectTarget` 修改。
+6. 全局命令目录位于 `~/.vscode-ampify/vscodecmdmanager/commands/`。
+
 ## 命令与快捷键
 - 复制相对路径与行号：`ampify.copy-relative-path-line`（`Ctrl+Alt+C`）
 - 复制绝对路径与行号：`ampify.copy-absolute-path-line`（`Ctrl+Alt+V`）
@@ -88,6 +101,17 @@ Skills Manager 核心逻辑：
 - 打开 Skills 目录：`ampify.skills.openFolder`
 - 删除 Skill：`ampify.skills.delete`
 - 从项目移除：`ampify.skills.remove`
+- Commands 刷新：`ampify.commands.refresh`
+- Commands 搜索：`ampify.commands.search`
+- Commands 标签过滤：`ampify.commands.filterByTag`
+- Commands 清除过滤：`ampify.commands.clearFilter`
+- 新建 Command：`ampify.commands.create`
+- 导入 Command：`ampify.commands.import`
+- 应用 Command 到项目：`ampify.commands.apply`
+- 预览 Command：`ampify.commands.preview`
+- 打开 Commands 目录：`ampify.commands.openFolder`
+- 删除 Command：`ampify.commands.delete`
+- 从项目移除 Command：`ampify.commands.remove`
 
 复制命令已注册到编辑器右键菜单，启动器命令在实例视图和条目菜单中提供。
 
@@ -117,25 +141,9 @@ TypeScript 严格模式已开启（见 [tsconfig.json](tsconfig.json)）。
 - 输出结果始终包裹反引号，适用于 Markdown 引用。
 - 单行输出：`path:line`，多行输出：`path:start-end`。
 - 启动器实例以独立用户目录运行，可共享扩展目录以复用已安装扩展。
-- Skills 元数据使用 SKILL.md 的 YAML frontmatter。
-- 全局 Skills 目录默认位于 ~/.vscode-ampify/vscodeskillsmanager/skills。
-- 项目 Skills 清单存储在 SKILLS.md 中，通过 `<skillsmanager>` 的 `<include>` 标签引用。
 
-<skills-index>
-  <description>项目 Skills 索引配置。Ampify 自动扫描 injectTarget 目录下所有 SKILL.md，生成层级化的 SKILLS.md 清单文件。</description>
-  <config>
-    <injectTarget>.claude/skills/</injectTarget>
-    <skillsMdPath>.claude/SKILLS.md</skillsMdPath>
-  </config>
-  <rules>
-    <rule>递归扫描 injectTarget 下所有子目录</rule>
-    <rule>仅含 SKILL.md 的目录创建节点</rule>
-    <rule>跳过无 SKILL.md 的中间层，子 skill 直接挂载到最近的父节点</rule>
-    <rule>SKILLS.md 生成在 injectTarget 的父目录</rule>
-  </rules>
-</skills-index>
-
+# SKILLS MANAGER
 <skillsmanager>
-  <instruction>强制需要去这里查看是否有自己所需要的SKILLS列表</instruction>
+  <instruction>必须在此处查看可用的 SKILLS 列表</instruction>
   <include path=".claude/SKILLS.md" />
 </skillsmanager>

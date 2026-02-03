@@ -6,7 +6,7 @@ Ampify is a **multi-functional, practical VS Code extension** that helps you wor
 
 - Copy **relative path** + selected line number
 - Copy **absolute path** + selected line number
-- Multi-instance launcher with an Activity Bar view
+- Unified Activity Bar entry with a segmented Tab Bar (Launcher/Skills/Commands)
 - Skills Manager with a global Skills library (SKILL.md metadata)
 - Search, tag filter, preview, and apply Skills to a project
 - Sync Skills with Git, view changes, and manage Git settings/status
@@ -22,19 +22,26 @@ Ampify is a **multi-functional, practical VS Code extension** that helps you wor
 
 ### Multi-Instance Launcher
 
-- Open **Multi Launcher** from the Activity Bar
+- Open **Ampify** from the Activity Bar and switch to the **Launcher** tab
 - Use the view toolbar to **Add**, **Refresh**, or **Edit Config**
 - Use item actions to **Launch** or **Delete** instances
 
 ### Skills Manager
 
-- Open **Skills Manager** from the Activity Bar
+- Open **Ampify** from the Activity Bar and switch to the **Skills** tab
 - Use the view toolbar to **Search**, **Filter by Tag**, **Sync**, **Show Changes**, or **Refresh**
 - Create or import Skills (must include **SKILL.md** frontmatter)
 - Apply Skills to the current workspace (default target: **.claude/skills/**)
 - Auto-generate a hierarchical **SKILLS.md** index and reference it from **AGENTS.md**
 - Configure Git settings and see Git status in the Skills tree
 - Auto-sync Skills by interval and manage multiple Git remotes
+
+### Commands Manager
+
+- Open **Ampify** from the Activity Bar and switch to the **Commands** tab
+- Use the view toolbar to **Search**, **Filter by Tag**, **Refresh**, **Create**, or **Import**
+- Preview, apply, remove, or delete commands
+- Inject target can be customized via `ampify.commands.injectTarget`
 
 > Global Skills location: `~/.vscode-ampify/vscodeskillsmanager/skills`
 > Inject target can be customized via `ampify.skills.injectTarget`
@@ -66,19 +73,26 @@ Ampify 是一个**多功能实用型 VS Code 扩展**，整合了**文件路径 
 
 ### 多实例启动器
 
-- 从 Activity Bar 打开 **Multi Launcher**
+- 从 Activity Bar 打开 **Ampify**，切换到 **Launcher** 标签
 - 使用视图工具栏 **Add / Refresh / Edit Config**
 - 对条目执行 **Launch / Delete**
 
 ### Skills Manager
 
-- 从 Activity Bar 打开 **Skills Manager**
+- 从 Activity Bar 打开 **Ampify**，切换到 **Skills** 标签
 - 使用视图工具栏 **Search / Filter by Tag / Sync / Show Changes / Refresh**
 - 创建或导入 Skills（必须包含 **SKILL.md** frontmatter）
 - 将 Skills 注入当前项目（默认目标：**.claude/skills/**）
 - 自动生成层级化 **SKILLS.md** 清单，并在 **AGENTS.md** 中通过 `<skillsmanager><include>` 引用
 - 在 Skills 树中配置 Git 设置并查看 Git 状态
 - 支持按间隔自动同步与多远程 Git 管理
+
+### Commands Manager
+
+- 从 Activity Bar 打开 **Ampify**，切换到 **Commands** 标签
+- 使用视图工具栏 **Search / Filter by Tag / Refresh / Create / Import**
+- 预览、注入、移除或删除命令
+- 注入目标可通过 `ampify.commands.injectTarget` 自定义
 
 > 全局 Skills 目录：`~/.vscode-ampify/vscodeskillsmanager/skills`
 > 注入目标可通过 `ampify.skills.injectTarget` 自定义
