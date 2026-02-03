@@ -249,8 +249,9 @@ export class AgentMdManager {
      */
     private buildIncludeXml(skillsMdPath: string): string {
         const lines: string[] = [];
+        lines.push(`# SKILLS MANAGER`);
         lines.push(`<${SKILLS_TAG}>`);
-        lines.push('  <instruction>强制需要去这里查看是否有自己所需要的SKILLS列表</instruction>');
+        lines.push('  <instruction>必须在此处查看可用的 SKILLS 列表</instruction>');
         lines.push(`  <include path="${escapeXml(skillsMdPath)}" />`);
         lines.push(`</${SKILLS_TAG}>`);
         return lines.join('\n');
