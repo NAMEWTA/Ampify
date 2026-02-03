@@ -119,3 +119,23 @@ TypeScript 严格模式已开启（见 [tsconfig.json](tsconfig.json)）。
 - 启动器实例以独立用户目录运行，可共享扩展目录以复用已安装扩展。
 - Skills 元数据使用 SKILL.md 的 YAML frontmatter。
 - 全局 Skills 目录默认位于 ~/.vscode-ampify/vscodeskillsmanager/skills。
+- 项目 Skills 清单存储在 SKILLS.md 中，通过 `<skillsmanager>` 的 `<include>` 标签引用。
+
+<skills-index>
+  <description>项目 Skills 索引配置。Ampify 自动扫描 injectTarget 目录下所有 SKILL.md，生成层级化的 SKILLS.md 清单文件。</description>
+  <config>
+    <injectTarget>.claude/skills/</injectTarget>
+    <skillsMdPath>.claude/SKILLS.md</skillsMdPath>
+  </config>
+  <rules>
+    <rule>递归扫描 injectTarget 下所有子目录</rule>
+    <rule>仅含 SKILL.md 的目录创建节点</rule>
+    <rule>跳过无 SKILL.md 的中间层，子 skill 直接挂载到最近的父节点</rule>
+    <rule>SKILLS.md 生成在 injectTarget 的父目录</rule>
+  </rules>
+</skills-index>
+
+<skillsmanager>
+  <instruction>强制需要去这里查看是否有自己所需要的SKILLS列表</instruction>
+  <include path=".claude/SKILLS.md" />
+</skillsmanager>

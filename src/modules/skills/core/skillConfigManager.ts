@@ -89,39 +89,69 @@ export class SkillConfigManager extends BaseConfigManager<SkillsManagerConfig> {
     }
 
     /**
-     * 扫描并加载所有 Skills
+     * 扫描并加载所有 Skills（支持层级结构）
      */
     public loadAllSkills(): LoadedSkill[] {
-        const skills: LoadedSkill[] = [];
-
         if (!fs.existsSync(this.skillsDir)) {
-            return skills;
+            return [];
         }
 
-        const entries = fs.readdirSync(this.skillsDir, { withFileTypes: true });
+        return this.loadSkillsRecursive(this.skillsDir, this.skillsDir);
+    }
+
+    /**
+     * 递归加载 Skills
+     * - 只有含 SKILL.md 的目录才会创建节点
+     * - 跳过无 SKILL.md 的中间层，子 skill 直接挂载到最近的父 skill
+     */
+    private loadSkillsRecursive(currentDir: string, rootDir: string): LoadedSkill[] {
+        const skills: LoadedSkill[] = [];
+        const entries = fs.readdirSync(currentDir, { withFileTypes: true });
 
         for (const entry of entries) {
-            if (!entry.isDirectory()) continue;
+            if (!entry.isDirectory()) {
+                continue;
+            }
 
-            const skillPath = path.join(this.skillsDir, entry.name);
-            const skillMdPath = path.join(skillPath, 'SKILL.md');
+            const childDir = path.join(currentDir, entry.name);
+            const skillMdPath = path.join(childDir, 'SKILL.md');
+            const hasSkillMd = fs.existsSync(skillMdPath);
 
-            // 必须有 SKILL.md
-            if (!fs.existsSync(skillMdPath)) continue;
+            if (hasSkillMd) {
+                // 当前目录有 SKILL.md，解析为节点
+                try {
+                    const meta = this.parseSkillMetaFromMarkdown(skillMdPath, entry.name);
+                    if (meta) {
+                        const relativePath = path.relative(rootDir, childDir).replace(/\\/g, '/');
+                        meta.relativePath = relativePath;
 
-            try {
-                const meta = this.parseSkillMetaFromMarkdown(skillMdPath, entry.name);
-                if (!meta) continue;
+                        // 递归加载子 skill
+                        const children = this.loadSkillsRecursive(childDir, rootDir);
 
-                skills.push({
-                    dirName: entry.name,
-                    path: skillPath,
-                    meta,
-                    hasSkillMd: true,
-                    skillMdPath
-                });
-            } catch (error) {
-                console.error(`Failed to load skill ${entry.name}:`, error);
+                        const loadedSkill: LoadedSkill = {
+                            dirName: entry.name,
+                            path: childDir,
+                            meta,
+                            hasSkillMd: true,
+                            skillMdPath,
+                            relativePath,
+                            children: children.length > 0 ? children : undefined
+                        };
+
+                        // 同步 children 到 meta
+                        if (children.length > 0) {
+                            meta.children = children.map(c => c.meta);
+                        }
+
+                        skills.push(loadedSkill);
+                    }
+                } catch (error) {
+                    console.error(`Failed to load skill ${entry.name}:`, error);
+                }
+            } else {
+                // 当前目录无 SKILL.md，继续向下搜索，找到的 skill 直接提升到当前层级
+                const descendantSkills = this.loadSkillsRecursive(childDir, rootDir);
+                skills.push(...descendantSkills);
             }
         }
 

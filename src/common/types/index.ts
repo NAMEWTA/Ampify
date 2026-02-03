@@ -46,6 +46,10 @@ export interface SkillMeta {
     allowedTools?: string[];
     /** 前置依赖列表 */
     prerequisites?: Prerequisite[];
+    /** 相对路径（相对于 injectTarget） */
+    relativePath?: string;
+    /** 子 Skill 列表（层级结构） */
+    children?: SkillMeta[];
 }
 
 /**
@@ -84,6 +88,10 @@ export interface LoadedSkill {
     hasSkillMd: boolean;
     /** SKILL.md 文件路径 */
     skillMdPath?: string;
+    /** 相对路径（相对于 skills 根目录） */
+    relativePath?: string;
+    /** 子 Skill 列表（层级结构） */
+    children?: LoadedSkill[];
 }
 
 /**

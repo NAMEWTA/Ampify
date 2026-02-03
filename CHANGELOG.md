@@ -1,5 +1,13 @@
 # Change Log
 
+## 1.3.5 - 2026-02-03
+### Added
+- 递归扫描注入目录并生成层级化 SKILLS.md 索引清单。
+- AGENTS.md 支持 <skillsmanager> 的 <include> 引用与指令提示。
+
+### Changed
+- Skills 加载与索引支持跳过无 SKILL.md 的中间层。
+
 ## 1.3.4 - 2026-02-02
 ### Added
 - Skills Git 同步能力说明：Sync（拉取 → 自动提交 → 推送）与多远程支持。
