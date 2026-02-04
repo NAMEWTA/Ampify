@@ -1,5 +1,15 @@
 # Change Log
 
+## 1.5.0 - 2026-02-04
+### Added
+- 新增 Git Sync（Git Share）模块，用于 Skills/Commands 的统一同步入口。
+- 提供 Git 配置向导、状态展示与差异预览能力。
+
+### Changed
+- Skills/Commands 统一使用共享 Git 仓库与 Diff 查看器。
+- Skills 元数据移除 version 字段与相关校验逻辑，简化 SKILL.md 处理流程。
+- 移除 Skills 视图中的 Git 同步/变更功能入口，统一迁移到 Git Sync。
+
 ## 1.4.0 - 2026-02-04
 ### Added
 - 侧边栏新增 Tab Bar（分段按钮）用于切换 Launcher/Skills/Commands。

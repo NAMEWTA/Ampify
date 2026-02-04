@@ -6,11 +6,10 @@ Ampify is a **multi-functional, practical VS Code extension** that helps you wor
 
 - Copy **relative path** + selected line number
 - Copy **absolute path** + selected line number
-- Unified Activity Bar entry with a segmented Tab Bar (Launcher/Skills/Commands)
+- Unified Activity Bar entry with a segmented Tab Bar (Launcher/Skills/Commands/Git Sync)
 - Skills Manager with a global Skills library (SKILL.md metadata)
 - Search, tag filter, preview, and apply Skills to a project
-- Sync Skills with Git, view changes, and manage Git settings/status
-- Auto-sync interval and multi-remote Git support
+- Git Sync module for unified repository sync and diff preview
 - Practical workflows with ongoing improvements
 
 ## Usage
@@ -29,12 +28,16 @@ Ampify is a **multi-functional, practical VS Code extension** that helps you wor
 ### Skills Manager
 
 - Open **Ampify** from the Activity Bar and switch to the **Skills** tab
-- Use the view toolbar to **Search**, **Filter by Tag**, **Sync**, **Show Changes**, or **Refresh**
+- Use the view toolbar to **Search**, **Filter by Tag**, or **Refresh**
 - Create or import Skills (must include **SKILL.md** frontmatter)
 - Apply Skills to the current workspace (default target: **.claude/skills/**)
 - Auto-generate a hierarchical **SKILLS.md** index and reference it from **AGENTS.md**
-- Configure Git settings and see Git status in the Skills tree
-- Auto-sync Skills by interval and manage multiple Git remotes
+
+### Git Sync
+
+- Open **Ampify** from the Activity Bar and switch to the **Git Sync** tab
+- Use the view toolbar to **Sync**, **Show Changes**, **Configure Git**, or **Refresh**
+- Unified repository sync and diff preview for Skills/Commands
 
 ### Commands Manager
 
@@ -60,8 +63,7 @@ Ampify 是一个**多功能实用型 VS Code 扩展**，整合了**文件路径 
 - Activity Bar 多实例启动器视图
 - Skills Manager 全局 Skills 库（SKILL.md 元数据）
 - Skills 搜索、标签过滤、预览与注入项目
-- Skills Git 同步、查看变更、管理 Git 设置/状态
-- 自动同步间隔与多远程 Git 支持
+- Git Sync 模块：统一同步与差异预览
 - 实用工作流与持续优化
 
 ## 使用方法
@@ -80,12 +82,16 @@ Ampify 是一个**多功能实用型 VS Code 扩展**，整合了**文件路径 
 ### Skills Manager
 
 - 从 Activity Bar 打开 **Ampify**，切换到 **Skills** 标签
-- 使用视图工具栏 **Search / Filter by Tag / Sync / Show Changes / Refresh**
+- 使用视图工具栏 **Search / Filter by Tag / Refresh**
 - 创建或导入 Skills（必须包含 **SKILL.md** frontmatter）
 - 将 Skills 注入当前项目（默认目标：**.claude/skills/**）
 - 自动生成层级化 **SKILLS.md** 清单，并在 **AGENTS.md** 中通过 `<skillsmanager><include>` 引用
-- 在 Skills 树中配置 Git 设置并查看 Git 状态
-- 支持按间隔自动同步与多远程 Git 管理
+
+### Git Sync
+
+- 从 Activity Bar 打开 **Ampify**，切换到 **Git Sync** 标签
+- 使用视图工具栏 **Sync / Show Changes / Configure Git / Refresh**
+- Skills/Commands 的统一仓库同步与差异预览
 
 ### Commands Manager
 
