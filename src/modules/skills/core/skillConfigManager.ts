@@ -1,16 +1,41 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { SkillsManagerConfig, SkillMeta, LoadedSkill, GitConfig } from '../../../common/types';
+import { SkillsManagerConfig, SkillMeta, LoadedSkill } from '../../../common/types';
 import { parse as parseYaml } from 'yaml';
-import { BaseConfigManager } from '../../../common/baseConfigManager';
-import { ensureDir } from '../../../common/paths';
+import { getGitShareModuleDir, ensureDir, getModuleDir } from '../../../common/paths';
 
-export class SkillConfigManager extends BaseConfigManager<SkillsManagerConfig> {
+/**
+ * Skills Manager 配置管理器
+ * 数据存储在 gitshare/vscodeskillsmanager/ 目录下
+ * 配置存储在原来的 vscodeskillsmanager/ 目录下（本地配置）
+ */
+export class SkillConfigManager {
+    private static instance: SkillConfigManager;
+    
+    /** 本地配置目录（不同步） */
+    protected readonly localRootDir: string;
+    /** 本地配置文件路径 */
+    protected readonly configPath: string;
+    /** Git 共享数据目录 */
+    protected readonly gitShareDir: string;
+    /** Skills 数据目录 */
     private skillsDir: string;
 
-    constructor() {
-        super();
-        this.skillsDir = path.join(this.rootDir, 'skills');
+    private constructor() {
+        // 本地配置目录（不同步）
+        this.localRootDir = getModuleDir(this.getModuleName());
+        this.configPath = path.join(this.localRootDir, 'config.json');
+        
+        // Git 共享数据目录
+        this.gitShareDir = getGitShareModuleDir(this.getModuleName());
+        this.skillsDir = path.join(this.gitShareDir, 'skills');
+    }
+
+    public static getInstance(): SkillConfigManager {
+        if (!SkillConfigManager.instance) {
+            SkillConfigManager.instance = new SkillConfigManager();
+        }
+        return SkillConfigManager.instance;
     }
 
     /**
@@ -32,46 +57,78 @@ export class SkillConfigManager extends BaseConfigManager<SkillsManagerConfig> {
     }
 
     /**
+     * 确保初始化
+     */
+    public ensureInit(): void {
+        ensureDir(this.localRootDir);
+        ensureDir(this.gitShareDir);
+        ensureDir(this.skillsDir);
+
+        if (!fs.existsSync(this.configPath)) {
+            const defaultConfig = this.getDefaultConfig();
+            fs.writeFileSync(this.configPath, JSON.stringify(defaultConfig, null, 2), 'utf8');
+        }
+    }
+
+    /**
      * 读取配置并做兼容处理
      */
-    public override getConfig(): SkillsManagerConfig {
-        const config = super.getConfig();
-        const gitConfig = config.gitConfig || {};
-
-        if (!gitConfig.remoteUrls || gitConfig.remoteUrls.length === 0) {
-            if (gitConfig.remoteUrl) {
-                gitConfig.remoteUrls = [gitConfig.remoteUrl];
-            } else {
-                gitConfig.remoteUrls = [];
+    public getConfig(): SkillsManagerConfig {
+        try {
+            if (!fs.existsSync(this.configPath)) {
+                return this.getDefaultConfig();
             }
-        }
+            const content = fs.readFileSync(this.configPath, 'utf8');
+            const config = JSON.parse(content) as SkillsManagerConfig;
 
-        if (!config.autoSyncMinutes || config.autoSyncMinutes <= 0) {
-            config.autoSyncMinutes = 10;
-        }
+            // 兼容处理
+            const gitConfig = config.gitConfig || {};
+            if (!gitConfig.remoteUrls || gitConfig.remoteUrls.length === 0) {
+                if (gitConfig.remoteUrl) {
+                    gitConfig.remoteUrls = [gitConfig.remoteUrl];
+                } else {
+                    gitConfig.remoteUrls = [];
+                }
+            }
 
-        config.gitConfig = gitConfig;
-        return config;
+            if (!config.autoSyncMinutes || config.autoSyncMinutes <= 0) {
+                config.autoSyncMinutes = 10;
+            }
+
+            config.gitConfig = gitConfig;
+            return config;
+        } catch (error) {
+            console.error('Failed to read skills config', error);
+            return this.getDefaultConfig();
+        }
     }
 
     /**
-     * 初始化目录结构
+     * 保存配置
      */
-    protected initializeDirectories(): void {
-        ensureDir(this.skillsDir);
+    public saveConfig(config: SkillsManagerConfig): void {
+        fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf8');
     }
 
     /**
-     * 更新 Git 配置
+     * 获取本地配置目录（不同步）
      */
-    public updateGitConfig(gitConfig: Partial<GitConfig>): void {
-        const config = this.getConfig();
-        const merged: GitConfig = { ...config.gitConfig, ...gitConfig };
-        if (gitConfig.remoteUrl) {
-            merged.remoteUrls = [gitConfig.remoteUrl];
-        }
-        config.gitConfig = merged;
-        this.saveConfig(config);
+    public getLocalRootDir(): string {
+        return this.localRootDir;
+    }
+
+    /**
+     * 获取 Git 共享数据目录
+     */
+    public getGitShareDir(): string {
+        return this.gitShareDir;
+    }
+
+    /**
+     * 获取配置文件路径
+     */
+    public getConfigPath(): string {
+        return this.configPath;
     }
 
     /**
@@ -86,6 +143,13 @@ export class SkillConfigManager extends BaseConfigManager<SkillsManagerConfig> {
      */
     public getSkillPath(skillName: string): string {
         return path.join(this.skillsDir, skillName);
+    }
+
+    /**
+     * 获取 Skill 相对于 gitshare 根目录的相对路径
+     */
+    public getSkillRelativePath(skillName: string): string {
+        return `${this.getModuleName()}/skills/${skillName}`;
     }
 
     /**

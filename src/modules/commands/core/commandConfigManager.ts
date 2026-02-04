@@ -1,21 +1,34 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { BaseConfigManager } from '../../../common/baseConfigManager';
-import { ensureDir } from '../../../common/paths';
+import { getGitShareModuleDir, ensureDir, getModuleDir } from '../../../common/paths';
 import { CommandsManagerConfig, LoadedCommand } from '../../../common/types';
 import { parseCommandMd } from '../templates/commandMdTemplate';
 
 /**
  * Commands Manager 配置管理器
- * 管理全局命令目录和配置
+ * 数据存储在 gitshare/vscodecmdmanager/ 目录下
+ * 配置存储在原来的 vscodecmdmanager/ 目录下（本地配置）
  */
-export class CommandConfigManager extends BaseConfigManager<CommandsManagerConfig> {
+export class CommandConfigManager {
     private static instance: CommandConfigManager;
+    
+    /** 本地配置目录（不同步） */
+    protected readonly localRootDir: string;
+    /** 本地配置文件路径 */
+    protected readonly configPath: string;
+    /** Git 共享数据目录 */
+    protected readonly gitShareDir: string;
+    /** Commands 数据目录 */
     private commandsDir: string;
 
     private constructor() {
-        super();
-        this.commandsDir = path.join(this.rootDir, 'commands');
+        // 本地配置目录（不同步）
+        this.localRootDir = getModuleDir(this.getModuleName());
+        this.configPath = path.join(this.localRootDir, 'config.json');
+        
+        // Git 共享数据目录
+        this.gitShareDir = getGitShareModuleDir(this.getModuleName());
+        this.commandsDir = path.join(this.gitShareDir, 'commands');
     }
 
     public static getInstance(): CommandConfigManager {
@@ -35,8 +48,53 @@ export class CommandConfigManager extends BaseConfigManager<CommandsManagerConfi
         };
     }
 
-    protected override initializeDirectories(): void {
+    public ensureInit(): void {
+        ensureDir(this.localRootDir);
+        ensureDir(this.gitShareDir);
         ensureDir(this.commandsDir);
+
+        if (!fs.existsSync(this.configPath)) {
+            const defaultConfig = this.getDefaultConfig();
+            fs.writeFileSync(this.configPath, JSON.stringify(defaultConfig, null, 2), 'utf8');
+        }
+    }
+
+    public getConfig(): CommandsManagerConfig {
+        try {
+            if (!fs.existsSync(this.configPath)) {
+                return this.getDefaultConfig();
+            }
+            const content = fs.readFileSync(this.configPath, 'utf8');
+            return JSON.parse(content) as CommandsManagerConfig;
+        } catch (error) {
+            console.error('Failed to read commands config', error);
+            return this.getDefaultConfig();
+        }
+    }
+
+    public saveConfig(config: CommandsManagerConfig): void {
+        fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf8');
+    }
+
+    /**
+     * 获取本地配置目录（不同步）
+     */
+    public getLocalRootDir(): string {
+        return this.localRootDir;
+    }
+
+    /**
+     * 获取 Git 共享数据目录
+     */
+    public getGitShareDir(): string {
+        return this.gitShareDir;
+    }
+
+    /**
+     * 获取配置文件路径
+     */
+    public getConfigPath(): string {
+        return this.configPath;
     }
 
     /**
@@ -44,6 +102,13 @@ export class CommandConfigManager extends BaseConfigManager<CommandsManagerConfi
      */
     public getCommandsDir(): string {
         return this.commandsDir;
+    }
+
+    /**
+     * 获取命令相对于 gitshare 根目录的相对路径
+     */
+    public getCommandRelativePath(commandName: string): string {
+        return `${this.getModuleName()}/commands/${commandName}.md`;
     }
 
     /**

@@ -2,8 +2,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import { SkillConfigManager } from '../core/skillConfigManager';
-import { SkillGitManager } from '../core/skillGitManager';
-import { LoadedSkill, FilterState, GitStatus } from '../../../common/types';
+import { LoadedSkill, FilterState } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
 
 /**
@@ -11,9 +10,6 @@ import { I18n } from '../../../common/i18n';
  */
 type TreeItemType = 
     | 'group' 
-    | 'configItem'
-    | 'gitConfigItem' 
-    | 'gitStatusItem'
     | 'skillItem' 
     | 'skillDetailItem' 
     | 'skillFilesGroup'
@@ -49,18 +45,14 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
 
     // 过滤状态
     private filterState: FilterState = {};
-    private cachedGitStatus: GitStatus | null = null;
-
     constructor(
-        private configManager: SkillConfigManager,
-        private gitManager: SkillGitManager
+        private configManager: SkillConfigManager
     ) {}
 
     /**
      * 刷新 TreeView
      */
     refresh(): void {
-        this.cachedGitStatus = null;
         this._onDidChangeTreeData.fire();
     }
 
@@ -115,9 +107,7 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
         // 子节点
         switch (element.itemType) {
             case 'group':
-                if (element.label === I18n.get('skills.gitSettings')) {
-                    return this.getGitSettingsChildren();
-                } else if (element.label === I18n.get('skills.skillsList')) {
+                if (element.label === I18n.get('skills.skillsList')) {
                     return this.getSkillsListChildren();
                 }
                 break;
@@ -153,15 +143,6 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
             items.push(filterItem);
         }
 
-        // Git Settings 分组
-        const gitSettingsItem = new SkillTreeItem(
-            I18n.get('skills.gitSettings'),
-            vscode.TreeItemCollapsibleState.Collapsed,
-            'group'
-        );
-        gitSettingsItem.iconPath = new vscode.ThemeIcon('git-branch');
-        items.push(gitSettingsItem);
-
         // Skills 分组
         const skillsItem = new SkillTreeItem(
             I18n.get('skills.skillsList'),
@@ -174,171 +155,6 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
         return items;
     }
 
-    /**
-     * 获取 Git 设置子节点
-     */
-    private async getGitSettingsChildren(): Promise<SkillTreeItem[]> {
-        const items: SkillTreeItem[] = [];
-        const config = this.configManager.getConfig();
-        const gitConfig = config.gitConfig || {};
-        const remoteUrls = (gitConfig.remoteUrls && gitConfig.remoteUrls.length > 0)
-            ? gitConfig.remoteUrls
-            : (gitConfig.remoteUrl ? [gitConfig.remoteUrl] : []);
-
-        // 获取 Git 状态
-        if (!this.cachedGitStatus) {
-            this.cachedGitStatus = await this.gitManager.getStatus();
-        }
-        const status = this.cachedGitStatus;
-
-        // Config Wizard
-        const configItem = new SkillTreeItem(
-            I18n.get('skills.config'),
-            vscode.TreeItemCollapsibleState.None,
-            'configItem'
-        );
-        configItem.iconPath = new vscode.ThemeIcon('settings-gear');
-        configItem.command = {
-            command: 'ampify.skills.openConfigWizard',
-            title: 'Configure'
-        };
-        items.push(configItem);
-
-        // User Name
-        const userNameItem = new SkillTreeItem(
-            I18n.get('skills.userName'),
-            vscode.TreeItemCollapsibleState.None,
-            'gitConfigItem',
-            { field: 'userName', value: gitConfig.userName }
-        );
-        userNameItem.description = gitConfig.userName || I18n.get('skills.notConfigured');
-        userNameItem.iconPath = new vscode.ThemeIcon('person');
-        userNameItem.command = {
-            command: 'ampify.skills.editGitConfig',
-            title: 'Edit',
-            arguments: ['userName']
-        };
-        items.push(userNameItem);
-
-        // User Email
-        const userEmailItem = new SkillTreeItem(
-            I18n.get('skills.userEmail'),
-            vscode.TreeItemCollapsibleState.None,
-            'gitConfigItem',
-            { field: 'userEmail', value: gitConfig.userEmail }
-        );
-        userEmailItem.description = gitConfig.userEmail || I18n.get('skills.notConfigured');
-        userEmailItem.iconPath = new vscode.ThemeIcon('mail');
-        userEmailItem.command = {
-            command: 'ampify.skills.editGitConfig',
-            title: 'Edit',
-            arguments: ['userEmail']
-        };
-        items.push(userEmailItem);
-
-        // Remote URL
-        const remoteUrlItem = new SkillTreeItem(
-            I18n.get('skills.remoteUrl'),
-            vscode.TreeItemCollapsibleState.None,
-            'gitConfigItem',
-            { field: 'remoteUrl', value: gitConfig.remoteUrl }
-        );
-        if (remoteUrls.length === 0) {
-            remoteUrlItem.description = I18n.get('skills.notConfigured');
-        } else if (remoteUrls.length === 1) {
-            remoteUrlItem.description = remoteUrls[0];
-        } else {
-            remoteUrlItem.description = `${remoteUrls.length} remotes`;
-        }
-        remoteUrlItem.iconPath = new vscode.ThemeIcon('cloud');
-        remoteUrlItem.command = {
-            command: 'ampify.skills.editGitConfig',
-            title: 'Edit',
-            arguments: ['remoteUrl']
-        };
-        if (remoteUrls.length > 1) {
-            remoteUrlItem.tooltip = remoteUrls.join('\n');
-        }
-        items.push(remoteUrlItem);
-
-        // Git Status
-        const statusItem = new SkillTreeItem(
-            I18n.get('skills.gitStatus'),
-            vscode.TreeItemCollapsibleState.None,
-            'gitStatusItem'
-        );
-        statusItem.description = this.getGitStatusDescription(status);
-        statusItem.iconPath = this.getGitStatusIcon(status);
-        statusItem.tooltip = this.getGitStatusTooltip(status);
-        items.push(statusItem);
-
-        return items;
-    }
-
-    /**
-     * 获取 Git 状态描述
-     */
-    private getGitStatusDescription(status: GitStatus): string {
-        if (!status.initialized) {
-            return 'Not initialized';
-        }
-
-        const parts: string[] = [];
-        if (status.branch) {
-            parts.push(status.branch);
-        }
-        if (status.changedFiles > 0) {
-            parts.push(`${status.changedFiles} changed`);
-        }
-        if (status.unpushedCommitCount > 0) {
-            parts.push(`↑${status.unpushedCommitCount}`);
-        }
-
-        return parts.length > 0 ? parts.join(' | ') : 'Clean';
-    }
-
-    /**
-     * Git 状态 Tooltip
-     */
-    private getGitStatusTooltip(status: GitStatus): string {
-        if (!status.initialized) {
-            return 'Not initialized';
-        }
-
-        const parts: string[] = [];
-        const unpushed = status.unpushedCommitCount;
-        const changed = status.changedFiles;
-
-        if (unpushed > 0) {
-            parts.push(`${unpushed} 个未推送的提交`);
-        }
-        if (changed > 0) {
-            parts.push(`${changed} 个本地更改`);
-        }
-
-        if (parts.length === 0) {
-            return 'Clean';
-        }
-
-        return parts.join('，');
-    }
-
-    /**
-     * 获取 Git 状态图标
-     */
-    private getGitStatusIcon(status: GitStatus): vscode.ThemeIcon {
-        if (!status.initialized) {
-            return new vscode.ThemeIcon('warning', new vscode.ThemeColor('charts.yellow'));
-        }
-        if (status.changedFiles > 0 || status.unpushedCommitCount > 0) {
-            return new vscode.ThemeIcon('sync', new vscode.ThemeColor('charts.orange'));
-        }
-        return new vscode.ThemeIcon('check', new vscode.ThemeColor('charts.green'));
-    }
-
-    /**
-     * 获取 Skills 列表子节点
-     */
     private getSkillsListChildren(): SkillTreeItem[] {
         let skills = this.configManager.loadAllSkills();
 

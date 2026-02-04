@@ -2,24 +2,20 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import { SkillGitManager } from './skillGitManager';
-import { DiffFile } from '../../../common/types';
-import { I18n } from '../../../common/i18n';
-import { DiffViewer } from '../../../common/git';
+import { GitManager } from './gitManager';
+import { DiffFile } from '../types';
+import { I18n } from '../i18n';
 
 /**
- * Skills Diff 查看器
- * 作为共享 DiffViewer 的薄包装层，提供 Skills 模块特定的功能
+ * 共享 Diff 查看器
+ * 统一管理 gitshare 目录的 Diff 展示
  */
-export class SkillDiffViewer {
-    private diffViewer: DiffViewer;
-
-    constructor(private gitManager: SkillGitManager) {
-        this.diffViewer = new DiffViewer(gitManager.getGitManager());
+export class DiffViewer {
+    constructor(private gitManager: GitManager) {
     }
 
     /**
-     * 显示本地变更的 Diff（仅 Skills 模块）
+     * 显示本地变更的 Diff
      */
     public async showLocalChanges(): Promise<void> {
         const changes = await this.gitManager.getLocalChanges();
@@ -36,7 +32,28 @@ export class SkillDiffViewer {
      * 显示远程变更的 Diff
      */
     public async showRemoteChanges(): Promise<void> {
-        return this.diffViewer.showRemoteChanges();
+        const changes = await this.gitManager.getRemoteDiff();
+        
+        if (changes.length === 0) {
+            vscode.window.showInformationMessage(I18n.get('skills.noChanges'));
+            return;
+        }
+
+        await this.showDiffPicker(changes, 'remote');
+    }
+
+    /**
+     * 显示指定模块的本地变更
+     */
+    public async showModuleLocalChanges(moduleName: string): Promise<void> {
+        const changes = await this.gitManager.getModuleChanges(moduleName);
+        
+        if (changes.length === 0) {
+            vscode.window.showInformationMessage(I18n.get('skills.noChanges'));
+            return;
+        }
+
+        await this.showDiffPicker(changes, 'local');
     }
 
     /**
@@ -119,7 +136,7 @@ export class SkillDiffViewer {
         }
 
         // 创建临时文件存储 HEAD 版本
-        const tempDir = path.join(os.tmpdir(), 'ampify-skills-diff');
+        const tempDir = path.join(os.tmpdir(), 'ampify-diff');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
         }
@@ -153,7 +170,7 @@ export class SkillDiffViewer {
         }
 
         // 创建临时文件存储远程版本
-        const tempDir = path.join(os.tmpdir(), 'ampify-skills-diff');
+        const tempDir = path.join(os.tmpdir(), 'ampify-diff');
         if (!fs.existsSync(tempDir)) {
             fs.mkdirSync(tempDir, { recursive: true });
         }
@@ -178,24 +195,5 @@ export class SkillDiffViewer {
         const title = I18n.get('skills.diffTitle', path.basename(relativePath));
 
         await vscode.commands.executeCommand('vscode.diff', localUri, remoteUri, title);
-    }
-
-    /**
-     * 显示单个 Skill 的变更
-     */
-    public async showSkillDiff(skillName: string): Promise<void> {
-        const changes = await this.gitManager.getLocalChanges();
-        // 过滤出该 skill 相关的变更（路径格式：vscodeskillsmanager/skills/{skillName}/...）
-        const skillChanges = changes.filter(c => 
-            c.path.includes(`skills/${skillName}/`) || 
-            c.path.endsWith(`skills/${skillName}`)
-        );
-
-        if (skillChanges.length === 0) {
-            vscode.window.showInformationMessage(I18n.get('skills.noChanges'));
-            return;
-        }
-
-        await this.showDiffPicker(skillChanges, 'local');
     }
 }

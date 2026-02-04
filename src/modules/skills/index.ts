@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import { SkillConfigManager } from './core/skillConfigManager';
 import { SkillGitManager } from './core/skillGitManager';
 import { SkillApplier } from './core/skillApplier';
@@ -12,12 +11,12 @@ import { LoadedSkill } from '../../common/types';
 import { I18n } from '../../common/i18n';
 
 export async function registerSkillManager(context: vscode.ExtensionContext): Promise<void> {
-    console.log('Loading Skills Manager...');
+    console.log('Loading Skills module...');
 
     try {
-        // 初始化核心组件
-        const configManager = new SkillConfigManager();
-        await configManager.ensureInit();
+        // 初始化核心组件（使用单例模式）
+        const configManager = SkillConfigManager.getInstance();
+        configManager.ensureInit();
 
         const gitManager = new SkillGitManager(configManager);
         await gitManager.init();
@@ -26,32 +25,8 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         const importer = new SkillImporter(configManager);
         const creator = new SkillCreator(configManager);
         const diffViewer = new SkillDiffViewer(gitManager);
-        const treeProvider = new SkillTreeProvider(configManager, gitManager);
+        const treeProvider = new SkillTreeProvider(configManager);
         const agentMdManager = new AgentMdManager(configManager);
-
-        const applyGitConfigFromFile = async (): Promise<void> => {
-            try {
-                const config = configManager.getConfig();
-                const gitConfig = config.gitConfig || {};
-                const remoteUrls = (gitConfig.remoteUrls && gitConfig.remoteUrls.length > 0)
-                    ? gitConfig.remoteUrls
-                    : (gitConfig.remoteUrl ? [gitConfig.remoteUrl] : []);
-
-                await gitManager.init();
-
-                if (gitConfig.userName && gitConfig.userEmail) {
-                    await gitManager.configureUser(gitConfig.userName, gitConfig.userEmail);
-                }
-
-                if (remoteUrls.length > 0) {
-                    await gitManager.setRemotes(remoteUrls);
-                }
-
-                treeProvider.refresh();
-            } catch (error) {
-                console.error('Failed to apply git config:', error);
-            }
-        };
 
         // 注册 TreeDataProvider（带拖拽支持）
         const treeView = vscode.window.createTreeView('ampify-skills-tree', {
@@ -61,63 +36,6 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         });
         context.subscriptions.push(treeView);
 
-        await applyGitConfigFromFile();
-
-        // 自动同步（pull -> commit -> push）定时任务
-        let autoSyncTimer: NodeJS.Timeout | undefined;
-        let configWatcher: fs.FSWatcher | undefined;
-        let reloadTimer: NodeJS.Timeout | undefined;
-
-        const runAutoSync = async (): Promise<void> => {
-            try {
-                await gitManager.sync();
-                treeProvider.refresh();
-            } catch (error) {
-                console.error('Auto sync failed:', error);
-            }
-        };
-
-        const startAutoSync = (): void => {
-            if (autoSyncTimer) {
-                clearInterval(autoSyncTimer);
-                autoSyncTimer = undefined;
-            }
-
-            const config = configManager.getConfig();
-            const minutes = config.autoSyncMinutes ?? 10;
-            if (minutes <= 0) return;
-
-            autoSyncTimer = setInterval(() => {
-                void runAutoSync();
-            }, minutes * 60 * 1000);
-        };
-
-        startAutoSync();
-
-        const configPath = configManager.getConfigPath();
-        configWatcher = fs.watch(configPath, { persistent: false }, () => {
-            if (reloadTimer) {
-                clearTimeout(reloadTimer);
-            }
-            reloadTimer = setTimeout(() => {
-                startAutoSync();
-                void applyGitConfigFromFile();
-            }, 300);
-        });
-
-        context.subscriptions.push({
-            dispose: () => {
-                if (autoSyncTimer) {
-                    clearInterval(autoSyncTimer);
-                }
-                if (configWatcher) {
-                    configWatcher.close();
-                }
-                if (reloadTimer) {
-                    clearTimeout(reloadTimer);
-                }
-            }
-        });
 
     // ==================== 注册命令 ====================
 
@@ -320,75 +238,6 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         })
     );
 
-    // 编辑 Git 配置
-    context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.editGitConfig', async (field?: string) => {
-            const configPath = configManager.getConfigPath();
-            const doc = await vscode.workspace.openTextDocument(configPath);
-            const editor = await vscode.window.showTextDocument(doc);
-
-            const text = doc.getText();
-            let targetIndex = text.indexOf('"gitConfig"');
-
-            if (field) {
-                const fieldIndex = text.indexOf(`"${field}"`);
-                const altFieldIndex = field === 'remoteUrl' ? text.indexOf('"remoteUrls"') : -1;
-                targetIndex = fieldIndex >= 0 ? fieldIndex : (altFieldIndex >= 0 ? altFieldIndex : targetIndex);
-            }
-
-            if (targetIndex >= 0) {
-                const position = doc.positionAt(targetIndex);
-                editor.selection = new vscode.Selection(position, position);
-                editor.revealRange(new vscode.Range(position, position));
-            }
-
-            vscode.window.showInformationMessage(I18n.get('skills.gitConfigOpened'));
-        })
-    );
-
-    // 交互式配置 Git
-    context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.openConfigWizard', async () => {
-            const config = configManager.getConfig();
-            const gitConfig = config.gitConfig || {};
-            const remoteUrls = (gitConfig.remoteUrls && gitConfig.remoteUrls.length > 0)
-                ? gitConfig.remoteUrls
-                : (gitConfig.remoteUrl ? [gitConfig.remoteUrl] : []);
-
-            const userName = await vscode.window.showInputBox({
-                prompt: I18n.get('skills.inputUserName'),
-                value: gitConfig.userName || ''
-            });
-            if (userName === undefined) return;
-
-            const userEmail = await vscode.window.showInputBox({
-                prompt: I18n.get('skills.inputUserEmail'),
-                value: gitConfig.userEmail || ''
-            });
-            if (userEmail === undefined) return;
-
-            const remoteInput = await vscode.window.showInputBox({
-                prompt: I18n.get('skills.inputRemoteUrls'),
-                value: remoteUrls.join(', ')
-            });
-            if (remoteInput === undefined) return;
-
-            const parsedRemoteUrls = remoteInput
-                .split(/[\n,]/)
-                .map(s => s.trim())
-                .filter(Boolean);
-
-            configManager.updateGitConfig({
-                userName: userName || undefined,
-                userEmail: userEmail || undefined,
-                remoteUrls: parsedRemoteUrls,
-                remoteUrl: parsedRemoteUrls.length === 1 ? parsedRemoteUrls[0] : undefined
-            });
-
-            await applyGitConfigFromFile();
-            vscode.window.showInformationMessage(I18n.get('skills.gitConfigUpdated'));
-        })
-    );
 
     // 打开 Skills 文件夹
     context.subscriptions.push(
@@ -448,37 +297,12 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         })
     );
 
-    // Sync (init -> pull -> commit -> push)
-    context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.sync', async () => {
-            const result = await gitManager.sync();
 
-            if (result.success) {
-                if (result.localOnly) {
-                    vscode.window.showInformationMessage(I18n.get('skills.localOnlyCommit'));
-                } else {
-                    vscode.window.showInformationMessage(I18n.get('skills.syncSuccess'));
-                }
-                treeProvider.refresh();
-            } else {
-                if (result.conflict) {
-                    vscode.window.showErrorMessage(I18n.get('skills.mergeConflict'));
-                    return;
-                }
-                if (result.authError) {
-                    vscode.window.showErrorMessage(I18n.get('skills.configureAuth'));
-                } else {
-                    vscode.window.showErrorMessage(I18n.get('skills.syncFailed', result.error || 'Unknown error'));
-                }
-            }
-        })
-    );
-
-        console.log('Module "Skills Manager" loaded');
+        console.log('Module "Skills" loaded');
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        console.error('Skills Manager failed to load:', message);
-        vscode.window.showErrorMessage(`Skills Manager failed to load: ${message}`);
+        console.error('Skills module failed to load:', message);
+        vscode.window.showErrorMessage(`Skills module failed to load: ${message}`);
     }
 }
 

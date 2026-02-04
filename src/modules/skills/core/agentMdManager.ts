@@ -4,7 +4,7 @@ import { parse as parseYaml } from 'yaml';
 import { SkillMeta } from '../../../common/types';
 import { SkillConfigManager } from './skillConfigManager';
 
-const SKILLS_TAG = 'skillsmanager';
+const SKILLS_TAG = 'ampify';
 const SKILLS_MD_FILENAME = 'SKILLS.md';
 
 export class AgentMdManager {
@@ -230,11 +230,11 @@ export class AgentMdManager {
         const existing = fs.readFileSync(agentPath, 'utf8');
         const includeXml = this.buildIncludeXml(skillsMdPath);
 
-        // 匹配完整的 SKILLS MANAGER 块，包括标题和标签
-        // 支持可选的标题行 (# SKILLS MANAGER)，后跟 <skillsmanager>...</skillsmanager>
+        // 匹配完整的 AMPIFY 块，包括标题和标签
+        // 支持可选的标题行 (# AMPIFY 或旧版 # SKILLS MANAGER)，后跟 <ampify>...</ampify> 或 <skillsmanager>...</skillsmanager>
         const pattern = new RegExp(
-            `(^|\\n)#\\s*SKILLS\\s+MANAGER\\s*\\n<${SKILLS_TAG}>[\\s\\S]*?<\\/${SKILLS_TAG}>|` +
-            `<${SKILLS_TAG}>[\\s\\S]*?<\\/${SKILLS_TAG}>`,
+            `(^|\\n)#\\s*(AMPIFY|SKILLS\\s+MANAGER)\\s*\\n<(${SKILLS_TAG}|skillsmanager)>[\\s\\S]*?<\\/(${SKILLS_TAG}|skillsmanager)>|` +
+            `<(${SKILLS_TAG}|skillsmanager)>[\\s\\S]*?<\\/(${SKILLS_TAG}|skillsmanager)>`,
             'g'
         );
         let updated: string;
@@ -256,11 +256,11 @@ export class AgentMdManager {
     }
 
     /**
-     * 构建 AGENTS.md 中的 <skillsmanager> include 引用
+     * 构建 AGENTS.md 中的 <ampify> include 引用
      */
     private buildIncludeXml(skillsMdPath: string): string {
         const lines: string[] = [];
-        lines.push(`# SKILLS MANAGER`);
+        lines.push(`# AMPIFY`);
         lines.push(`<${SKILLS_TAG}>`);
         lines.push('  <instruction>必须在此处查看可用的 SKILLS 列表</instruction>');
         lines.push(`  <include path="${escapeXml(skillsMdPath)}" />`);

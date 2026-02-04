@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-export type TabId = 'launcher' | 'skills' | 'commands';
+export type TabId = 'launcher' | 'skills' | 'commands' | 'gitshare';
 
 interface TabConfig {
     id: TabId;
@@ -11,7 +11,8 @@ interface TabConfig {
 const TABS: TabConfig[] = [
     { id: 'launcher', label: 'Launcher', icon: '🚀' },
     { id: 'skills', label: 'Skills', icon: '📚' },
-    { id: 'commands', label: 'Commands', icon: '⌨️' }
+    { id: 'commands', label: 'Commands', icon: '⌨️' },
+    { id: 'gitshare', label: 'Git Sync', icon: '🔄' }
 ];
 
 export class TabBarViewProvider implements vscode.WebviewViewProvider {
@@ -78,8 +79,8 @@ export class TabBarViewProvider implements vscode.WebviewViewProvider {
             box-sizing: border-box;
         }
         html, body {
-            height: 36px;
-            max-height: 36px;
+            height: 24px;
+            max-height: 24px;
             overflow: hidden;
             background: transparent;
             font-family: var(--vscode-font-family);
@@ -87,27 +88,27 @@ export class TabBarViewProvider implements vscode.WebviewViewProvider {
         }
         .tab-bar {
             display: flex;
-            height: 32px;
+            height: 22px;
             background: var(--vscode-sideBar-background);
-            border-radius: 6px;
-            padding: 2px;
-            gap: 2px;
+            border-radius: 4px;
+            padding: 1px;
+            gap: 1px;
         }
         .tab-btn {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
-            height: 28px;
+            gap: 3px;
+            height: 20px;
             border: none;
-            border-radius: 4px;
+            border-radius: 3px;
             background: transparent;
             color: var(--vscode-foreground);
             cursor: pointer;
             transition: background-color 0.15s ease;
-            font-size: 11px;
-            padding: 0 8px;
+            font-size: 10px;
+            padding: 0 6px;
             opacity: 0.7;
         }
         .tab-btn:hover {
@@ -120,7 +121,7 @@ export class TabBarViewProvider implements vscode.WebviewViewProvider {
             opacity: 1;
         }
         .tab-btn .icon {
-            font-size: 12px;
+            font-size: 10px;
         }
         .tab-btn .label {
             font-weight: 500;

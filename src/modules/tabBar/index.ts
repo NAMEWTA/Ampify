@@ -17,7 +17,7 @@ export function registerTabBar(context: vscode.ExtensionContext): TabBarViewProv
     // 注册切换 Tab 命令
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.switchTab', (tab: TabId) => {
-            if (['launcher', 'skills', 'commands'].includes(tab)) {
+            if (['launcher', 'skills', 'commands', 'gitshare'].includes(tab)) {
                 provider.setActiveTab(tab);
                 vscode.commands.executeCommand('setContext', 'ampify.activeTab', tab);
             }

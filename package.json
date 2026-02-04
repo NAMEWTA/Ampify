@@ -64,6 +64,11 @@
           "id": "ampify-commands-tree",
           "name": "Commands",
           "when": "ampify.activeTab == 'commands'"
+        },
+        {
+          "id": "ampify-gitshare-tree",
+          "name": "Git Sync",
+          "when": "ampify.activeTab == 'gitshare'"
         }
       ]
     },
@@ -122,11 +127,6 @@
         "icon": "$(clear-all)"
       },
       {
-        "command": "ampify.skills.sync",
-        "title": "Sync Git",
-        "icon": "$(sync)"
-      },
-      {
         "command": "ampify.skills.create",
         "title": "Create New Skill",
         "icon": "$(add)"
@@ -150,16 +150,6 @@
         "command": "ampify.skills.showDiff",
         "title": "Show Changes",
         "icon": "$(diff)"
-      },
-      {
-        "command": "ampify.skills.editGitConfig",
-        "title": "Edit Git Config",
-        "icon": "$(gear)"
-      },
-      {
-        "command": "ampify.skills.openConfigWizard",
-        "title": "Configure Skills Git",
-        "icon": "$(settings-gear)"
       },
       {
         "command": "ampify.skills.openFolder",
@@ -240,6 +230,36 @@
         "command": "ampify.commands.remove",
         "title": "Remove from Project",
         "icon": "$(close)"
+      },
+      {
+        "command": "ampify.gitShare.refresh",
+        "title": "Refresh Git Share",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ampify.gitShare.sync",
+        "title": "Sync Git",
+        "icon": "$(sync)"
+      },
+      {
+        "command": "ampify.gitShare.showDiff",
+        "title": "Show Changes",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "ampify.gitShare.editConfig",
+        "title": "Edit Git Config",
+        "icon": "$(gear)"
+      },
+      {
+        "command": "ampify.gitShare.openConfigWizard",
+        "title": "Configure Git",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "ampify.gitShare.openFolder",
+        "title": "Open Git Share Folder",
+        "icon": "$(folder-opened)"
       }
     ],
     "keybindings": [
@@ -292,11 +312,6 @@
           "group": "navigation@2"
         },
         {
-          "command": "ampify.skills.sync",
-          "when": "view == ampify-skills-tree",
-          "group": "navigation@3"
-        },
-        {
           "command": "ampify.skills.refresh",
           "when": "view == ampify-skills-tree",
           "group": "navigation@4"
@@ -340,6 +355,26 @@
           "command": "ampify.commands.openFolder",
           "when": "view == ampify-commands-tree",
           "group": "navigation@6"
+        },
+        {
+          "command": "ampify.gitShare.sync",
+          "when": "view == ampify-gitshare-tree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "ampify.gitShare.showDiff",
+          "when": "view == ampify-gitshare-tree",
+          "group": "navigation@2"
+        },
+        {
+          "command": "ampify.gitShare.refresh",
+          "when": "view == ampify-gitshare-tree",
+          "group": "navigation@3"
+        },
+        {
+          "command": "ampify.gitShare.openFolder",
+          "when": "view == ampify-gitshare-tree",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
@@ -377,11 +412,6 @@
           "command": "ampify.skills.delete",
           "when": "view == ampify-skills-tree && viewItem == skillItem",
           "group": "2_delete"
-        },
-        {
-          "command": "ampify.skills.editGitConfig",
-          "when": "view == ampify-skills-tree && viewItem == gitConfigItem",
-          "group": "inline"
         },
         {
           "command": "ampify.commands.apply",

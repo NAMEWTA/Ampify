@@ -38,8 +38,28 @@ function generateFrontmatter(meta: CommandMeta): string {
  */
 function generateDefaultBody(_meta: CommandMeta): string {
     return `
-<!-- 命令内容 -->
-<!-- 在此编写命令的具体内容 -->
+
+# 命令标题
+
+## 用途
+简要说明此命令的用途和适用场景。
+
+## 指令内容
+
+你是一个专业的 [角色描述]。
+
+## 任务
+[描述具体任务]
+
+## 约束
+- [约束条件]
+
+## 输出格式
+[期望的输出格式]
+
+## 注意事项
+- 注意点 1
+- 注意点 2
 
 `;
 }

@@ -4,6 +4,7 @@ import { registerLauncher } from './modules/launcher';
 import { registerSkillManager } from './modules/skills';
 import { registerCommandManager } from './modules/commands';
 import { registerTabBar } from './modules/tabBar';
+import { registerGitShare } from './modules/gitShare';
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Activating Ampify Extension...');
@@ -17,22 +18,25 @@ export async function activate(context: vscode.ExtensionContext) {
     // Register the new "Launcher" module
     registerLauncher(context);
 
-    // Register the "Skills Manager" module
+    // Register Git Share module
+    registerGitShare(context);
+
+    // Register the "Skills" module
     try {
         await registerSkillManager(context);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        console.error('Failed to register Skills Manager:', message);
-        vscode.window.showErrorMessage(`Skills Manager failed to load: ${message}`);
+        console.error('Failed to register Skills module:', message);
+        vscode.window.showErrorMessage(`Skills module failed to load: ${message}`);
     }
 
-    // Register the "Commands Manager" module
+    // Register the "Commands" module
     try {
         await registerCommandManager(context);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        console.error('Failed to register Commands Manager:', message);
-        vscode.window.showErrorMessage(`Commands Manager failed to load: ${message}`);
+        console.error('Failed to register Commands module:', message);
+        vscode.window.showErrorMessage(`Commands module failed to load: ${message}`);
     }
 
     console.log('Ampify Extension Activated');
