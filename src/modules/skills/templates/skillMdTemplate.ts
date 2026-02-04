@@ -10,7 +10,6 @@ export function generateSkillMdContent(meta: SkillMeta): string {
     lines.push('---');
     lines.push(`name: ${meta.name}`);
     lines.push(`description: ${meta.description}`);
-    lines.push(`version: ${meta.version}`);
     if (meta.tags && meta.tags.length > 0) {
         lines.push('tags:');
         meta.tags.forEach(tag => lines.push(`  - ${tag}`));
@@ -112,12 +111,6 @@ export function generateSkillMdContent(meta: SkillMeta): string {
         lines.push(meta.tags.map(tag => `\`${tag}\``).join(' '));
         lines.push('');
     }
-
-    // 版本信息
-    lines.push('## 版本');
-    lines.push('');
-    lines.push(`当前版本：${meta.version}`);
-    lines.push('');
 
     // 高级用法
     lines.push('## 高级用法');

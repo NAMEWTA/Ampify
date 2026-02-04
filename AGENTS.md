@@ -23,7 +23,7 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
       - [src/modules/launcher/views/](src/modules/launcher/views/)：TreeView 视图
     - [src/modules/copier/](src/modules/copier/)：复制路径与行号
     - [src/modules/skills/](src/modules/skills/)：Skills Manager
-      - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、Git、Diff
+      - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、创建
       - [src/modules/skills/templates/](src/modules/skills/templates/)：SKILL.md 模板
       - [src/modules/skills/views/](src/modules/skills/views/)：Skills TreeView
     - [src/modules/commands/](src/modules/commands/)：Commands Manager
@@ -68,7 +68,7 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
 Skills Manager 核心逻辑：
 1. [src/modules/skills/core/skillConfigManager.ts](src/modules/skills/core/skillConfigManager.ts) 负责全局目录与配置（含 SKILL.md 解析）。
 2. [src/modules/skills/templates/skillMdTemplate.ts](src/modules/skills/templates/skillMdTemplate.ts) 生成 SKILL.md 模板与 YAML frontmatter。
-3. Skills 通过 TreeView 展示，支持搜索、标签过滤、导入、预览与 Diff。
+3. Skills 通过 TreeView 展示，支持搜索、标签过滤、导入、预览。
 4. 注入目标默认 `.claude/skills/`，可通过 `ampify.skills.injectTarget` 修改。
 
 Commands Manager 核心逻辑：
@@ -91,13 +91,10 @@ Commands Manager 核心逻辑：
 - Skills 搜索：`ampify.skills.search`
 - Skills 标签过滤：`ampify.skills.filterByTag`
 - 清除过滤：`ampify.skills.clearFilter`
-- Skills 拉取/推送：`ampify.skills.pull` / `ampify.skills.push`
 - 新建 Skill：`ampify.skills.create`
 - 导入 Skill：`ampify.skills.import`
 - 应用到项目：`ampify.skills.apply`
 - 预览 SKILL.md：`ampify.skills.preview`
-- 显示变更：`ampify.skills.showDiff`
-- 编辑 Git 配置：`ampify.skills.editGitConfig`
 - 打开 Skills 目录：`ampify.skills.openFolder`
 - 删除 Skill：`ampify.skills.delete`
 - 从项目移除：`ampify.skills.remove`

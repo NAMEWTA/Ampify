@@ -38,8 +38,6 @@ export interface SkillMeta {
     name: string;
     /** 简短描述，≤1024字符 */
     description: string;
-    /** 版本号 (semver) */
-    version: string;
     /** 标签列表 */
     tags?: string[];
     /** 限制可用工具 */
@@ -66,10 +64,6 @@ export interface GitConfig {
  * Skills Manager 全局配置 (config.json)
  */
 export interface SkillsManagerConfig {
-    /** Git 配置 */
-    gitConfig: GitConfig;
-    /** 自动同步间隔（分钟） */
-    autoSyncMinutes?: number;
     /** 默认注入目标目录 */
     injectTarget?: string;
 }

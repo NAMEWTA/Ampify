@@ -1,10 +1,8 @@
 import * as vscode from 'vscode';
 import { SkillConfigManager } from './core/skillConfigManager';
-import { SkillGitManager } from './core/skillGitManager';
 import { SkillApplier } from './core/skillApplier';
 import { SkillImporter } from './core/skillImporter';
 import { SkillCreator } from './core/skillCreator';
-import { SkillDiffViewer } from './core/skillDiffViewer';
 import { SkillTreeProvider, SkillTreeItem } from './views/skillTreeProvider';
 import { AgentMdManager } from './core/agentMdManager';
 import { LoadedSkill } from '../../common/types';
@@ -18,13 +16,9 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         const configManager = SkillConfigManager.getInstance();
         configManager.ensureInit();
 
-        const gitManager = new SkillGitManager(configManager);
-        await gitManager.init();
-
         const applier = new SkillApplier(configManager);
         const importer = new SkillImporter(configManager);
         const creator = new SkillCreator(configManager);
-        const diffViewer = new SkillDiffViewer(gitManager);
         const treeProvider = new SkillTreeProvider(configManager);
         const agentMdManager = new AgentMdManager(configManager);
 
@@ -212,20 +206,6 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
                 const doc = await vscode.workspace.openTextDocument(skill.skillMdPath);
                 await vscode.window.showTextDocument(doc);
             }
-        })
-    );
-
-    // 显示 Diff
-    context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.showDiff', async (item: SkillTreeItem) => {
-            if (!item || item.itemType !== 'skillItem') {
-                // 显示所有本地变更
-                await diffViewer.showLocalChanges();
-                return;
-            }
-
-            const skill = item.data as LoadedSkill;
-            await diffViewer.showSkillDiff(skill.meta.name);
         })
     );
 

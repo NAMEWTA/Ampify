@@ -147,11 +147,6 @@
         "icon": "$(open-preview)"
       },
       {
-        "command": "ampify.skills.showDiff",
-        "title": "Show Changes",
-        "icon": "$(diff)"
-      },
-      {
         "command": "ampify.skills.openFolder",
         "title": "Open Skills Folder",
         "icon": "$(folder-opened)"
@@ -322,6 +317,11 @@
           "group": "navigation@5"
         },
         {
+          "command": "ampify.skills.openFolder",
+          "when": "view == ampify-skills-tree",
+          "group": "navigation@6"
+        },
+        {
           "command": "ampify.skills.syncToAgentMd",
           "when": "view == ampify-skills-tree",
           "group": "navigation@7"
@@ -399,14 +399,9 @@
           "group": "inline@2"
         },
         {
-          "command": "ampify.skills.showDiff",
-          "when": "view == ampify-skills-tree && viewItem == skillItem",
-          "group": "1_edit@1"
-        },
-        {
           "command": "ampify.skills.openFolder",
           "when": "view == ampify-skills-tree && viewItem == skillItem",
-          "group": "1_edit@2"
+          "group": "1_edit@1"
         },
         {
           "command": "ampify.skills.delete",

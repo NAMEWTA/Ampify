@@ -107,7 +107,6 @@ export class AgentMdManager {
             const meta: SkillMeta = {
                 name: typeof data.name === 'string' ? data.name : fallbackName,
                 description: typeof data.description === 'string' ? data.description : '',
-                version: typeof data.version === 'string' ? data.version : '1.0.0',
                 tags: Array.isArray(data.tags) ? data.tags as string[] : undefined,
                 allowedTools: Array.isArray(data.allowedTools) ? data.allowedTools as string[] : undefined,
                 prerequisites: Array.isArray(data.prerequisites) ? data.prerequisites as SkillMeta['prerequisites'] : undefined
@@ -179,10 +178,9 @@ export class AgentMdManager {
     private skillToXmlRecursive(meta: SkillMeta, lines: string[], depth: number): void {
         const indent = '  '.repeat(depth);
         const name = escapeXml(meta.name);
-        const version = escapeXml(meta.version);
         const pathAttr = meta.relativePath ? ` path="${escapeXml(meta.relativePath)}"` : '';
 
-        lines.push(`${indent}<skill name="${name}" version="${version}"${pathAttr}>`);
+        lines.push(`${indent}<skill name="${name}"${pathAttr}>`);
         lines.push(`${indent}  <description>${escapeXml(meta.description || '')}</description>`);
 
         if (meta.tags && meta.tags.length > 0) {

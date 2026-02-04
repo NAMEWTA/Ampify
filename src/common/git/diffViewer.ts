@@ -21,7 +21,7 @@ export class DiffViewer {
         const changes = await this.gitManager.getLocalChanges();
         
         if (changes.length === 0) {
-            vscode.window.showInformationMessage(I18n.get('skills.noChanges'));
+            vscode.window.showInformationMessage(I18n.get('gitShare.noChanges'));
             return;
         }
 
@@ -35,7 +35,7 @@ export class DiffViewer {
         const changes = await this.gitManager.getRemoteDiff();
         
         if (changes.length === 0) {
-            vscode.window.showInformationMessage(I18n.get('skills.noChanges'));
+            vscode.window.showInformationMessage(I18n.get('gitShare.noChanges'));
             return;
         }
 
@@ -49,7 +49,7 @@ export class DiffViewer {
         const changes = await this.gitManager.getModuleChanges(moduleName);
         
         if (changes.length === 0) {
-            vscode.window.showInformationMessage(I18n.get('skills.noChanges'));
+            vscode.window.showInformationMessage(I18n.get('gitShare.noChanges'));
             return;
         }
 
@@ -67,13 +67,13 @@ export class DiffViewer {
         }));
 
         items.unshift({
-            label: `$(list-flat) ${I18n.get('skills.changedFiles', changes.length.toString())}`,
+            label: `$(list-flat) ${I18n.get('gitShare.changedFiles', changes.length.toString())}`,
             description: '',
             kind: vscode.QuickPickItemKind.Separator
         });
 
         const selected = await vscode.window.showQuickPick(items, {
-            placeHolder: I18n.get('skills.viewDiff'),
+            placeHolder: I18n.get('gitShare.viewDiff'),
             canPickMany: false
         });
 
@@ -148,7 +148,7 @@ export class DiffViewer {
         const headUri = vscode.Uri.file(headFilePath);
         const localUri = vscode.Uri.file(fullPath);
 
-        const title = I18n.get('skills.diffTitle', path.basename(relativePath));
+        const title = I18n.get('gitShare.diffTitle', path.basename(relativePath));
 
         await vscode.commands.executeCommand('vscode.diff', headUri, localUri, title);
     }
@@ -192,7 +192,7 @@ export class DiffViewer {
         }
 
         const remoteUri = vscode.Uri.file(remoteFilePath);
-        const title = I18n.get('skills.diffTitle', path.basename(relativePath));
+        const title = I18n.get('gitShare.diffTitle', path.basename(relativePath));
 
         await vscode.commands.executeCommand('vscode.diff', localUri, remoteUri, title);
     }

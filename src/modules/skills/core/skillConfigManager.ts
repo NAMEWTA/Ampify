@@ -50,8 +50,6 @@ export class SkillConfigManager {
      */
     protected getDefaultConfig(): SkillsManagerConfig {
         return {
-            gitConfig: { remoteUrls: [] },
-            autoSyncMinutes: 10,
             injectTarget: '.claude/skills/'
         };
     }
@@ -81,21 +79,6 @@ export class SkillConfigManager {
             const content = fs.readFileSync(this.configPath, 'utf8');
             const config = JSON.parse(content) as SkillsManagerConfig;
 
-            // 兼容处理
-            const gitConfig = config.gitConfig || {};
-            if (!gitConfig.remoteUrls || gitConfig.remoteUrls.length === 0) {
-                if (gitConfig.remoteUrl) {
-                    gitConfig.remoteUrls = [gitConfig.remoteUrl];
-                } else {
-                    gitConfig.remoteUrls = [];
-                }
-            }
-
-            if (!config.autoSyncMinutes || config.autoSyncMinutes <= 0) {
-                config.autoSyncMinutes = 10;
-            }
-
-            config.gitConfig = gitConfig;
             return config;
         } catch (error) {
             console.error('Failed to read skills config', error);
@@ -255,7 +238,6 @@ export class SkillConfigManager {
             const meta: SkillMeta = {
                 name: typeof data.name === 'string' ? data.name : fallbackName,
                 description: typeof data.description === 'string' ? data.description : '',
-                version: typeof data.version === 'string' ? data.version : '1.0.0',
                 tags: Array.isArray(data.tags) ? data.tags as string[] : undefined,
                 allowedTools: Array.isArray(data.allowedTools) ? data.allowedTools as string[] : undefined,
                 prerequisites: Array.isArray(data.prerequisites) ? data.prerequisites as SkillMeta['prerequisites'] : undefined

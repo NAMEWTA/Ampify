@@ -72,28 +72,16 @@ export class SkillCreator {
             return { success: false, error: 'Cancelled' };
         }
 
-        // Step 3: 输入版本
-        const version = await vscode.window.showInputBox({
-            prompt: I18n.get('skills.inputSkillVersion'),
-            value: '1.0.0',
-            placeHolder: '1.0.0'
-        });
-
-        if (!version) {
-            return { success: false, error: 'Cancelled' };
-        }
-
-        // Step 4: 选择标签
+        // Step 3: 选择标签
         const tags = await this.selectTags();
 
-        // Step 5: 添加前置依赖
+        // Step 4: 添加前置依赖
         const prerequisites = await this.addPrerequisites();
 
         // 创建 SkillMeta
         const meta: SkillMeta = {
             name,
             description,
-            version,
             tags: tags.length > 0 ? tags : undefined,
             prerequisites: prerequisites.length > 0 ? prerequisites : undefined
         };

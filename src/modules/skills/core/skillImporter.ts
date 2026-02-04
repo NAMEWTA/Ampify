@@ -33,9 +33,6 @@ export class SkillImporter {
         if (!meta.description || typeof meta.description !== 'string') {
             return { valid: false, error: 'Invalid SKILL.md: missing or invalid description' };
         }
-        if (!meta.version || typeof meta.version !== 'string') {
-            return { valid: false, error: 'Invalid SKILL.md: missing or invalid version' };
-        }
 
         // 验证 name 格式
         if (!/^[a-z0-9-]+$/.test(meta.name)) {

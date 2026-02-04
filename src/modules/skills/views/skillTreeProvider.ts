@@ -208,7 +208,7 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
 
         // Tooltip
         const tooltipLines = [
-            `**${skill.meta.name}** v${skill.meta.version}`,
+            `**${skill.meta.name}**`,
             '',
             skill.meta.description
         ];
@@ -236,15 +236,6 @@ export class SkillTreeProvider implements vscode.TreeDataProvider<SkillTreeItem>
      */
     private getSkillDetailChildren(skill: LoadedSkill): SkillTreeItem[] {
         const items: SkillTreeItem[] = [];
-
-        // 版本
-        const versionItem = new SkillTreeItem(
-            `${I18n.get('skills.version')}: ${skill.meta.version}`,
-            vscode.TreeItemCollapsibleState.None,
-            'skillDetailItem'
-        );
-        versionItem.iconPath = new vscode.ThemeIcon('tag');
-        items.push(versionItem);
 
         // 标签
         if (skill.meta.tags && skill.meta.tags.length > 0) {
