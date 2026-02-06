@@ -2,13 +2,14 @@
 
 ## 项目概述
 Ampify 是一个 VS Code 扩展，包含以下核心能力：
-1. 快速复制"文件路径 + 行号"，以便在报告和代码评审中引用。
+1. 快速复制“文件路径 + 行号”，便于报告与代码评审引用。
 2. VS Code 多实例启动器，用于管理与启动不同的用户配置。
-3. Skills Manager：全局 Skills 库管理、SKILL.md 元数据、注入项目。
-4. Commands Manager：全局 Commands 库管理，单文件命令管理与项目注入。
-5. Git Sync：Skills/Commands 共享仓库同步与差异预览。
+3. Skills Manager：全局 Skills 库管理、SKILL.md 元数据解析、注入项目。
+4. Commands Manager：全局 Commands 库管理、单文件命令管理与项目注入。
+5. Git Share：Skills/Commands 共享仓库同步与差异预览。
+6. MainView：统一 Webview 视图，集中呈现各模块数据与操作。
 
-扩展在启动完成后激活（`onStartupFinished`），注册复制路径命令与各模块命令，并在 Activity Bar 提供统一入口与 Tab Bar 视图。
+扩展在启动完成后激活（`onStartupFinished`），统一注册各模块命令，并在 Activity Bar 提供主入口视图。
 
 - 入口文件： [src/extension.ts](src/extension.ts)
 - 扩展清单： [package.json](package.json)
@@ -17,27 +18,30 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
 ## 项目结构
 - [src/](src/)：扩展源代码
   - [src/extension.ts](src/extension.ts)：扩展入口与模块编排
-  - [src/common/](src/common/)：公共能力（`i18n`、类型、工具）
+  - [src/common/](src/common/)：公共能力（i18n、类型、路径、Git）
+    - [src/common/i18n.ts](src/common/i18n.ts)：国际化字典与读取
+    - [src/common/paths.ts](src/common/paths.ts)：路径与目录工具
+    - [src/common/baseConfigManager.ts](src/common/baseConfigManager.ts)：配置管理基类
+    - [src/common/types/index.ts](src/common/types/index.ts)：共享类型定义
+    - [src/common/git/](src/common/git/)：Git 管理与 diff 视图
   - [src/modules/](src/modules/)：功能模块
+    - [src/modules/copier/](src/modules/copier/)：复制路径与行号
     - [src/modules/launcher/](src/modules/launcher/)：多实例启动器
       - [src/modules/launcher/core/](src/modules/launcher/core/)：配置与进程启动
-      - [src/modules/launcher/views/](src/modules/launcher/views/)：TreeView 视图
-    - [src/modules/copier/](src/modules/copier/)：复制路径与行号
-    - [src/modules/gitShare/](src/modules/gitShare/)：Git Sync
-    - [src/modules/mainView/](src/modules/mainView/)：统一主视图（Webview）
-      - [src/modules/mainView/bridges/](src/modules/mainView/bridges/)：消息桥接
-      - [src/modules/mainView/templates/](src/modules/mainView/templates/)：Webview 模板
     - [src/modules/skills/](src/modules/skills/)：Skills Manager
-      - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、创建
+      - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、创建、AGENTS.md 同步
       - [src/modules/skills/templates/](src/modules/skills/templates/)：SKILL.md 模板
-      - [src/modules/skills/views/](src/modules/skills/views/)：Skills TreeView
     - [src/modules/commands/](src/modules/commands/)：Commands Manager
       - [src/modules/commands/core/](src/modules/commands/core/)：配置、导入、应用、创建
       - [src/modules/commands/templates/](src/modules/commands/templates/)：Command MD 模板
-      - [src/modules/commands/views/](src/modules/commands/views/)：Commands TreeView
+    - [src/modules/gitShare/](src/modules/gitShare/)：Git Share
+    - [src/modules/mainView/](src/modules/mainView/)：统一主视图（Webview）
+      - [src/modules/mainView/bridges/](src/modules/mainView/bridges/)：数据桥接
+      - [src/modules/mainView/templates/](src/modules/mainView/templates/)：HTML/CSS/JS 模板
+      - [src/modules/mainView/protocol.ts](src/modules/mainView/protocol.ts)：通信协议
 - [package.json](package.json)：扩展清单、命令、快捷键、脚本与依赖
 - [tsconfig.json](tsconfig.json)：TypeScript 编译配置
-- [.eslintrc.json](.eslintrc.json)：ESLint 规则
+- [eslint.config.js](eslint.config.js)：ESLint 规则
 - [README.md](README.md)：使用说明
 - [CHANGELOG.md](CHANGELOG.md)：版本变更
 - [.vscode/](.vscode/)：本地调试配置
@@ -49,73 +53,88 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
 
 ## 技术栈
 - VS Code Extension API
-- TypeScript 5.2
-- ESLint 8
-- Node.js 类型：@types/node 18
+- TypeScript 5.6
+- ESLint 9（Flat Config）
+- Node.js 类型：@types/node 24
+- 依赖：simple-git、yaml、@vscode/codicons
 
 ## 入口与核心逻辑
-入口函数 `activate()` 在启动完成后触发，统一注册复制路径与启动器相关命令。
+入口函数 `activate()` 在启动完成后触发，按顺序注册：MainView → Copier → Launcher → GitShare → Skills → Commands。
 
-复制路径核心逻辑集中在 `buildReference()`：
-1. 获取当前编辑器与文档。
-2. 判断相对路径/绝对路径输出：相对路径通过 `getRelativePath()` 计算。
-3. 计算行号：
-   - 单行选择：输出 `line`
-   - 多行选择：输出 `start-end`
-4. 拼接格式：`path:line` 并包裹反引号。
-5. 写入剪贴板并调用 `showMessage()` 状态栏提示。
+### 复制路径逻辑（Copier）
+核心在 `buildReference()`：
+1. 获取当前编辑器与文档
+2. 计算相对或绝对路径
+3. 计算行号：单行输出 `line`，多行输出 `start-end`
+4. 拼接格式：`path:line` 并包裹反引号
+5. 写入剪贴板并在状态栏提示
 
-启动器核心逻辑：
-1. `ConfigManager` 负责配置文件读写与实例目录初始化。
-2. `ProcessEngine` 解析 VS Code 可执行路径，组装参数并启动新实例。
-3. `InstanceTreeProvider` 提供实例列表与交互入口。
+### 启动器逻辑（Launcher）
+1. `ConfigManager` 负责配置文件与实例目录初始化
+2. `ProcessEngine` 解析 VS Code 可执行路径并启动新实例
+3. MainView 通过 Bridge 展示实例列表（不再使用 TreeView）
 
-Skills Manager 核心逻辑：
-1. [src/modules/skills/core/skillConfigManager.ts](src/modules/skills/core/skillConfigManager.ts) 负责全局目录与配置（含 SKILL.md 解析）。
-2. [src/modules/skills/templates/skillMdTemplate.ts](src/modules/skills/templates/skillMdTemplate.ts) 生成 SKILL.md 模板与 YAML frontmatter。
-3. Skills 通过 TreeView 展示，支持搜索、标签过滤、导入、预览。
-4. 注入目标默认 `.claude/skills/`，可通过 `ampify.skills.injectTarget` 修改。
+### Skills Manager 逻辑
+1. [src/modules/skills/core/skillConfigManager.ts](src/modules/skills/core/skillConfigManager.ts) 负责配置与技能扫描
+2. [src/modules/skills/templates/skillMdTemplate.ts](src/modules/skills/templates/skillMdTemplate.ts) 生成 SKILL.md 模板
+3. [src/modules/skills/core/agentMdManager.ts](src/modules/skills/core/agentMdManager.ts) 生成 SKILLS.md 并更新 AGENTS.md
+4. 技能数据存储在 Git Share 目录（可同步）
 
-Commands Manager 核心逻辑：
-1. [src/modules/commands/core/commandConfigManager.ts](src/modules/commands/core/commandConfigManager.ts) 负责全局目录与配置（含 MD frontmatter 解析）。
-2. [src/modules/commands/templates/commandMdTemplate.ts](src/modules/commands/templates/commandMdTemplate.ts) 生成命令 MD 模板。
-3. 命令采用扁平结构，每个 `.md` 文件即一个命令，文件名必须与 `command` 字段一致。
-4. 命令通过 TreeView 展示，支持搜索、标签过滤、拖拽导入。
-5. 注入目标默认 `.claude/commands/`，可通过 `ampify.commands.injectTarget` 修改。
-6. 全局命令目录位于 `~/.vscode-ampify/vscodecmdmanager/commands/`。
+### Commands Manager 逻辑
+1. [src/modules/commands/core/commandConfigManager.ts](src/modules/commands/core/commandConfigManager.ts) 负责配置与命令扫描
+2. [src/modules/commands/templates/commandMdTemplate.ts](src/modules/commands/templates/commandMdTemplate.ts) 生成命令 MD 模板
+3. 命令采用扁平结构，文件名必须与 frontmatter 的 `command` 字段一致
+4. 命令数据存储在 Git Share 目录（可同步）
+
+### Git Share 逻辑
+1. `GitManager` 负责初始化、拉取、提交、推送与冲突处理
+2. `DiffViewer` 提供 VS Code diff 预览
+3. MainView 打开时自动触发 `gitManager.sync()`（30s 节流）
+
+### MainView 逻辑
+1. `AmpifyViewProvider` 统一渲染 6 个 section
+2. Bridge 层将模块数据适配为 `TreeNode[]`
+3. [src/modules/mainView/protocol.ts](src/modules/mainView/protocol.ts) 定义 Webview ↔ Extension 消息协议
+
+## 数据存储结构
+默认根目录为 `~/.vscode-ampify/`（可通过 `ampify.rootDir` 修改）：
+
+```
+~/.vscode-ampify/
+├── vscodemultilauncher/
+│   ├── config.json
+│   ├── userdata/
+│   └── shareExtensions/
+└── gitshare/
+    ├── .git/
+    ├── .gitignore
+    ├── config.json
+    ├── vscodeskillsmanager/
+    │   ├── config.json
+    │   └── skills/{skill-name}/SKILL.md
+    └── vscodecmdmanager/
+        ├── config.json
+        └── commands/{command-name}.md
+```
 
 ## 命令与快捷键
 - 复制相对路径与行号：`ampify.copy-relative-path-line`（`Ctrl+Alt+C`）
 - 复制绝对路径与行号：`ampify.copy-absolute-path-line`（`Ctrl+Alt+V`）
-- 添加实例：`ampify.launcher.add`
-- 刷新实例：`ampify.launcher.refresh`
-- 编辑配置：`ampify.launcher.editConfig`
-- 启动实例：`ampify.launcher.launch`
-- 删除实例：`ampify.launcher.delete`
-- Skills 刷新：`ampify.skills.refresh`
-- Skills 搜索：`ampify.skills.search`
-- Skills 标签过滤：`ampify.skills.filterByTag`
-- 清除过滤：`ampify.skills.clearFilter`
-- 新建 Skill：`ampify.skills.create`
-- 导入 Skill：`ampify.skills.import`
-- 应用到项目：`ampify.skills.apply`
-- 预览 SKILL.md：`ampify.skills.preview`
-- 打开 Skills 目录：`ampify.skills.openFolder`
-- 删除 Skill：`ampify.skills.delete`
-- 从项目移除：`ampify.skills.remove`
-- Commands 刷新：`ampify.commands.refresh`
-- Commands 搜索：`ampify.commands.search`
-- Commands 标签过滤：`ampify.commands.filterByTag`
-- Commands 清除过滤：`ampify.commands.clearFilter`
-- 新建 Command：`ampify.commands.create`
-- 导入 Command：`ampify.commands.import`
-- 应用 Command 到项目：`ampify.commands.apply`
-- 预览 Command：`ampify.commands.preview`
-- 打开 Commands 目录：`ampify.commands.openFolder`
-- 删除 Command：`ampify.commands.delete`
-- 从项目移除 Command：`ampify.commands.remove`
+- MainView 刷新：`ampify.mainView.refresh`
 
-复制命令已注册到编辑器右键菜单，启动器命令在实例视图和条目菜单中提供。
+- Launcher：`ampify.launcher.add`、`ampify.launcher.refresh`、`ampify.launcher.editConfig`、`ampify.launcher.launch`、`ampify.launcher.delete`
+- Skills：`ampify.skills.refresh`、`ampify.skills.search`、`ampify.skills.filterByTag`、`ampify.skills.clearFilter`、`ampify.skills.create`、`ampify.skills.import`、`ampify.skills.importFromUris`、`ampify.skills.apply`、`ampify.skills.preview`、`ampify.skills.openFile`、`ampify.skills.openFolder`、`ampify.skills.delete`、`ampify.skills.remove`、`ampify.skills.syncToAgentMd`
+- Commands：`ampify.commands.refresh`、`ampify.commands.search`、`ampify.commands.filterByTag`、`ampify.commands.clearFilter`、`ampify.commands.create`、`ampify.commands.import`、`ampify.commands.apply`、`ampify.commands.preview`、`ampify.commands.open`、`ampify.commands.openFolder`、`ampify.commands.delete`、`ampify.commands.remove`
+- Git Share：`ampify.gitShare.refresh`、`ampify.gitShare.sync`、`ampify.gitShare.pull`、`ampify.gitShare.push`、`ampify.gitShare.commit`、`ampify.gitShare.showDiff`、`ampify.gitShare.editConfig`、`ampify.gitShare.openConfigWizard`、`ampify.gitShare.openFolder`
+
+复制命令已注册到编辑器右键菜单，模块命令在 MainView 内提供入口。
+
+## 配置项
+配置定义在 [package.json](package.json)：
+- `ampify.language`：语言（en/zh-cn）
+- `ampify.rootDir`：数据根目录
+- `ampify.skills.injectTarget`：Skills 注入目录
+- `ampify.commands.injectTarget`：Commands 注入目录
 
 ## 开发与构建
 脚本定义在 [package.json](package.json)：
@@ -123,17 +142,10 @@ Commands Manager 核心逻辑：
 - `npm run watch`：监视模式编译
 - `npm run lint`：运行 ESLint
 
-调试入口使用 [./.vscode/launch.json](.vscode/launch.json) 中的“调试扩展”，并在启动前执行构建任务。
+调试入口使用 [.vscode/launch.json](.vscode/launch.json) 中的“调试扩展”，并在启动前执行构建任务。
 
 ## 编码规范
-ESLint 规则在 [.eslintrc.json](.eslintrc.json) 中定义：
-- 命名约定：`@typescript-eslint/naming-convention`
-- 分号：`@typescript-eslint/semi`
-- 强制花括号：`curly`
-- 严格相等：`eqeqeq`
-- 禁止抛出字面量：`no-throw-literal`
-
-TypeScript 严格模式已开启（见 [tsconfig.json](tsconfig.json)）。
+ESLint 规则在 [eslint.config.js](eslint.config.js) 中定义，TypeScript 严格模式开启（见 [tsconfig.json](tsconfig.json)）。
 
 ## CI/CD
 项目包含 GitHub Actions 工作流（位于 [.github/](.github/)），用于在打标签发布时构建并发布 VSIX 包。
@@ -144,8 +156,8 @@ TypeScript 严格模式已开启（见 [tsconfig.json](tsconfig.json)）。
 - 单行输出：`path:line`，多行输出：`path:start-end`。
 - 启动器实例以独立用户目录运行，可共享扩展目录以复用已安装扩展。
 
-# SKILLS MANAGER
-<skillsmanager>
+# AMPIFY
+<ampify>
   <instruction>必须在此处查看可用的 SKILLS 列表</instruction>
   <include path=".claude/SKILLS.md" />
-</skillsmanager>
+</ampify>
