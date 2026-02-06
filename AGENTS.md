@@ -1,13 +1,14 @@
 # AGENT.md
 
 ## 项目概述
-Ampify 是一个 VS Code 扩展，包含以下核心能力：
+Ampify 是一个 VS Code 扩展，核心能力包括：
 1. 快速复制“文件路径 + 行号”，便于报告与代码评审引用。
-2. VS Code 多实例启动器，用于管理与启动不同的用户配置。
+2. 多账户启动器，用于管理与启动不同的用户配置。
 3. Skills Manager：全局 Skills 库管理、SKILL.md 元数据解析、注入项目。
 4. Commands Manager：全局 Commands 库管理、单文件命令管理与项目注入。
 5. Git Share：Skills/Commands 共享仓库同步与差异预览。
-6. MainView：统一 Webview 视图，集中呈现各模块数据与操作。
+6. Model Proxy：本地 HTTP 反代理，提供 OpenAI/Anthropic 兼容接口与日志。
+7. MainView：统一 Webview 视图，集中呈现各模块数据与操作。
 
 扩展在启动完成后激活（`onStartupFinished`），统一注册各模块命令，并在 Activity Bar 提供主入口视图。
 
@@ -26,7 +27,7 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
     - [src/common/git/](src/common/git/)：Git 管理与 diff 视图
   - [src/modules/](src/modules/)：功能模块
     - [src/modules/copier/](src/modules/copier/)：复制路径与行号
-    - [src/modules/launcher/](src/modules/launcher/)：多实例启动器
+    - [src/modules/launcher/](src/modules/launcher/)：多账户启动器
       - [src/modules/launcher/core/](src/modules/launcher/core/)：配置与进程启动
     - [src/modules/skills/](src/modules/skills/)：Skills Manager
       - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、创建、AGENTS.md 同步
@@ -35,6 +36,8 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
       - [src/modules/commands/core/](src/modules/commands/core/)：配置、导入、应用、创建
       - [src/modules/commands/templates/](src/modules/commands/templates/)：Command MD 模板
     - [src/modules/gitShare/](src/modules/gitShare/)：Git Share
+    - [src/modules/modelProxy/](src/modules/modelProxy/)：Model Proxy
+      - [src/modules/modelProxy/core/](src/modules/modelProxy/core/)：代理配置、鉴权、模型桥接、日志与 HTTP 服务
     - [src/modules/mainView/](src/modules/mainView/)：统一主视图（Webview）
       - [src/modules/mainView/bridges/](src/modules/mainView/bridges/)：数据桥接
       - [src/modules/mainView/templates/](src/modules/mainView/templates/)：HTML/CSS/JS 模板
@@ -59,7 +62,7 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
 - 依赖：simple-git、yaml、@vscode/codicons
 
 ## 入口与核心逻辑
-入口函数 `activate()` 在启动完成后触发，按顺序注册：MainView → Copier → Launcher → GitShare → Skills → Commands。
+入口函数 `activate()` 在启动完成后触发，按顺序注册：MainView → Copier → Launcher → GitShare → Skills → Commands → Model Proxy。
 
 ### 复制路径逻辑（Copier）
 核心在 `buildReference()`：
@@ -72,7 +75,7 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
 ### 启动器逻辑（Launcher）
 1. `ConfigManager` 负责配置文件与实例目录初始化
 2. `ProcessEngine` 解析 VS Code 可执行路径并启动新实例
-3. MainView 通过 Bridge 展示实例列表（不再使用 TreeView）
+3. MainView 通过 Bridge 展示实例列表
 
 ### Skills Manager 逻辑
 1. [src/modules/skills/core/skillConfigManager.ts](src/modules/skills/core/skillConfigManager.ts) 负责配置与技能扫描
@@ -91,8 +94,15 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
 2. `DiffViewer` 提供 VS Code diff 预览
 3. MainView 打开时自动触发 `gitManager.sync()`（30s 节流）
 
+### Model Proxy 逻辑
+1. `ProxyConfigManager` 管理 `modelproxy/config.json` 与日志目录
+2. `ProxyServer` 启动本地 HTTP 服务器并分发 OpenAI/Anthropic 路由
+3. `ModelBridge` 对接 `vscode.lm` 模型并处理请求/响应格式转换
+4. `AuthManager` 负责 API Key 生成、提取与校验
+5. `LogManager` 写入 JSONL 请求日志并输出统计
+
 ### MainView 逻辑
-1. `AmpifyViewProvider` 统一渲染 6 个 section
+1. `AmpifyViewProvider` 统一渲染 7 个 section
 2. Bridge 层将模块数据适配为 `TreeNode[]`
 3. [src/modules/mainView/protocol.ts](src/modules/mainView/protocol.ts) 定义 Webview ↔ Extension 消息协议
 
@@ -105,16 +115,21 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
 │   ├── config.json
 │   ├── userdata/
 │   └── shareExtensions/
-└── gitshare/
-    ├── .git/
-    ├── .gitignore
+├── gitshare/
+│   ├── .git/
+│   ├── .gitignore
+│   ├── config.json
+│   ├── vscodeskillsmanager/
+│   │   ├── config.json
+│   │   └── skills/{skill-name}/SKILL.md
+│   └── vscodecmdmanager/
+│       ├── config.json
+│       └── commands/{command-name}.md
+└── modelproxy/
     ├── config.json
-    ├── vscodeskillsmanager/
-    │   ├── config.json
-    │   └── skills/{skill-name}/SKILL.md
-    └── vscodecmdmanager/
-        ├── config.json
-        └── commands/{command-name}.md
+    └── logs/
+        ├── 2026-02-06.jsonl
+        └── ...
 ```
 
 ## 命令与快捷键
@@ -126,6 +141,7 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
 - Skills：`ampify.skills.refresh`、`ampify.skills.search`、`ampify.skills.filterByTag`、`ampify.skills.clearFilter`、`ampify.skills.create`、`ampify.skills.import`、`ampify.skills.importFromUris`、`ampify.skills.apply`、`ampify.skills.preview`、`ampify.skills.openFile`、`ampify.skills.openFolder`、`ampify.skills.delete`、`ampify.skills.remove`、`ampify.skills.syncToAgentMd`
 - Commands：`ampify.commands.refresh`、`ampify.commands.search`、`ampify.commands.filterByTag`、`ampify.commands.clearFilter`、`ampify.commands.create`、`ampify.commands.import`、`ampify.commands.apply`、`ampify.commands.preview`、`ampify.commands.open`、`ampify.commands.openFolder`、`ampify.commands.delete`、`ampify.commands.remove`
 - Git Share：`ampify.gitShare.refresh`、`ampify.gitShare.sync`、`ampify.gitShare.pull`、`ampify.gitShare.push`、`ampify.gitShare.commit`、`ampify.gitShare.showDiff`、`ampify.gitShare.editConfig`、`ampify.gitShare.openConfigWizard`、`ampify.gitShare.openFolder`
+- Model Proxy：`ampify.modelProxy.toggle`、`ampify.modelProxy.start`、`ampify.modelProxy.stop`、`ampify.modelProxy.copyKey`、`ampify.modelProxy.regenerateKey`、`ampify.modelProxy.copyBaseUrl`、`ampify.modelProxy.selectModel`、`ampify.modelProxy.viewLogs`、`ampify.modelProxy.refresh`
 
 复制命令已注册到编辑器右键菜单，模块命令在 MainView 内提供入口。
 
@@ -135,6 +151,9 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
 - `ampify.rootDir`：数据根目录
 - `ampify.skills.injectTarget`：Skills 注入目录
 - `ampify.commands.injectTarget`：Commands 注入目录
+- `ampify.modelProxy.port`：Model Proxy HTTP 端口
+- `ampify.modelProxy.bindAddress`：Model Proxy 绑定地址
+- `ampify.modelProxy.defaultModel`：默认模型 ID
 
 ## 开发与构建
 脚本定义在 [package.json](package.json)：
@@ -155,6 +174,7 @@ ESLint 规则在 [eslint.config.js](eslint.config.js) 中定义，TypeScript 严
 - 输出结果始终包裹反引号，适用于 Markdown 引用。
 - 单行输出：`path:line`，多行输出：`path:start-end`。
 - 启动器实例以独立用户目录运行，可共享扩展目录以复用已安装扩展。
+- Model Proxy 默认绑定 `127.0.0.1`，外部访问需显式配置 `0.0.0.0`。
 
 # AMPIFY
 <ampify>

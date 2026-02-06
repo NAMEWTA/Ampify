@@ -1,5 +1,14 @@
 # Change Log
 
+## 2.0.0 - 2026-02-06
+### Added
+- Model Proxy module: local HTTP reverse proxy exposing OpenAI and Anthropic compatible routes via vscode.lm
+- Model Proxy section in MainView with stats, model selection, and recent logs
+- Model Proxy commands and settings (port, bind address, default model)
+
+### Changed
+- Ampify is now an all-in-one workspace toolbox: launcher, skills, commands, git sync, and model proxy in a single MainView
+
 ## 1.6.1 - 2026-02-06
 ### Changed
 - Enhanced MainView with improved CSS and JS templates for better UI/UX
