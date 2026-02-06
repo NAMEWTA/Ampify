@@ -1,6 +1,6 @@
 /**
  * 日志管理器
- * 将代理请求日志写入 JSONL 文件，按日期分割
+ * 将代理请求日志写入 JSONL 文件，按实例 key 分目录，按日期分割
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -11,9 +11,35 @@ import { ProxyConfigManager } from './proxyConfigManager';
 
 export class LogManager {
     private configManager: ProxyConfigManager;
+    private _instanceKey: string;
 
     constructor() {
         this.configManager = ProxyConfigManager.getInstance();
+        // 延迟读取 instanceKey，因为 extension.ts 中的 detectInstanceKey() 在 activate 时才执行
+        this._instanceKey = '';
+    }
+
+    /**
+     * 获取当前实例 key（懒加载，首次调用时从 extension.ts 读取）
+     */
+    private getInstanceKey(): string {
+        if (!this._instanceKey) {
+            try {
+                const { instanceKey } = require('../../../extension');
+                this._instanceKey = instanceKey || 'main';
+            } catch {
+                this._instanceKey = 'main';
+            }
+        }
+        return this._instanceKey;
+    }
+
+    /**
+     * 获取当前实例的日志目录
+     */
+    getInstanceLogsDir(): string {
+        const baseLogsDir = this.configManager.getLogsDir();
+        return path.join(baseLogsDir, this.getInstanceKey());
     }
 
     /**
@@ -33,7 +59,10 @@ export class LogManager {
         }
 
         try {
-            const logsDir = this.configManager.getLogsDir();
+            // 注入实例 key
+            entry.instanceKey = this.getInstanceKey();
+
+            const logsDir = this.getInstanceLogsDir();
             ensureDir(logsDir);
 
             const date = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -46,11 +75,11 @@ export class LogManager {
     }
 
     /**
-     * 获取最近 N 条日志
+     * 获取最近 N 条日志（仅当前实例）
      */
     getRecentLogs(count: number = 10): ProxyLogEntry[] {
         try {
-            const logsDir = this.configManager.getLogsDir();
+            const logsDir = this.getInstanceLogsDir();
             if (!fs.existsSync(logsDir)) {
                 return [];
             }
@@ -88,11 +117,11 @@ export class LogManager {
     }
 
     /**
-     * 获取所有可用的日志文件，按年月日分组
+     * 获取所有可用的日志文件，按年月日分组（仅当前实例）
      */
     getLogFiles(): { year: string; month: string; day: string; date: string; fileSize: number; entryCount: number }[] {
         try {
-            const logsDir = this.configManager.getLogsDir();
+            const logsDir = this.getInstanceLogsDir();
             if (!fs.existsSync(logsDir)) {
                 return [];
             }
@@ -122,7 +151,7 @@ export class LogManager {
     }
 
     /**
-     * 分页查询指定日期文件的日志
+     * 分页查询指定日期文件的日志（仅当前实例）
      * @param date 日期字符串 YYYY-MM-DD
      * @param page 页码（从 1 开始）
      * @param pageSize 每页条数
@@ -137,7 +166,7 @@ export class LogManager {
         keyword?: string
     ): { entries: ProxyLogEntry[]; total: number; page: number; pageSize: number; totalPages: number } {
         try {
-            const logsDir = this.configManager.getLogsDir();
+            const logsDir = this.getInstanceLogsDir();
             const logFile = path.join(logsDir, `${date}.jsonl`);
 
             if (!fs.existsSync(logFile)) {
@@ -184,11 +213,11 @@ export class LogManager {
     }
 
     /**
-     * 获取今日日志统计（含平均延迟）
+     * 获取今日日志统计（含平均延迟，仅当前实例）
      */
     getTodayStats(): { requests: number; tokens: number; errors: number; avgLatencyMs: number } {
         try {
-            const logsDir = this.configManager.getLogsDir();
+            const logsDir = this.getInstanceLogsDir();
             const date = new Date().toISOString().slice(0, 10);
             const logFile = path.join(logsDir, `${date}.jsonl`);
 

@@ -66,7 +66,7 @@ export class LauncherBridge {
                         label: instance.description || key,
                         description: instance.dirName,
                         instanceConfig: instance,
-                        key
+                        key: key
                     });
                 }
                 break;

@@ -29,6 +29,7 @@ export function getJs(): string {
         setupNavToggle();
         setupContextMenuDismiss();
         setupDragDrop();
+        setupProxyActions();
         
         // Apply persisted nav state
         const navRail = document.querySelector('.nav-rail');
@@ -71,6 +72,26 @@ export function getJs(): string {
                 saveState();
             });
         }
+    }
+
+    function setupProxyActions() {
+        document.body.addEventListener('click', (e) => {
+            if (currentSection !== 'modelProxy') { return; }
+            if (!(e.target instanceof Element)) { return; }
+
+            const actionBtn = e.target.closest('[data-proxy-action]');
+            if (actionBtn) {
+                e.stopPropagation();
+                vscode.postMessage({ type: 'proxyAction', actionId: actionBtn.dataset.proxyAction });
+                return;
+            }
+
+            const viewAllBtn = e.target.closest('.proxy-view-all-logs-btn');
+            if (viewAllBtn) {
+                e.stopPropagation();
+                vscode.postMessage({ type: 'requestLogFiles' });
+            }
+        });
     }
 
     // ==================== Message Handling ====================

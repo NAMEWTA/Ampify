@@ -118,7 +118,8 @@ export async function registerModelProxy(context: vscode.ExtensionContext): Prom
         }),
 
         vscode.commands.registerCommand('ampify.modelProxy.viewLogs', async () => {
-            const logsDir = configManager.getLogsDir();
+            // 打开当前实例的日志目录
+            const logsDir = logManager ? logManager.getInstanceLogsDir() : configManager.getLogsDir();
             const uri = vscode.Uri.file(logsDir);
             await vscode.commands.executeCommand('revealFileInOS', uri);
         }),
@@ -136,14 +137,11 @@ export async function registerModelProxy(context: vscode.ExtensionContext): Prom
         }
     });
 
-    // 如果配置为启用状态，自动启动
+    // 每次启动 VS Code 时重置为未启动状态
     const config = configManager.getConfig();
     if (config.enabled) {
-        try {
-            await startProxy();
-        } catch (error) {
-            console.error('Auto-start proxy failed:', error);
-        }
+        config.enabled = false;
+        configManager.saveConfig(config);
     }
 }
 
@@ -160,26 +158,49 @@ async function startProxy(): Promise<void> {
         return;
     }
 
-    const port = configManager.getPort();
+    const basePort = Number(configManager.getPort());
     const bindAddress = configManager.getBindAddress();
+    const maxAttempts = 50;
 
-    try {
-        await proxyServer.start(port, bindAddress);
+    let actualPort = basePort;
+    let started = false;
 
-        // 保存启用状态
-        const config = configManager.getConfig();
-        config.enabled = true;
-        configManager.saveConfig(config);
-
-        updateStatusBar(true, port);
-        vscode.window.showInformationMessage(I18n.get('modelProxy.started', String(port)));
-    } catch (error) {
-        const msg = error instanceof Error ? error.message : String(error);
-        if (msg.includes('already in use')) {
-            vscode.window.showErrorMessage(I18n.get('modelProxy.portInUse', String(port)));
-        } else {
-            vscode.window.showErrorMessage(I18n.get('modelProxy.startFailed', msg));
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        actualPort = basePort + attempt;
+        try {
+            await proxyServer.start(actualPort, bindAddress);
+            started = true;
+            break;
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            if (msg.includes('already in use')) {
+                // 继续尝试下一个端口
+                continue;
+            } else {
+                // 非端口占用错误，直接报错退出
+                vscode.window.showErrorMessage(I18n.get('modelProxy.startFailed', msg));
+                return;
+            }
         }
+    }
+
+    if (!started) {
+        const lastPort = basePort + maxAttempts - 1;
+        vscode.window.showErrorMessage(I18n.get('modelProxy.portExhausted', String(basePort), String(lastPort)));
+        return;
+    }
+
+    // 保存启用状态
+    const config = configManager.getConfig();
+    config.enabled = true;
+    configManager.saveConfig(config);
+
+    updateStatusBar(true, actualPort);
+
+    if (actualPort !== basePort) {
+        vscode.window.showInformationMessage(I18n.get('modelProxy.portFallback', String(basePort), String(actualPort)));
+    } else {
+        vscode.window.showInformationMessage(I18n.get('modelProxy.started', String(actualPort)));
     }
 }
 

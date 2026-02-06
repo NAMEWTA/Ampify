@@ -48,11 +48,11 @@ export class ProxyServer {
             });
 
             this.server.on('error', (err: NodeJS.ErrnoException) => {
+                this.server = null;
+                this._running = false;
                 if (err.code === 'EADDRINUSE') {
-                    this._running = false;
                     reject(new Error(`Port ${port} is already in use`));
                 } else {
-                    this._running = false;
                     reject(err);
                 }
             });

@@ -169,6 +169,54 @@ html, body {
     border-top: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border, rgba(128,128,128,0.2)));
 }
 
+/* Account badge */
+.account-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 8px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border, rgba(128,128,128,0.2)));
+    color: var(--vscode-descriptionForeground, rgba(204,204,204,0.7));
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    gap: 6px;
+    cursor: default;
+}
+
+.account-badge .account-letter {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    background: #d97757;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+.account-badge .account-label {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    transition: opacity 0.15s ease, width 0.15s ease;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+}
+
+.nav-rail.expanded .account-badge .account-label {
+    opacity: 1;
+    width: auto;
+}
+
 .nav-toggle:hover {
     opacity: 1;
     background: var(--vscode-list-hoverBackground);

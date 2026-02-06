@@ -228,6 +228,8 @@ export interface ProxyLogEntry {
     inputContent?: string;
     /** 输出消息内容（完整记录） */
     outputContent?: string;
+    /** 实例标识（Launcher key） */
+    instanceKey?: string;
 }
 
 /**

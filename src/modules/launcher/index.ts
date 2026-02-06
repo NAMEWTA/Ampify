@@ -24,7 +24,7 @@ export function registerLauncher(context: vscode.ExtensionContext) {
     // Launch
     context.subscriptions.push(vscode.commands.registerCommand('ampify.launcher.launch', (item: InstanceItemLike) => {
         if (item && item.instanceConfig) {
-            processEngine.launch(item.instanceConfig);
+            processEngine.launch(item.instanceConfig, item.key);
         }
     }));
 

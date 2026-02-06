@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { registerCopier } from './modules/copier';
 import { registerLauncher } from './modules/launcher';
 import { registerSkillManager } from './modules/skills';
@@ -7,8 +9,57 @@ import { registerMainView } from './modules/mainView';
 import { registerGitShare } from './modules/gitShare';
 import { registerModelProxy } from './modules/modelProxy';
 
+/**
+ * 当前实例的 Launcher key。
+ * 通过 Launcher 启动的实例会在 user-data-dir 中写入 .ampify-instance-key 文件。
+ * 主实例（非 Launcher 启动）值为空字符串。
+ */
+export let instanceKey: string = '';
+
+/**
+ * 检测当前 VS Code 实例的 Launcher key。
+ * 从 process.argv 中获取 --user-data-dir，读取其中的 .ampify-instance-key 文件。
+ */
+function detectInstanceKey(): void {
+    try {
+        const args = process.argv;
+        let userDataDir: string | undefined;
+
+        for (const arg of args) {
+            if (arg.startsWith('--user-data-dir=')) {
+                userDataDir = arg.slice('--user-data-dir='.length);
+                break;
+            }
+        }
+
+        if (!userDataDir) {
+            const idx = args.indexOf('--user-data-dir');
+            if (idx >= 0 && idx + 1 < args.length) {
+                userDataDir = args[idx + 1];
+            }
+        }
+
+        if (userDataDir) {
+            userDataDir = userDataDir.replace(/^"|"$/g, '');
+            const keyFile = path.join(userDataDir, '.ampify-instance-key');
+            if (fs.existsSync(keyFile)) {
+                const key = fs.readFileSync(keyFile, 'utf8').trim();
+                if (key) {
+                    instanceKey = key;
+                }
+            }
+        }
+    } catch {
+        // 读取失败保持空
+    }
+}
+
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Activating Ampify Extension...');
+
+    // 检测实例身份
+    detectInstanceKey();
+    console.log(`Ampify instance key: ${instanceKey}`);
     
     // Register Main View (unified webview, must be first)
     registerMainView(context);

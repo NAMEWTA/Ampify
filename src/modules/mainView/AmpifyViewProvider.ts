@@ -25,6 +25,7 @@ import { GitManager } from '../../common/git';
 import { I18n } from '../../common/i18n';
 import { SkillConfigManager } from '../skills/core/skillConfigManager';
 import { CommandConfigManager } from '../commands/core/commandConfigManager';
+import { instanceKey } from '../../extension';
 
 export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'ampify-main-view';
@@ -72,7 +73,8 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.html = getHtml(
             webviewView.webview,
             this._extensionUri,
-            this._activeSection
+            this._activeSection,
+            instanceKey
         );
 
         webviewView.webview.onDidReceiveMessage(

@@ -26,7 +26,8 @@ const NAV_ITEMS: NavItem[] = [
 export function getHtml(
     webview: vscode.Webview,
     extensionUri: vscode.Uri,
-    activeSection: SectionId = 'dashboard'
+    activeSection: SectionId = 'dashboard',
+    instanceKey: string = 'default'
 ): string {
     // Nonce for CSP
     const nonce = getNonce();
@@ -71,6 +72,10 @@ export function getHtml(
             <div class="nav-items">
                 ${navItemsHtml}
             </div>
+            ${instanceKey ? `<div class="account-badge" title="${instanceKey}">
+                <span class="account-letter">${instanceKey.charAt(0).toUpperCase()}</span>
+                <span class="account-label">${instanceKey}</span>
+            </div>` : ''}
             <button class="nav-toggle" title="Toggle sidebar">
                 <i class="codicon codicon-layout-sidebar-left"></i>
             </button>
