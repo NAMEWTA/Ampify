@@ -609,6 +609,30 @@ html, body {
     font-family: var(--vscode-font-family);
 }
 
+.settings-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-family: var(--vscode-font-family);
+    color: var(--vscode-button-foreground);
+    background: var(--vscode-button-background);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+    align-self: flex-start;
+}
+
+.settings-action-btn:hover {
+    background: var(--vscode-button-hoverBackground);
+}
+
+.settings-action-btn .codicon {
+    font-size: 12px;
+}
+
 .settings-hint {
     font-size: 11px;
     opacity: 0.7;

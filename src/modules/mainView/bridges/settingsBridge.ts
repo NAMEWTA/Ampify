@@ -34,7 +34,12 @@ export class SettingsBridge {
                         value: config.get<string>('rootDir') || '',
                         kind: 'text',
                         scope: 'vscode',
-                        placeholder: '~/.vscode-ampify/'
+                        placeholder: '~/.vscode-ampify/',
+                        action: {
+                            label: I18n.get('settings.applyReload'),
+                            iconId: 'sync',
+                            command: 'reloadWindow'
+                        }
                     },
                     {
                         key: 'language',

@@ -91,6 +91,12 @@ export interface SettingsOption {
     value: string;
 }
 
+export interface SettingsFieldAction {
+    label: string;
+    iconId?: string;
+    command: string;
+}
+
 export interface SettingsField {
     key: string;
     label: string;
@@ -100,6 +106,8 @@ export interface SettingsField {
     description?: string;
     placeholder?: string;
     options?: SettingsOption[];
+    /** 输入框右侧的操作按钮 */
+    action?: SettingsFieldAction;
 }
 
 export interface SettingsSection {
@@ -123,7 +131,8 @@ export type WebviewMessage =
     | { type: 'toggleNav' }
     | { type: 'ready' }
     | { type: 'dropFiles'; uris: string[]; section: SectionId }
-    | { type: 'changeSetting'; key: string; value: string; scope: SettingsScope };
+    | { type: 'changeSetting'; key: string; value: string; scope: SettingsScope }
+    | { type: 'settingsAction'; command: string };
 
 // ==================== Extension → Webview 消息 ====================
 

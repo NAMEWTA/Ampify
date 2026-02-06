@@ -174,6 +174,13 @@ export function getJs(): string {
                 } else {
                     html += '<input class="settings-input" data-key="' + field.key + '" data-scope="' + field.scope + '" type="text" value="' + (field.value || '') + '" placeholder="' + (field.placeholder || '') + '" />';
                 }
+                if (field.action) {
+                    html += '<button class="settings-action-btn" data-command="' + field.action.command + '" title="' + field.action.label + '">';
+                    if (field.action.iconId) {
+                        html += '<i class="codicon codicon-' + field.action.iconId + '"></i> ';
+                    }
+                    html += field.action.label + '</button>';
+                }
                 if (field.description) {
                     html += '<div class="settings-hint">' + field.description + '</div>';
                 }
@@ -206,6 +213,12 @@ export function getJs(): string {
             input.addEventListener('input', debounce);
             input.addEventListener('change', sendChange);
             input.addEventListener('blur', sendChange);
+        });
+
+        body.querySelectorAll('.settings-action-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                vscode.postMessage({ type: 'settingsAction', command: btn.dataset.command });
+            });
         });
     }
 

@@ -139,7 +139,10 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 break;
             case 'changeSetting':
                 await this.settingsBridge.updateSetting(msg.scope, msg.key, msg.value);
-                await this.sendSettings();
+                break;
+
+            case 'settingsAction':
+                await this.handleSettingsAction(msg.command);
                 break;
         }
     }
@@ -251,6 +254,14 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     private async handleToolbarAction(_section: SectionId, _actionId: string): Promise<void> {
         // toolbar 操作通过 executeCommand 处理
         await this.refresh();
+    }
+
+    private async handleSettingsAction(command: string): Promise<void> {
+        switch (command) {
+            case 'reloadWindow':
+                await vscode.commands.executeCommand('workbench.action.reloadWindow');
+                break;
+        }
     }
 
     private async handleDrop(section: SectionId, uris: string[]): Promise<void> {
