@@ -9,6 +9,7 @@ import { ModelBridge } from './core/modelBridge';
 import { LogManager } from './core/logManager';
 import { AuthManager } from './core/authManager';
 import { I18n } from '../../common/i18n';
+import { ensureDir } from '../../common/paths';
 
 let proxyServer: ProxyServer | undefined;
 let modelBridge: ModelBridge | undefined;
@@ -118,8 +119,9 @@ export async function registerModelProxy(context: vscode.ExtensionContext): Prom
         }),
 
         vscode.commands.registerCommand('ampify.modelProxy.viewLogs', async () => {
-            // 打开当前实例的日志目录
+            // 打开当前实例的日志目录（确保目录存在，否则 revealFileInOS 静默失败）
             const logsDir = logManager ? logManager.getInstanceLogsDir() : configManager.getLogsDir();
+            ensureDir(logsDir);
             const uri = vscode.Uri.file(logsDir);
             await vscode.commands.executeCommand('revealFileInOS', uri);
         }),

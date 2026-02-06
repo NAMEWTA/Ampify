@@ -415,22 +415,7 @@ export function getJs(): string {
             });
         }
 
-        // Connection action buttons
-        body.querySelectorAll('[data-proxy-action]').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                vscode.postMessage({ type: 'proxyAction', actionId: btn.dataset.proxyAction });
-            });
-        });
-
-        // "View All Logs" button → open log viewer panel
-        const viewAllBtn = body.querySelector('.proxy-view-all-logs-btn');
-        if (viewAllBtn) {
-            viewAllBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                vscode.postMessage({ type: 'requestLogFiles' });
-            });
-        }
+        // Proxy action buttons & "View All Logs" are handled by delegation in setupProxyActions()
 
         // Log row click → show detail popup
         body.querySelectorAll('.proxy-log-row').forEach(row => {

@@ -158,19 +158,22 @@ export class ModelProxyBridge {
                 id: 'toggle',
                 label: running ? 'Stop' : 'Start',
                 iconId: running ? 'debug-stop' : 'play',
-                command: 'ampify.modelProxy.toggle'
+                command: 'ampify.modelProxy.toggle',
+                action: 'overlay'
             },
             {
                 id: 'refresh',
                 label: 'Refresh',
                 iconId: 'refresh',
-                command: 'ampify.modelProxy.refresh'
+                command: 'ampify.modelProxy.refresh',
+                action: 'overlay'
             },
             {
                 id: 'openLogs',
                 label: 'Open Logs',
                 iconId: 'folder-opened',
-                command: 'ampify.modelProxy.viewLogs'
+                command: 'ampify.modelProxy.viewLogs',
+                action: 'overlay'
             }
         ];
     }
@@ -191,6 +194,9 @@ export class ModelProxyBridge {
                 break;
             case 'selectModel':
                 await vscode.commands.executeCommand('ampify.modelProxy.selectModel');
+                break;
+            case 'openLogs':
+                await vscode.commands.executeCommand('ampify.modelProxy.viewLogs');
                 break;
         }
     }

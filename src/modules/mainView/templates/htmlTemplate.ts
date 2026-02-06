@@ -72,10 +72,10 @@ export function getHtml(
             <div class="nav-items">
                 ${navItemsHtml}
             </div>
-            ${instanceKey ? `<div class="account-badge" title="${instanceKey}">
-                <span class="account-letter">${instanceKey.charAt(0).toUpperCase()}</span>
-                <span class="account-label">${instanceKey}</span>
-            </div>` : ''}
+            <div class="account-badge" title="${instanceKey || 'default'}">
+                <span class="account-letter">${(instanceKey || 'default').charAt(0).toUpperCase()}</span>
+                <span class="account-label">${instanceKey || 'default'}</span>
+            </div>
             <button class="nav-toggle" title="Toggle sidebar">
                 <i class="codicon codicon-layout-sidebar-left"></i>
             </button>
