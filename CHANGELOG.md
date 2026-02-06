@@ -1,5 +1,9 @@
 # Change Log
 
+## 2.1.0 - 2026-02-06
+### Changed
+- README screenshots added to highlight core features
+
 ## 2.0.0 - 2026-02-06
 ### Added
 - Model Proxy module: local HTTP reverse proxy exposing OpenAI and Anthropic compatible routes via vscode.lm
