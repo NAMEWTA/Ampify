@@ -70,6 +70,8 @@ export interface QuickAction {
     label: string;
     iconId: string;
     command: string;
+    /** 'command' executes VS Code command; 'overlay' sends quickAction to provider */
+    action?: 'command' | 'overlay';
 }
 
 // ==================== 工具栏操作 ====================
@@ -79,6 +81,40 @@ export interface ToolbarAction {
     label: string;
     iconId: string;
     command: string;
+    /** 'command' executes VS Code command; 'overlay' sends toolbarAction to open overlay */
+    action?: 'command' | 'overlay';
+}
+
+// ==================== Overlay Panel ====================
+
+export type OverlayFieldKind = 'text' | 'select' | 'textarea' | 'multi-select' | 'tags';
+
+export interface OverlayField {
+    key: string;
+    label: string;
+    kind: OverlayFieldKind;
+    value?: string;
+    placeholder?: string;
+    options?: { label: string; value: string }[];
+    required?: boolean;
+    description?: string;
+}
+
+export interface OverlayData {
+    overlayId: string;
+    title: string;
+    fields: OverlayField[];
+    submitLabel: string;
+    cancelLabel: string;
+}
+
+export interface ConfirmData {
+    confirmId: string;
+    title: string;
+    message: string;
+    confirmLabel: string;
+    cancelLabel: string;
+    danger?: boolean;
 }
 
 // ==================== Settings ====================
@@ -132,13 +168,24 @@ export type WebviewMessage =
     | { type: 'ready' }
     | { type: 'dropFiles'; uris: string[]; section: SectionId }
     | { type: 'changeSetting'; key: string; value: string; scope: SettingsScope }
-    | { type: 'settingsAction'; command: string };
+    | { type: 'settingsAction'; command: string }
+    | { type: 'quickAction'; actionId: string }
+    | { type: 'overlaySubmit'; overlayId: string; values: Record<string, string> }
+    | { type: 'overlayCancel'; overlayId: string }
+    | { type: 'confirmResult'; confirmId: string; confirmed: boolean }
+    | { type: 'filterByKeyword'; section: SectionId; keyword: string }
+    | { type: 'filterByTags'; section: SectionId; tags: string[] }
+    | { type: 'clearFilter'; section: SectionId }
+    | { type: 'toggleTag'; section: SectionId; tag: string };
 
 // ==================== Extension → Webview 消息 ====================
 
 export type ExtensionMessage =
-    | { type: 'updateSection'; section: SectionId; tree: TreeNode[]; toolbar: ToolbarAction[] }
+    | { type: 'updateSection'; section: SectionId; tree: TreeNode[]; toolbar: ToolbarAction[]; tags?: string[]; activeTags?: string[] }
     | { type: 'updateDashboard'; data: DashboardData }
     | { type: 'setActiveSection'; section: SectionId }
     | { type: 'showNotification'; message: string; level: 'info' | 'warn' | 'error' }
-    | { type: 'updateSettings'; data: SettingsData };
+    | { type: 'updateSettings'; data: SettingsData }
+    | { type: 'showOverlay'; data: OverlayData }
+    | { type: 'hideOverlay' }
+    | { type: 'showConfirm'; data: ConfirmData };

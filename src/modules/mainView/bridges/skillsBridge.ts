@@ -28,8 +28,10 @@ export class SkillsBridge {
                 label: `🔍 ${this.getFilterDescription()}`,
                 iconId: 'filter',
                 nodeType: 'filterInfo',
-                command: 'ampify.skills.clearFilter',
-                tooltip: 'Click to clear filter'
+                tooltip: 'Click to clear filter',
+                inlineActions: [
+                    { id: 'clearFilter', label: 'Clear Filter', iconId: 'close' }
+                ]
             });
         }
 
@@ -60,10 +62,10 @@ export class SkillsBridge {
 
     getToolbar(): ToolbarAction[] {
         return [
-            { id: 'search', label: 'Search', iconId: 'search', command: 'ampify.skills.search' },
-            { id: 'filterByTag', label: 'Filter by Tag', iconId: 'filter', command: 'ampify.skills.filterByTag' },
+            { id: 'search', label: 'Search', iconId: 'search', command: '', action: 'overlay' },
             { id: 'refresh', label: 'Refresh', iconId: 'refresh', command: 'ampify.skills.refresh' },
-            { id: 'create', label: 'Create', iconId: 'add', command: 'ampify.skills.create' },
+            { id: 'create', label: 'Create', iconId: 'add', command: '', action: 'overlay' },
+            { id: 'import', label: 'Import', iconId: 'folder-library', command: 'ampify.skills.import' },
             { id: 'openFolder', label: 'Open Folder', iconId: 'folder-opened', command: 'ampify.skills.openFolder' },
             { id: 'syncAgentMd', label: 'Sync AGENT.md', iconId: 'book', command: 'ampify.skills.syncToAgentMd' }
         ];
@@ -79,6 +81,14 @@ export class SkillsBridge {
 
     getFilterState(): FilterState {
         return { ...this.filterState };
+    }
+
+    getAllTags(): string[] {
+        return this.configManager.getAllTags();
+    }
+
+    getActiveTags(): string[] {
+        return this.filterState.tags || [];
     }
 
     async executeAction(actionId: string, nodeId: string): Promise<void> {

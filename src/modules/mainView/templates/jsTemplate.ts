@@ -78,7 +78,7 @@ export function getJs(): string {
         const msg = event.data;
         switch (msg.type) {
             case 'updateSection':
-                renderSection(msg.section, msg.tree, msg.toolbar);
+                renderSection(msg.section, msg.tree, msg.toolbar, msg.tags, msg.activeTags);
                 break;
             case 'updateDashboard':
                 renderDashboard(msg.data);
@@ -90,6 +90,15 @@ export function getJs(): string {
                 currentSection = msg.section;
                 setActiveNavItem(msg.section);
                 saveState();
+                break;
+            case 'showOverlay':
+                showOverlayPanel(msg.data);
+                break;
+            case 'hideOverlay':
+                hideOverlayPanel();
+                break;
+            case 'showConfirm':
+                showConfirmDialog(msg.data);
                 break;
         }
     });
@@ -127,8 +136,9 @@ export function getJs(): string {
             html += '<div class="quick-actions-title">QUICK ACTIONS</div>';
             html += '<div class="quick-actions">';
             for (const action of data.quickActions) {
+                const actionType = action.action || 'command';
                 html += \`
-                    <button class="quick-action-btn" data-command="\${action.command}">
+                    <button class="quick-action-btn" data-command="\${action.command}" data-action-type="\${actionType}" data-action-id="\${action.id}">
                         <i class="codicon codicon-\${action.iconId}"></i>
                         <span>\${action.label}</span>
                     </button>
@@ -143,7 +153,12 @@ export function getJs(): string {
         // Bind quick actions
         body.querySelectorAll('.quick-action-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                vscode.postMessage({ type: 'executeCommand', command: btn.dataset.command });
+                const actionType = btn.dataset.actionType || 'command';
+                if (actionType === 'overlay') {
+                    vscode.postMessage({ type: 'quickAction', actionId: btn.dataset.actionId });
+                } else {
+                    vscode.postMessage({ type: 'executeCommand', command: btn.dataset.command });
+                }
             });
         });
     }
@@ -223,10 +238,10 @@ export function getJs(): string {
     }
 
     // ==================== Section Rendering ====================
-    function renderSection(section, tree, toolbarActions) {
+    function renderSection(section, tree, toolbarActions, tags, activeTags) {
         currentTreeData = tree;
         renderToolbar(section, toolbarActions);
-        renderTree(tree);
+        renderTree(tree, tags, activeTags);
     }
 
     function renderToolbar(section, actions) {
@@ -245,7 +260,7 @@ export function getJs(): string {
         if (actions) {
             for (const action of actions) {
                 html += \`
-                    <button class="toolbar-btn" title="\${action.label}" data-command="\${action.command}">
+                    <button class="toolbar-btn" title="\${action.label}" data-command="\${action.command}" data-action-type="\${action.action || 'command'}" data-action-id="\${action.id}">
                         <i class="codicon codicon-\${action.iconId}"></i>
                     </button>
                 \`;
@@ -256,25 +271,43 @@ export function getJs(): string {
         
         toolbar.querySelectorAll('.toolbar-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                vscode.postMessage({ type: 'executeCommand', command: btn.dataset.command });
+                const actionType = btn.dataset.actionType;
+                if (actionType === 'overlay') {
+                    vscode.postMessage({
+                        type: 'toolbarAction',
+                        actionId: btn.dataset.actionId,
+                        section: currentSection
+                    });
+                } else {
+                    vscode.postMessage({ type: 'executeCommand', command: btn.dataset.command });
+                }
             });
         });
     }
 
     // ==================== Tree Rendering ====================
-    function renderTree(nodes) {
+    function renderTree(nodes, tags, activeTags) {
         const body = document.querySelector('.content-body');
         
         if (!nodes || nodes.length === 0) {
-            body.innerHTML = \`
-                <div class="empty-state">
-                    <i class="codicon codicon-info"></i>
-                    <p>No data</p>
-                </div>
-            \`;
+            body.innerHTML = '';
+            if (tags && tags.length > 0) {
+                body.appendChild(renderTagChips(tags, activeTags || []));
+            }
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+            empty.innerHTML = '<i class="codicon codicon-info"></i><p>No data</p>';
+            body.appendChild(empty);
             return;
         }
         
+        body.innerHTML = '';
+
+        // Tag chips bar (inline filter)
+        if (tags && tags.length > 0) {
+            body.appendChild(renderTagChips(tags, activeTags || []));
+        }
+
         const container = document.createElement('div');
         container.className = 'tree-container';
         
@@ -282,8 +315,39 @@ export function getJs(): string {
             container.appendChild(createTreeNode(node, 0));
         }
         
-        body.innerHTML = '';
         body.appendChild(container);
+    }
+
+    function renderTagChips(tags, activeTags) {
+        const bar = document.createElement('div');
+        bar.className = 'tag-chips-bar';
+
+        const label = document.createElement('span');
+        label.className = 'tag-chips-label';
+        label.innerHTML = '<i class="codicon codicon-tag"></i>';
+        bar.appendChild(label);
+
+        for (const tag of tags) {
+            const chip = document.createElement('button');
+            chip.className = 'tag-chip' + (activeTags.includes(tag) ? ' active' : '');
+            chip.textContent = tag;
+            chip.addEventListener('click', () => {
+                vscode.postMessage({ type: 'toggleTag', section: currentSection, tag });
+            });
+            bar.appendChild(chip);
+        }
+
+        if (activeTags.length > 0) {
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'tag-chip-clear';
+            clearBtn.innerHTML = '<i class="codicon codicon-close"></i> Clear';
+            clearBtn.addEventListener('click', () => {
+                vscode.postMessage({ type: 'clearFilter', section: currentSection });
+            });
+            bar.appendChild(clearBtn);
+        }
+
+        return bar;
     }
 
     function createTreeNode(node, depth) {
@@ -515,6 +579,343 @@ export function getJs(): string {
                 vscode.postMessage({ type: 'dropFiles', uris, section: currentSection });
             }
         });
+    }
+
+    // ==================== Overlay Panel ====================
+    let activeOverlay = null;
+
+    function showOverlayPanel(data) {
+        hideOverlayPanel();
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'overlay-backdrop';
+
+        const panel = document.createElement('div');
+        panel.className = 'overlay-panel';
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'overlay-header';
+        header.innerHTML = \`
+            <div class="overlay-title">\${escapeHtml(data.title)}</div>
+            <button class="overlay-close" title="Close"><i class="codicon codicon-close"></i></button>
+        \`;
+        panel.appendChild(header);
+
+        // Body
+        const body = document.createElement('div');
+        body.className = 'overlay-body';
+
+        const fieldElements = {};
+
+        for (const field of data.fields) {
+            const fieldEl = document.createElement('div');
+            fieldEl.className = 'overlay-field';
+
+            // Label
+            const labelEl = document.createElement('label');
+            labelEl.className = 'overlay-field-label';
+            labelEl.textContent = field.label;
+            if (field.required) {
+                const req = document.createElement('span');
+                req.className = 'required';
+                req.textContent = '*';
+                labelEl.appendChild(req);
+            }
+            fieldEl.appendChild(labelEl);
+
+            if (field.kind === 'select') {
+                const select = document.createElement('select');
+                select.className = 'overlay-field-input';
+                select.dataset.key = field.key;
+                for (const opt of (field.options || [])) {
+                    const option = document.createElement('option');
+                    option.value = opt.value;
+                    option.textContent = opt.label;
+                    if (opt.value === field.value) option.selected = true;
+                    select.appendChild(option);
+                }
+                fieldEl.appendChild(select);
+                fieldElements[field.key] = { el: select, kind: 'select' };
+            } else if (field.kind === 'textarea') {
+                const ta = document.createElement('textarea');
+                ta.className = 'overlay-field-input textarea';
+                ta.dataset.key = field.key;
+                ta.placeholder = field.placeholder || '';
+                ta.value = field.value || '';
+                fieldEl.appendChild(ta);
+                fieldElements[field.key] = { el: ta, kind: 'textarea' };
+            } else if (field.kind === 'multi-select') {
+                const container = document.createElement('div');
+                container.className = 'overlay-multi-select';
+                container.dataset.key = field.key;
+                const selectedValues = (field.value || '').split(',').filter(Boolean);
+                for (const opt of (field.options || [])) {
+                    const tag = document.createElement('label');
+                    tag.className = 'overlay-check-tag' + (selectedValues.includes(opt.value) ? ' checked' : '');
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.value = opt.value;
+                    cb.checked = selectedValues.includes(opt.value);
+                    cb.addEventListener('change', () => {
+                        tag.classList.toggle('checked', cb.checked);
+                    });
+                    tag.appendChild(cb);
+                    tag.appendChild(document.createTextNode(opt.label));
+                    container.appendChild(tag);
+                }
+                fieldEl.appendChild(container);
+                fieldElements[field.key] = { el: container, kind: 'multi-select' };
+            } else if (field.kind === 'tags') {
+                const container = document.createElement('div');
+                container.className = 'overlay-tags-container';
+                container.dataset.key = field.key;
+                const initialTags = (field.value || '').split(',').filter(Boolean);
+                for (const t of initialTags) {
+                    container.appendChild(createTagItem(t, container));
+                }
+                const input = document.createElement('input');
+                input.className = 'overlay-tags-input';
+                input.placeholder = field.placeholder || 'Type and press Enter...';
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const val = input.value.trim().toLowerCase().replace(/\\s+/g, '-');
+                        if (val && !getTagsFromContainer(container).includes(val)) {
+                            container.insertBefore(createTagItem(val, container), input);
+                        }
+                        input.value = '';
+                    } else if (e.key === 'Backspace' && !input.value) {
+                        const tags = container.querySelectorAll('.overlay-tag-item');
+                        if (tags.length > 0) tags[tags.length - 1].remove();
+                    }
+                });
+                container.appendChild(input);
+                container.addEventListener('click', () => input.focus());
+                // If options are provided, show them as suggestion chips
+                if (field.options && field.options.length > 0) {
+                    const suggestions = document.createElement('div');
+                    suggestions.className = 'overlay-multi-select';
+                    suggestions.style.marginTop = '4px';
+                    for (const opt of field.options) {
+                        const chip = document.createElement('label');
+                        chip.className = 'overlay-check-tag';
+                        chip.textContent = opt.label;
+                        chip.style.cursor = 'pointer';
+                        chip.addEventListener('click', () => {
+                            const val = opt.value;
+                            if (!getTagsFromContainer(container).includes(val)) {
+                                container.insertBefore(createTagItem(val, container), input);
+                            }
+                        });
+                        suggestions.appendChild(chip);
+                    }
+                    fieldEl.appendChild(container);
+                    fieldEl.appendChild(suggestions);
+                } else {
+                    fieldEl.appendChild(container);
+                }
+                fieldElements[field.key] = { el: container, kind: 'tags' };
+            } else {
+                const inp = document.createElement('input');
+                inp.className = 'overlay-field-input';
+                inp.type = 'text';
+                inp.dataset.key = field.key;
+                inp.placeholder = field.placeholder || '';
+                inp.value = field.value || '';
+                fieldEl.appendChild(inp);
+                fieldElements[field.key] = { el: inp, kind: 'text' };
+            }
+
+            // Hint
+            if (field.description) {
+                const hint = document.createElement('div');
+                hint.className = 'overlay-field-hint';
+                hint.textContent = field.description;
+                fieldEl.appendChild(hint);
+            }
+
+            // Error
+            const errEl = document.createElement('div');
+            errEl.className = 'overlay-field-error';
+            errEl.dataset.key = field.key;
+            fieldEl.appendChild(errEl);
+
+            body.appendChild(fieldEl);
+        }
+
+        panel.appendChild(body);
+
+        // Footer
+        const footer = document.createElement('div');
+        footer.className = 'overlay-footer';
+
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'overlay-btn overlay-btn-secondary';
+        cancelBtn.textContent = data.cancelLabel || 'Cancel';
+
+        const submitBtn = document.createElement('button');
+        submitBtn.className = 'overlay-btn overlay-btn-primary';
+        submitBtn.textContent = data.submitLabel || 'OK';
+
+        footer.appendChild(cancelBtn);
+        footer.appendChild(submitBtn);
+        panel.appendChild(footer);
+
+        backdrop.appendChild(panel);
+        document.body.appendChild(backdrop);
+
+        // Focus first input
+        setTimeout(() => {
+            const firstInput = panel.querySelector('input:not([type="checkbox"]), textarea, select');
+            if (firstInput) firstInput.focus();
+        }, 50);
+
+        // Actions
+        const close = () => {
+            hideOverlayPanel();
+            vscode.postMessage({ type: 'overlayCancel', overlayId: data.overlayId });
+        };
+
+        header.querySelector('.overlay-close').addEventListener('click', close);
+        cancelBtn.addEventListener('click', close);
+        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+
+        submitBtn.addEventListener('click', () => {
+            // Validate required
+            let valid = true;
+            for (const field of data.fields) {
+                const fe = fieldElements[field.key];
+                const errEl = panel.querySelector('.overlay-field-error[data-key="' + field.key + '"]');
+                const val = getFieldValue(fe);
+                if (field.required && !val) {
+                    if (errEl) { errEl.textContent = field.label + ' is required'; errEl.classList.add('visible'); }
+                    valid = false;
+                } else {
+                    if (errEl) { errEl.classList.remove('visible'); }
+                }
+            }
+            if (!valid) return;
+
+            const values = {};
+            for (const field of data.fields) {
+                values[field.key] = getFieldValue(fieldElements[field.key]);
+            }
+            hideOverlayPanel();
+            vscode.postMessage({ type: 'overlaySubmit', overlayId: data.overlayId, values });
+        });
+
+        // Escape
+        const escHandler = (e) => {
+            if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        // Enter key submits (unless in textarea)
+        panel.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && !e.target.classList.contains('overlay-tags-input')) {
+                e.preventDefault();
+                submitBtn.click();
+            }
+        });
+
+        activeOverlay = { backdrop, escHandler };
+    }
+
+    function hideOverlayPanel() {
+        if (activeOverlay) {
+            activeOverlay.backdrop.remove();
+            document.removeEventListener('keydown', activeOverlay.escHandler);
+            activeOverlay = null;
+        }
+    }
+
+    function getFieldValue(fe) {
+        if (!fe) return '';
+        if (fe.kind === 'multi-select') {
+            const checked = fe.el.querySelectorAll('input[type="checkbox"]:checked');
+            return Array.from(checked).map(cb => cb.value).join(',');
+        }
+        if (fe.kind === 'tags') {
+            return getTagsFromContainer(fe.el).join(',');
+        }
+        return fe.el.value || '';
+    }
+
+    function createTagItem(text, container) {
+        const tag = document.createElement('span');
+        tag.className = 'overlay-tag-item';
+        tag.textContent = text;
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'overlay-tag-remove';
+        removeBtn.innerHTML = '<i class="codicon codicon-close"></i>';
+        removeBtn.addEventListener('click', (e) => { e.stopPropagation(); tag.remove(); });
+        tag.appendChild(removeBtn);
+        return tag;
+    }
+
+    function getTagsFromContainer(container) {
+        return Array.from(container.querySelectorAll('.overlay-tag-item')).map(el => el.textContent.replace(/\\s*×?\\s*$/, '').trim());
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ==================== Confirm Dialog ====================
+    let activeConfirm = null;
+
+    function showConfirmDialog(data) {
+        hideConfirmDialog();
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'overlay-backdrop';
+
+        const panel = document.createElement('div');
+        panel.className = 'confirm-panel';
+
+        panel.innerHTML = \`
+            <div class="confirm-header">\${escapeHtml(data.title)}</div>
+            <div class="confirm-body">\${escapeHtml(data.message)}</div>
+            <div class="confirm-footer">
+                <button class="overlay-btn overlay-btn-secondary" data-role="cancel">\${escapeHtml(data.cancelLabel || 'Cancel')}</button>
+                <button class="overlay-btn \${data.danger ? 'overlay-btn-danger' : 'overlay-btn-primary'}" data-role="confirm">\${escapeHtml(data.confirmLabel || 'OK')}</button>
+            </div>
+        \`;
+
+        backdrop.appendChild(panel);
+        document.body.appendChild(backdrop);
+
+        const send = (confirmed) => {
+            hideConfirmDialog();
+            vscode.postMessage({ type: 'confirmResult', confirmId: data.confirmId, confirmed });
+        };
+
+        panel.querySelector('[data-role="cancel"]').addEventListener('click', () => send(false));
+        panel.querySelector('[data-role="confirm"]').addEventListener('click', () => send(true));
+        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) send(false); });
+
+        const escHandler = (e) => {
+            if (e.key === 'Escape') { send(false); document.removeEventListener('keydown', escHandler); }
+        };
+        document.addEventListener('keydown', escHandler);
+
+        // Focus confirm button
+        setTimeout(() => {
+            panel.querySelector('[data-role="confirm"]').focus();
+        }, 50);
+
+        activeConfirm = { backdrop, escHandler };
+    }
+
+    function hideConfirmDialog() {
+        if (activeConfirm) {
+            activeConfirm.backdrop.remove();
+            document.removeEventListener('keydown', activeConfirm.escHandler);
+            activeConfirm = null;
+        }
     }
 
     // ==================== State Persistence ====================

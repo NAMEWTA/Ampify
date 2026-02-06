@@ -9,7 +9,10 @@ import {
     WebviewMessage,
     ExtensionMessage,
     TreeNode,
-    ToolbarAction
+    ToolbarAction,
+    OverlayData,
+    OverlayField,
+    ConfirmData
 } from './protocol';
 import { DashboardBridge } from './bridges/dashboardBridge';
 import { LauncherBridge } from './bridges/launcherBridge';
@@ -19,6 +22,8 @@ import { GitShareBridge } from './bridges/gitShareBridge';
 import { SettingsBridge } from './bridges/settingsBridge';
 import { GitManager } from '../../common/git';
 import { I18n } from '../../common/i18n';
+import { SkillConfigManager } from '../skills/core/skillConfigManager';
+import { CommandConfigManager } from '../commands/core/commandConfigManager';
 
 export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'ampify-main-view';
@@ -35,6 +40,9 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     private gitManager: GitManager;
     private lastAutoSyncAt = 0;
     private autoSyncInFlight?: Promise<void>;
+
+    /** Pending overlay/confirm callbacks keyed by overlayId/confirmId */
+    private pendingCallbacks = new Map<string, (values?: Record<string, string>) => Promise<void>>();
 
     constructor(private readonly _extensionUri: vscode.Uri) {
         this.dashboardBridge = new DashboardBridge();
@@ -144,6 +152,72 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             case 'settingsAction':
                 await this.handleSettingsAction(msg.command);
                 break;
+
+            // --- Quick Actions from Dashboard ---
+            case 'quickAction':
+                await this.handleQuickAction(msg.actionId);
+                break;
+
+            // --- Overlay / Confirm ---
+            case 'overlaySubmit':
+                await this.handleOverlaySubmit(msg.overlayId, msg.values);
+                break;
+
+            case 'overlayCancel':
+                this.pendingCallbacks.delete(msg.overlayId);
+                break;
+
+            case 'confirmResult':
+                await this.handleConfirmResult(msg.confirmId, msg.confirmed);
+                break;
+
+            // --- Filter (fix: route through provider so bridge state is updated) ---
+            case 'filterByKeyword':
+                if (msg.section === 'skills') {
+                    this.skillsBridge.setFilter(msg.keyword || undefined);
+                } else if (msg.section === 'commands') {
+                    this.commandsBridge.setFilter(msg.keyword || undefined);
+                }
+                await this.sendSectionData(msg.section);
+                break;
+
+            case 'filterByTags':
+                if (msg.section === 'skills') {
+                    this.skillsBridge.setFilter(undefined, msg.tags);
+                } else if (msg.section === 'commands') {
+                    this.commandsBridge.setFilter(undefined, msg.tags);
+                }
+                await this.sendSectionData(msg.section);
+                break;
+
+            case 'clearFilter':
+                if (msg.section === 'skills') {
+                    this.skillsBridge.clearFilter();
+                } else if (msg.section === 'commands') {
+                    this.commandsBridge.clearFilter();
+                }
+                await this.sendSectionData(msg.section);
+                break;
+
+            case 'toggleTag': {
+                const bridge = msg.section === 'skills' ? this.skillsBridge
+                    : msg.section === 'commands' ? this.commandsBridge : null;
+                if (bridge) {
+                    const current = bridge.getFilterState();
+                    const currentTags = current.tags || [];
+                    const tag = msg.tag;
+                    const newTags = currentTags.includes(tag)
+                        ? currentTags.filter(t => t !== tag)
+                        : [...currentTags, tag];
+                    if (newTags.length > 0) {
+                        bridge.setFilter(current.keyword, newTags);
+                    } else {
+                        bridge.setFilter(current.keyword || undefined);
+                    }
+                    await this.sendSectionData(msg.section);
+                }
+                break;
+            }
         }
     }
 
@@ -163,14 +237,22 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 tree = this.launcherBridge.getTreeData();
                 toolbar = this.launcherBridge.getToolbar();
                 break;
-            case 'skills':
+            case 'skills': {
                 tree = this.skillsBridge.getTreeData();
                 toolbar = this.skillsBridge.getToolbar();
-                break;
-            case 'commands':
+                const skillTags = this.skillsBridge.getAllTags();
+                const skillActiveTags = this.skillsBridge.getActiveTags();
+                this.postMessage({ type: 'updateSection', section, tree, toolbar, tags: skillTags, activeTags: skillActiveTags });
+                return;
+            }
+            case 'commands': {
                 tree = this.commandsBridge.getTreeData();
                 toolbar = this.commandsBridge.getToolbar();
-                break;
+                const cmdTags = this.commandsBridge.getAllTags();
+                const cmdActiveTags = this.commandsBridge.getActiveTags();
+                this.postMessage({ type: 'updateSection', section, tree, toolbar, tags: cmdTags, activeTags: cmdActiveTags });
+                return;
+            }
             case 'gitshare':
                 tree = await this.gitShareBridge.getTreeData();
                 toolbar = this.gitShareBridge.getToolbar();
@@ -191,23 +273,32 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     // ==================== 事件处理 ====================
 
     private async handleTreeItemClick(section: SectionId, nodeId: string): Promise<void> {
+        // Find the node in current tree data to use nodeType
+        const node = this.findNodeInTree(section, nodeId);
+
         switch (section) {
             case 'launcher': {
                 await this.launcherBridge.executeAction('launch', nodeId);
                 break;
             }
             case 'skills': {
-                if (nodeId.startsWith('skill-') && !nodeId.includes('-tags') && !nodeId.includes('-prereqs') && !nodeId.includes('-files')) {
+                if (node?.nodeType === 'skillItem') {
                     await this.skillsBridge.executeAction('preview', nodeId);
-                } else if (!nodeId.startsWith('skill-')) {
-                    // 可能是文件路径
+                } else if (node?.nodeType === 'filterInfo') {
+                    // Clear filter
+                    this.skillsBridge.clearFilter();
+                    await this.sendSectionData('skills');
+                } else if (node?.nodeType === 'file') {
                     await this.skillsBridge.executeAction('openFile', nodeId);
                 }
                 break;
             }
             case 'commands': {
-                if (nodeId.startsWith('cmd-') && !nodeId.includes('-desc') && !nodeId.includes('-tags')) {
+                if (node?.nodeType === 'commandItem') {
                     await this.commandsBridge.executeAction('open', nodeId);
+                } else if (node?.nodeType === 'filterInfo') {
+                    this.commandsBridge.clearFilter();
+                    await this.sendSectionData('commands');
                 }
                 break;
             }
@@ -215,7 +306,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 if (nodeId === 'gitshare-repopath') {
                     await vscode.commands.executeCommand('ampify.gitShare.openFolder');
                 } else if (nodeId === 'gitshare-config-wizard') {
-                    await vscode.commands.executeCommand('ampify.gitShare.openConfigWizard');
+                    await this.showGitConfigOverlay();
                 } else if (nodeId.startsWith('gitshare-')) {
                     const field = nodeId.replace('gitshare-', '');
                     if (['username', 'email', 'remote'].includes(field)) {
@@ -232,10 +323,56 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    /**
+     * Find a node by ID in the current tree data for a section
+     */
+    private findNodeInTree(section: SectionId, nodeId: string): TreeNode | undefined {
+        let tree: TreeNode[] = [];
+        switch (section) {
+            case 'skills': tree = this.skillsBridge.getTreeData(); break;
+            case 'commands': tree = this.commandsBridge.getTreeData(); break;
+            case 'launcher': tree = this.launcherBridge.getTreeData(); break;
+        }
+        return this.findNodeRecursive(tree, nodeId);
+    }
+
+    private findNodeRecursive(nodes: TreeNode[], nodeId: string): TreeNode | undefined {
+        for (const node of nodes) {
+            if (node.id === nodeId) { return node; }
+            if (node.children) {
+                const found = this.findNodeRecursive(node.children, nodeId);
+                if (found) { return found; }
+            }
+        }
+        return undefined;
+    }
+
     private async handleTreeItemAction(section: SectionId, nodeId: string, actionId: string): Promise<void> {
+        // Intercept delete actions → show confirm in WebView
+        if (actionId === 'delete') {
+            await this.handleDeleteWithConfirm(section, nodeId);
+            return;
+        }
+
+        // Intercept clearFilter actions → clear bridge filter directly
+        if (actionId === 'clearFilter') {
+            if (section === 'skills') {
+                this.skillsBridge.clearFilter();
+                await this.sendSectionData('skills');
+            } else if (section === 'commands') {
+                this.commandsBridge.clearFilter();
+                await this.sendSectionData('commands');
+            }
+            return;
+        }
+
         switch (section) {
             case 'launcher':
-                await this.launcherBridge.executeAction(actionId, nodeId);
+                if (actionId === 'delete') {
+                    await this.handleDeleteWithConfirm(section, nodeId);
+                } else {
+                    await this.launcherBridge.executeAction(actionId, nodeId);
+                }
                 break;
             case 'skills':
                 await this.skillsBridge.executeAction(actionId, nodeId);
@@ -251,15 +388,48 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         await this.refresh();
     }
 
-    private async handleToolbarAction(_section: SectionId, _actionId: string): Promise<void> {
-        // toolbar 操作通过 executeCommand 处理
-        await this.refresh();
+    /**
+     * Toolbar action handler — routes overlay triggers
+     */
+    private async handleToolbarAction(section: SectionId, actionId: string): Promise<void> {
+        switch (section) {
+            case 'skills':
+                await this.handleSkillsToolbarAction(actionId);
+                break;
+            case 'commands':
+                await this.handleCommandsToolbarAction(actionId);
+                break;
+            case 'launcher':
+                await this.handleLauncherToolbarAction(actionId);
+                break;
+            case 'gitshare':
+                await this.handleGitShareToolbarAction(actionId);
+                break;
+        }
     }
 
     private async handleSettingsAction(command: string): Promise<void> {
         switch (command) {
             case 'reloadWindow':
                 await vscode.commands.executeCommand('workbench.action.reloadWindow');
+                break;
+        }
+    }
+
+    private async handleQuickAction(actionId: string): Promise<void> {
+        switch (actionId) {
+            case 'launch':
+                // Navigate to launcher section and show add overlay
+                this.postMessage({ type: 'setActiveSection', section: 'launcher' });
+                setTimeout(() => this.showLauncherAddOverlay(), 200);
+                break;
+            case 'createSkill':
+                this.postMessage({ type: 'setActiveSection', section: 'skills' });
+                setTimeout(() => this.showSkillCreateOverlay(), 200);
+                break;
+            case 'createCommand':
+                this.postMessage({ type: 'setActiveSection', section: 'commands' });
+                setTimeout(() => this.showCommandCreateOverlay(), 200);
                 break;
         }
     }
@@ -272,6 +442,421 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             await this.commandsBridge.handleDrop(uris);
         }
         await this.refresh();
+    }
+
+    // ==================== Overlay / Confirm 管理 ====================
+
+    private showOverlay(data: OverlayData, callback: (values?: Record<string, string>) => Promise<void>): void {
+        this.pendingCallbacks.set(data.overlayId, callback);
+        this.postMessage({ type: 'showOverlay', data });
+    }
+
+    private showConfirm(data: ConfirmData, callback: (values?: Record<string, string>) => Promise<void>): void {
+        this.pendingCallbacks.set(data.confirmId, callback);
+        this.postMessage({ type: 'showConfirm', data });
+    }
+
+    private async handleOverlaySubmit(overlayId: string, values: Record<string, string>): Promise<void> {
+        const callback = this.pendingCallbacks.get(overlayId);
+        this.pendingCallbacks.delete(overlayId);
+        if (callback) {
+            try {
+                await callback(values);
+            } catch (error) {
+                console.error('Overlay submit handler error:', error);
+                const msg = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(msg);
+            }
+        }
+        await this.refresh();
+    }
+
+    private async handleConfirmResult(confirmId: string, confirmed: boolean): Promise<void> {
+        const callback = this.pendingCallbacks.get(confirmId);
+        this.pendingCallbacks.delete(confirmId);
+        if (confirmed && callback) {
+            try {
+                await callback();
+            } catch (error) {
+                console.error('Confirm handler error:', error);
+                const msg = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(msg);
+            }
+        }
+        await this.refresh();
+    }
+
+    // ==================== Skills Toolbar Actions ====================
+
+    private async handleSkillsToolbarAction(actionId: string): Promise<void> {
+        switch (actionId) {
+            case 'search': {
+                const currentFilter = this.skillsBridge.getFilterState();
+                const fields: OverlayField[] = [{
+                    key: 'keyword',
+                    label: I18n.get('skills.searchPlaceholder'),
+                    kind: 'text',
+                    value: currentFilter.keyword || '',
+                    placeholder: I18n.get('skills.searchPlaceholder')
+                }];
+                this.showOverlay({
+                    overlayId: 'skills-search',
+                    title: 'Search Skills',
+                    fields,
+                    submitLabel: 'Search',
+                    cancelLabel: I18n.get('skills.cancel')
+                }, async (values) => {
+                    const keyword = values?.keyword?.trim();
+                    if (keyword) {
+                        this.skillsBridge.setFilter(keyword);
+                    } else {
+                        this.skillsBridge.clearFilter();
+                    }
+                    await this.sendSectionData('skills');
+                });
+                break;
+            }
+            case 'create':
+                await this.showSkillCreateOverlay();
+                break;
+        }
+    }
+
+    private async showSkillCreateOverlay(): Promise<void> {
+        const allTags = SkillConfigManager.getInstance().getAllTags();
+        const predefinedTags = ['ai', 'backend', 'frontend', 'git', 'ci-cd', 'vue', 'react'];
+        const tagOptions = [...new Set([...predefinedTags, ...allTags])].sort().map(t => ({ label: t, value: t }));
+
+        const fields: OverlayField[] = [
+            { key: 'name', label: I18n.get('skills.inputSkillName'), kind: 'text', required: true, placeholder: 'my-awesome-skill' },
+            { key: 'description', label: I18n.get('skills.inputSkillDesc'), kind: 'textarea', required: true, placeholder: 'What this skill does. Use when...' },
+            { key: 'tags', label: I18n.get('skills.selectTags'), kind: 'tags', options: tagOptions, placeholder: 'Type and press Enter...' }
+        ];
+
+        this.showOverlay({
+            overlayId: 'skills-create',
+            title: I18n.get('dashboard.quickCreateSkill'),
+            fields,
+            submitLabel: 'Create',
+            cancelLabel: I18n.get('skills.cancel')
+        }, async (values) => {
+            if (!values) { return; }
+            const name = values.name?.trim();
+            const description = values.description?.trim();
+            if (!name || !description) { return; }
+
+            // Validate name
+            if (!/^[a-z0-9-]+$/.test(name) || name.length > 64) {
+                vscode.window.showErrorMessage(I18n.get('skills.nameValidation'));
+                return;
+            }
+            const configManager = SkillConfigManager.getInstance();
+            if (configManager.skillExists(name)) {
+                vscode.window.showErrorMessage(I18n.get('skills.skillExists', name));
+                return;
+            }
+
+            const tags = (values.tags || '').split(',').filter(Boolean);
+
+            // Use creator logic directly
+            const { generateSkillMdContent } = await import('../skills/templates/skillMdTemplate');
+
+            const meta = {
+                name,
+                description,
+                tags: tags.length > 0 ? tags : undefined
+            };
+
+            const skillMdContent = generateSkillMdContent(meta);
+            configManager.saveSkillMd(name, skillMdContent);
+
+            // Open SKILL.md for editing
+            const skillMdPath = configManager.getSkillPath(name) + '/SKILL.md';
+            const doc = await vscode.workspace.openTextDocument(skillMdPath);
+            await vscode.window.showTextDocument(doc);
+
+            vscode.window.showInformationMessage(I18n.get('skills.skillCreated', name));
+        });
+    }
+
+    // ==================== Commands Toolbar Actions ====================
+
+    private async handleCommandsToolbarAction(actionId: string): Promise<void> {
+        switch (actionId) {
+            case 'search': {
+                const currentFilter = this.commandsBridge.getFilterState();
+                const fields: OverlayField[] = [{
+                    key: 'keyword',
+                    label: I18n.get('commands.searchPlaceholder'),
+                    kind: 'text',
+                    value: currentFilter.keyword || '',
+                    placeholder: I18n.get('commands.searchPlaceholder')
+                }];
+                this.showOverlay({
+                    overlayId: 'commands-search',
+                    title: 'Search Commands',
+                    fields,
+                    submitLabel: 'Search',
+                    cancelLabel: I18n.get('skills.cancel')
+                }, async (values) => {
+                    const keyword = values?.keyword?.trim();
+                    if (keyword) {
+                        this.commandsBridge.setFilter(keyword);
+                    } else {
+                        this.commandsBridge.clearFilter();
+                    }
+                    await this.sendSectionData('commands');
+                });
+                break;
+            }
+            case 'create':
+                await this.showCommandCreateOverlay();
+                break;
+        }
+    }
+
+    private async showCommandCreateOverlay(): Promise<void> {
+        const cmdConfigManager = CommandConfigManager.getInstance();
+        const allTags = cmdConfigManager.getAllTags();
+        const predefinedTags = ['code-generation', 'refactor', 'documentation', 'testing', 'debugging', 'analysis', 'review', 'database', 'api', 'frontend', 'backend', 'devops', 'workflow'];
+        const tagOptions = [...new Set([...predefinedTags, ...allTags])].sort().map(t => ({ label: t, value: t }));
+
+        const fields: OverlayField[] = [
+            { key: 'name', label: I18n.get('commands.inputCommandName'), kind: 'text', required: true, placeholder: 'my-command' },
+            { key: 'description', label: I18n.get('commands.inputCommandDesc'), kind: 'textarea', required: true, placeholder: 'A command that...' },
+            { key: 'tags', label: I18n.get('commands.selectTags'), kind: 'tags', options: tagOptions, placeholder: 'Type and press Enter...' }
+        ];
+
+        this.showOverlay({
+            overlayId: 'commands-create',
+            title: I18n.get('dashboard.quickCreateCommand'),
+            fields,
+            submitLabel: 'Create',
+            cancelLabel: I18n.get('skills.cancel')
+        }, async (values) => {
+            if (!values) { return; }
+            const name = values.name?.trim();
+            const description = values.description?.trim();
+            if (!name || !description) { return; }
+
+            // Validate
+            if (!/^[a-z0-9-]+$/.test(name) || name.length > 64) {
+                vscode.window.showErrorMessage(I18n.get('commands.nameValidation'));
+                return;
+            }
+            const configMgr = CommandConfigManager.getInstance();
+            if (configMgr.commandExists(name)) {
+                vscode.window.showErrorMessage(I18n.get('commands.commandExists', name));
+                return;
+            }
+
+            const tags = (values.tags || '').split(',').filter(Boolean);
+
+            const { generateCommandMd } = await import('../commands/templates/commandMdTemplate');
+            const content = generateCommandMd({ command: name, description, tags });
+            configMgr.saveCommandMd(name, content);
+
+            vscode.window.showInformationMessage(I18n.get('commands.commandCreated', name));
+
+            // Open for editing
+            const filePath = vscode.Uri.file(`${configMgr.getCommandsDir()}/${name}.md`);
+            const doc = await vscode.workspace.openTextDocument(filePath);
+            await vscode.window.showTextDocument(doc);
+        });
+    }
+
+    // ==================== Launcher Toolbar Actions ====================
+
+    private async handleLauncherToolbarAction(actionId: string): Promise<void> {
+        switch (actionId) {
+            case 'add':
+                await this.showLauncherAddOverlay();
+                break;
+        }
+    }
+
+    private async showLauncherAddOverlay(): Promise<void> {
+        const fields: OverlayField[] = [
+            { key: 'name', label: I18n.get('launcher.inputKey'), kind: 'text', required: true, placeholder: 'work' },
+            { key: 'dirName', label: I18n.get('launcher.inputDirName'), kind: 'text', required: true, placeholder: 'github-work' },
+            { key: 'description', label: I18n.get('launcher.inputDesc'), kind: 'text', placeholder: 'Work Account' }
+        ];
+
+        this.showOverlay({
+            overlayId: 'launcher-add',
+            title: I18n.get('dashboard.quickLaunch'),
+            fields,
+            submitLabel: 'Add',
+            cancelLabel: I18n.get('skills.cancel')
+        }, async (values) => {
+            if (!values) { return; }
+            const name = values.name?.trim();
+            const dirName = values.dirName?.trim();
+            const desc = values.description?.trim();
+            if (!name || !dirName) { return; }
+
+            const { ConfigManager } = await import('../launcher/core/configManager');
+            const configManager = new ConfigManager();
+            const config = configManager.getConfig();
+            config.instances[name] = {
+                dirName,
+                description: desc || `${name} Account`,
+                vscodeArgs: ['--new-window']
+            };
+            configManager.saveConfig(config);
+        });
+    }
+
+    // ==================== Git Share Toolbar Actions ====================
+
+    private async handleGitShareToolbarAction(actionId: string): Promise<void> {
+        switch (actionId) {
+            case 'commit':
+                await this.showGitCommitOverlay();
+                break;
+            case 'configWizard':
+                await this.showGitConfigOverlay();
+                break;
+        }
+    }
+
+    private async showGitCommitOverlay(): Promise<void> {
+        const fields: OverlayField[] = [{
+            key: 'message',
+            label: I18n.get('gitShare.commitPrompt'),
+            kind: 'text',
+            value: I18n.get('gitShare.commitDefaultMessage'),
+            placeholder: I18n.get('gitShare.commitDefaultMessage')
+        }];
+
+        this.showOverlay({
+            overlayId: 'gitshare-commit',
+            title: 'Git Commit',
+            fields,
+            submitLabel: 'Commit',
+            cancelLabel: I18n.get('skills.cancel')
+        }, async (values) => {
+            const message = values?.message?.trim() || I18n.get('gitShare.commitDefaultMessage');
+            const committed = await this.gitManager.commit(message);
+            if (committed) {
+                vscode.window.showInformationMessage(I18n.get('gitShare.commitSuccess'));
+            } else {
+                vscode.window.showErrorMessage(I18n.get('gitShare.commitFailed', 'Commit failed'));
+            }
+        });
+    }
+
+    private async showGitConfigOverlay(): Promise<void> {
+        const gitConfig = this.gitManager.getConfig().gitConfig || {};
+        const remoteUrls = (gitConfig.remoteUrls && gitConfig.remoteUrls.length > 0)
+            ? gitConfig.remoteUrls
+            : (gitConfig.remoteUrl ? [gitConfig.remoteUrl] : []);
+
+        const fields: OverlayField[] = [
+            { key: 'userName', label: I18n.get('gitShare.inputUserName'), kind: 'text', value: gitConfig.userName || '', placeholder: 'Your Name' },
+            { key: 'userEmail', label: I18n.get('gitShare.inputUserEmail'), kind: 'text', value: gitConfig.userEmail || '', placeholder: 'you@example.com' },
+            { key: 'remoteUrls', label: I18n.get('gitShare.inputRemoteUrls'), kind: 'textarea', value: remoteUrls.join(', '), placeholder: 'https://github.com/user/repo.git' }
+        ];
+
+        this.showOverlay({
+            overlayId: 'gitshare-config',
+            title: I18n.get('gitShare.config'),
+            fields,
+            submitLabel: 'Save',
+            cancelLabel: I18n.get('skills.cancel')
+        }, async (values) => {
+            if (!values) { return; }
+            const userName = values.userName?.trim() || undefined;
+            const userEmail = values.userEmail?.trim() || undefined;
+            const parsedRemoteUrls = (values.remoteUrls || '')
+                .split(/[\n,]/)
+                .map((s: string) => s.trim())
+                .filter(Boolean);
+
+            this.gitManager.updateGitConfig({
+                userName,
+                userEmail,
+                remoteUrls: parsedRemoteUrls,
+                remoteUrl: parsedRemoteUrls.length === 1 ? parsedRemoteUrls[0] : undefined
+            });
+
+            if (userName && userEmail) {
+                await this.gitManager.configureUser(userName, userEmail);
+            }
+            if (parsedRemoteUrls.length > 0) {
+                await this.gitManager.setRemotes(parsedRemoteUrls);
+            }
+
+            vscode.window.showInformationMessage(I18n.get('gitShare.configUpdated'));
+        });
+    }
+
+    // ==================== Delete with WebView Confirm ====================
+
+    private async handleDeleteWithConfirm(section: SectionId, nodeId: string): Promise<void> {
+        switch (section) {
+            case 'launcher': {
+                const key = nodeId.replace('launcher-', '');
+                const { ConfigManager } = await import('../launcher/core/configManager');
+                const configManager = new ConfigManager();
+                const config = configManager.getConfig();
+                const instance = config.instances[key];
+                if (!instance) { return; }
+
+                this.showConfirm({
+                    confirmId: `delete-launcher-${key}`,
+                    title: I18n.get('launcher.confirmDelete', instance.description || key),
+                    message: I18n.get('launcher.confirmDelete', instance.description || key),
+                    confirmLabel: I18n.get('skills.yes'),
+                    cancelLabel: I18n.get('skills.no'),
+                    danger: true
+                }, async () => {
+                    delete config.instances[key];
+                    configManager.saveConfig(config);
+                });
+                break;
+            }
+            case 'skills': {
+                const skillName = nodeId.replace('skill-', '').replace(/-children$/, '');
+                const skills = SkillConfigManager.getInstance().loadAllSkills();
+                const skill = skills.find(s => s.meta.name === skillName);
+                if (!skill) { return; }
+
+                this.showConfirm({
+                    confirmId: `delete-skill-${skillName}`,
+                    title: I18n.get('skills.confirmDelete', skillName),
+                    message: I18n.get('skills.confirmDelete', skillName),
+                    confirmLabel: I18n.get('skills.yes'),
+                    cancelLabel: I18n.get('skills.no'),
+                    danger: true
+                }, async () => {
+                    const success = SkillConfigManager.getInstance().deleteSkill(skillName);
+                    if (success) {
+                        vscode.window.showInformationMessage(I18n.get('skills.deleted', skillName));
+                    }
+                });
+                break;
+            }
+            case 'commands': {
+                const cmdName = nodeId.replace('cmd-', '').replace(/-children$/, '');
+                const commands = CommandConfigManager.getInstance().loadAllCommands();
+                const cmd = commands.find(c => c.meta.command === cmdName);
+                if (!cmd) { return; }
+
+                this.showConfirm({
+                    confirmId: `delete-command-${cmdName}`,
+                    title: I18n.get('commands.confirmDelete', cmdName),
+                    message: I18n.get('commands.confirmDelete', cmdName),
+                    confirmLabel: I18n.get('skills.yes'),
+                    cancelLabel: I18n.get('skills.no'),
+                    danger: true
+                }, async () => {
+                    CommandConfigManager.getInstance().deleteCommand(cmdName);
+                    vscode.window.showInformationMessage(I18n.get('commands.deleted', cmdName));
+                });
+                break;
+            }
+        }
     }
 
     // ==================== 工具 ====================

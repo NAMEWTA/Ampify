@@ -27,7 +27,10 @@ export class CommandsBridge {
                 label: I18n.get('commands.filterActive', filterText),
                 iconId: 'filter',
                 nodeType: 'filterInfo',
-                command: 'ampify.commands.clearFilter'
+                tooltip: 'Click to clear filter',
+                inlineActions: [
+                    { id: 'clearFilter', label: 'Clear Filter', iconId: 'close' }
+                ]
             });
         }
 
@@ -55,10 +58,9 @@ export class CommandsBridge {
 
     getToolbar(): ToolbarAction[] {
         return [
-            { id: 'search', label: 'Search', iconId: 'search', command: 'ampify.commands.search' },
-            { id: 'filterByTag', label: 'Filter by Tag', iconId: 'filter', command: 'ampify.commands.filterByTag' },
+            { id: 'search', label: 'Search', iconId: 'search', command: '', action: 'overlay' },
             { id: 'refresh', label: 'Refresh', iconId: 'refresh', command: 'ampify.commands.refresh' },
-            { id: 'create', label: 'Create', iconId: 'add', command: 'ampify.commands.create' },
+            { id: 'create', label: 'Create', iconId: 'add', command: '', action: 'overlay' },
             { id: 'import', label: 'Import', iconId: 'folder-library', command: 'ampify.commands.import' },
             { id: 'openFolder', label: 'Open Folder', iconId: 'folder-opened', command: 'ampify.commands.openFolder' }
         ];
@@ -74,6 +76,14 @@ export class CommandsBridge {
 
     getFilterState(): FilterState {
         return { ...this.filterState };
+    }
+
+    getAllTags(): string[] {
+        return this.configManager.getAllTags();
+    }
+
+    getActiveTags(): string[] {
+        return this.filterState.tags || [];
     }
 
     async executeAction(actionId: string, nodeId: string): Promise<void> {

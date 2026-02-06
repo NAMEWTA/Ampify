@@ -656,6 +656,410 @@ html, body {
     background: var(--vscode-scrollbarSlider-hoverBackground);
 }
 
+/* ==================== Tag Chips Bar ==================== */
+.tag-chips-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.08));
+    background: var(--vscode-sideBar-background);
+    align-items: center;
+}
+
+.tag-chips-label {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    margin-right: 2px;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    border: 1px solid var(--vscode-panel-border, rgba(255,255,255,0.12));
+    background: transparent;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+    transition: all 0.12s ease;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.tag-chip:hover {
+    background: var(--vscode-list-hoverBackground);
+    color: var(--vscode-foreground);
+}
+
+.tag-chip.active {
+    background: var(--vscode-badge-background, #007acc);
+    color: var(--vscode-badge-foreground, #fff);
+    border-color: var(--vscode-badge-background, #007acc);
+}
+
+.tag-chip.active:hover {
+    opacity: 0.85;
+}
+
+.tag-chip-clear {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+    transition: all 0.12s ease;
+    user-select: none;
+    white-space: nowrap;
+    margin-left: 2px;
+}
+
+.tag-chip-clear:hover {
+    color: var(--vscode-errorForeground, #f44);
+    background: rgba(244, 68, 68, 0.1);
+}
+
+/* ==================== Overlay Panel ==================== */
+.overlay-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 2000;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 10vh;
+    animation: overlay-fadein 0.12s ease;
+}
+
+@keyframes overlay-fadein {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes overlay-slidein {
+    from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.overlay-panel {
+    background: var(--vscode-editor-background, var(--vscode-sideBar-background));
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, rgba(128,128,128,0.3)));
+    border-radius: 8px;
+    width: 92%;
+    max-width: 380px;
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    animation: overlay-slidein 0.15s ease;
+    overflow: hidden;
+}
+
+.overlay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.2));
+    flex-shrink: 0;
+}
+
+.overlay-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.overlay-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    opacity: 0.6;
+    font-size: 14px;
+}
+
+.overlay-close:hover {
+    opacity: 1;
+    background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+}
+
+.overlay-body {
+    padding: 12px 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.overlay-body::-webkit-scrollbar {
+    width: 5px;
+}
+
+.overlay-body::-webkit-scrollbar-thumb {
+    background: var(--vscode-scrollbarSlider-background);
+    border-radius: 3px;
+}
+
+.overlay-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.overlay-field-label {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.overlay-field-label .required {
+    color: var(--vscode-errorForeground, #f44);
+    margin-left: 2px;
+}
+
+.overlay-field-input {
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground);
+    border: 1px solid var(--vscode-input-border, rgba(128,128,128,0.3));
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 12px;
+    font-family: var(--vscode-font-family);
+    width: 100%;
+}
+
+.overlay-field-input:focus {
+    outline: 1px solid var(--vscode-focusBorder);
+}
+
+.overlay-field-input.textarea {
+    min-height: 60px;
+    resize: vertical;
+}
+
+.overlay-field-hint {
+    font-size: 11px;
+    opacity: 0.6;
+}
+
+.overlay-field-error {
+    font-size: 11px;
+    color: var(--vscode-errorForeground, #f44);
+    display: none;
+}
+
+.overlay-field-error.visible {
+    display: block;
+}
+
+/* Multi-select (checkboxes) */
+.overlay-multi-select {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 140px;
+    overflow-y: auto;
+    padding: 4px 0;
+}
+
+.overlay-multi-select::-webkit-scrollbar {
+    width: 4px;
+}
+.overlay-multi-select::-webkit-scrollbar-thumb {
+    background: var(--vscode-scrollbarSlider-background);
+    border-radius: 2px;
+}
+
+.overlay-check-tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.25));
+    background: var(--vscode-editor-background, transparent);
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    font-size: 11px;
+    font-family: var(--vscode-font-family);
+    transition: all 0.1s ease;
+    user-select: none;
+}
+
+.overlay-check-tag:hover {
+    border-color: rgba(128,128,128,0.5);
+}
+
+.overlay-check-tag.checked {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+    border-color: var(--vscode-button-background);
+}
+
+.overlay-check-tag input[type="checkbox"] {
+    display: none;
+}
+
+/* Tags input */
+.overlay-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--vscode-input-border, rgba(128,128,128,0.3));
+    border-radius: 4px;
+    background: var(--vscode-input-background);
+    min-height: 32px;
+    cursor: text;
+}
+
+.overlay-tags-container:focus-within {
+    outline: 1px solid var(--vscode-focusBorder);
+}
+
+.overlay-tag-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--vscode-badge-background, rgba(128,128,128,0.2));
+    color: var(--vscode-badge-foreground, var(--vscode-foreground));
+    font-size: 11px;
+}
+
+.overlay-tag-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 10px;
+    opacity: 0.7;
+    border-radius: 2px;
+}
+
+.overlay-tag-remove:hover {
+    opacity: 1;
+    background: rgba(128,128,128,0.3);
+}
+
+.overlay-tags-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--vscode-input-foreground);
+    font-size: 12px;
+    font-family: var(--vscode-font-family);
+    flex: 1;
+    min-width: 60px;
+    padding: 2px 0;
+}
+
+.overlay-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.2));
+    flex-shrink: 0;
+}
+
+.overlay-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-family: var(--vscode-font-family);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s ease;
+}
+
+.overlay-btn-primary {
+    background: var(--vscode-button-background);
+    color: var(--vscode-button-foreground);
+}
+
+.overlay-btn-primary:hover {
+    background: var(--vscode-button-hoverBackground);
+}
+
+.overlay-btn-secondary {
+    background: var(--vscode-button-secondaryBackground, rgba(128,128,128,0.2));
+    color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+}
+
+.overlay-btn-secondary:hover {
+    background: var(--vscode-button-secondaryHoverBackground, rgba(128,128,128,0.3));
+}
+
+.overlay-btn-danger {
+    background: var(--vscode-errorForeground, #c33);
+    color: #fff;
+}
+
+.overlay-btn-danger:hover {
+    opacity: 0.9;
+}
+
+/* ==================== Confirm Dialog ==================== */
+.confirm-panel {
+    background: var(--vscode-editor-background, var(--vscode-sideBar-background));
+    border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, rgba(128,128,128,0.3)));
+    border-radius: 8px;
+    width: 88%;
+    max-width: 340px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    animation: overlay-slidein 0.15s ease;
+    overflow: hidden;
+}
+
+.confirm-header {
+    padding: 12px 14px 0;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.confirm-body {
+    padding: 10px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.85;
+}
+
+.confirm-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px 14px 12px;
+}
+
 /* ==================== Codicon Font (fallback, main CSS loaded via <link>) ==================== */
 @font-face {
     font-family: "codicon";

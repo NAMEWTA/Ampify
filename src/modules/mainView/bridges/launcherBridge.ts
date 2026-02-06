@@ -47,7 +47,7 @@ export class LauncherBridge {
 
     getToolbar(): ToolbarAction[] {
         return [
-            { id: 'add', label: 'Add Instance', iconId: 'add', command: 'ampify.launcher.add' },
+            { id: 'add', label: 'Add Instance', iconId: 'add', command: '', action: 'overlay' },
             { id: 'refresh', label: 'Refresh', iconId: 'refresh', command: 'ampify.launcher.refresh' },
             { id: 'editConfig', label: 'Edit Config', iconId: 'settings-gear', command: 'ampify.launcher.editConfig' }
         ];

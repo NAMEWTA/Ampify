@@ -87,7 +87,7 @@ export class GitShareBridge {
             { id: 'sync', label: 'Sync', iconId: 'sync', command: 'ampify.gitShare.sync' },
             { id: 'pull', label: 'Pull', iconId: 'cloud-download', command: 'ampify.gitShare.pull' },
             { id: 'push', label: 'Push', iconId: 'cloud-upload', command: 'ampify.gitShare.push' },
-            { id: 'commit', label: 'Commit', iconId: 'git-commit', command: 'ampify.gitShare.commit' },
+            { id: 'commit', label: 'Commit', iconId: 'git-commit', command: '', action: 'overlay' },
             { id: 'showDiff', label: 'Show Changes', iconId: 'diff', command: 'ampify.gitShare.showDiff' },
             { id: 'refresh', label: 'Refresh', iconId: 'refresh', command: 'ampify.gitShare.refresh' },
             { id: 'openFolder', label: 'Open Folder', iconId: 'folder-opened', command: 'ampify.gitShare.openFolder' }

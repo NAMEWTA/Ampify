@@ -36,47 +36,24 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
         })
     );
 
-    // 搜索
+    // 搜索（由 WebView overlay 处理，命令保留为空操作）
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.commands.search', async () => {
-            const keyword = await vscode.window.showInputBox({
-                prompt: I18n.get('commands.searchPlaceholder'),
-                placeHolder: I18n.get('commands.searchPlaceholder')
-            });
-            if (keyword !== undefined) {
-                // 搜索状态由 mainView bridge 管理
-                vscode.commands.executeCommand('ampify.mainView.refresh');
-            }
+        vscode.commands.registerCommand('ampify.commands.search', () => {
+            // Search is handled by WebView overlay
         })
     );
 
-    // 按标签过滤
+    // 按标签过滤（由 WebView overlay 处理）
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.commands.filterByTag', async () => {
-            const allTags = configManager.getAllTags();
-            if (allTags.length === 0) {
-                vscode.window.showInformationMessage(I18n.get('commands.noCommands'));
-                return;
-            }
-
-            const selected = await vscode.window.showQuickPick(
-                allTags.map(tag => ({ label: tag })),
-                {
-                    canPickMany: true,
-                    placeHolder: I18n.get('commands.selectTags')
-                }
-            );
-
-            if (selected && selected.length > 0) {
-                vscode.commands.executeCommand('ampify.mainView.refresh');
-            }
+        vscode.commands.registerCommand('ampify.commands.filterByTag', () => {
+            // Filter is handled by WebView overlay
         })
     );
 
-    // 清除过滤
+    // 清除过滤（由 WebView 处理）
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.commands.clearFilter', () => {
-            vscode.window.showInformationMessage(I18n.get('commands.filterCleared'));
+            // Clear filter is handled by WebView
             vscode.commands.executeCommand('ampify.mainView.refresh');
         })
     );
