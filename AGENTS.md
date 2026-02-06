@@ -6,6 +6,7 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
 2. VS Code 多实例启动器，用于管理与启动不同的用户配置。
 3. Skills Manager：全局 Skills 库管理、SKILL.md 元数据、注入项目。
 4. Commands Manager：全局 Commands 库管理，单文件命令管理与项目注入。
+5. Git Sync：Skills/Commands 共享仓库同步与差异预览。
 
 扩展在启动完成后激活（`onStartupFinished`），注册复制路径命令与各模块命令，并在 Activity Bar 提供统一入口与 Tab Bar 视图。
 
@@ -22,6 +23,10 @@ Ampify 是一个 VS Code 扩展，包含以下核心能力：
       - [src/modules/launcher/core/](src/modules/launcher/core/)：配置与进程启动
       - [src/modules/launcher/views/](src/modules/launcher/views/)：TreeView 视图
     - [src/modules/copier/](src/modules/copier/)：复制路径与行号
+    - [src/modules/gitShare/](src/modules/gitShare/)：Git Sync
+    - [src/modules/mainView/](src/modules/mainView/)：统一主视图（Webview）
+      - [src/modules/mainView/bridges/](src/modules/mainView/bridges/)：消息桥接
+      - [src/modules/mainView/templates/](src/modules/mainView/templates/)：Webview 模板
     - [src/modules/skills/](src/modules/skills/)：Skills Manager
       - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、创建
       - [src/modules/skills/templates/](src/modules/skills/templates/)：SKILL.md 模板

@@ -7,6 +7,7 @@ Ampify is a **multi-functional, practical VS Code extension** that helps you wor
 - Copy **relative path** + selected line number
 - Copy **absolute path** + selected line number
 - Unified Activity Bar entry with a segmented Tab Bar (Launcher/Skills/Commands/Git Sync)
+- Settings panel with **Apply & Reload** for storage root changes
 - Skills Manager with a global Skills library (SKILL.md metadata)
 - Search, tag filter, preview, and apply Skills to a project
 - Git Sync module for unified repository sync and diff preview
@@ -46,6 +47,11 @@ Ampify is a **multi-functional, practical VS Code extension** that helps you wor
 - Preview, apply, remove, or delete commands
 - Inject target can be customized via `ampify.commands.injectTarget`
 
+### Settings
+
+- Open **Ampify** from the Activity Bar and use the **Settings** panel
+- Update storage root or language, then click **Apply & Reload**
+
 > Global Skills location: `~/.vscode-ampify/vscodeskillsmanager/skills`
 > Inject target can be customized via `ampify.skills.injectTarget`
 > A hierarchical Skills index will be generated at the parent of the inject target (e.g. `.claude/SKILLS.md`) and referenced via `<skillsmanager><include>` in AGENTS.md
@@ -61,6 +67,7 @@ Ampify 是一个**多功能实用型 VS Code 扩展**，整合了**文件路径 
 - 复制**相对路径** + 选中行号
 - 复制**绝对路径** + 选中行号
 - Activity Bar 多实例启动器视图
+- 设置面板支持 **应用并重载**（用于存储根目录修改）
 - Skills Manager 全局 Skills 库（SKILL.md 元数据）
 - Skills 搜索、标签过滤、预览与注入项目
 - Git Sync 模块：统一同步与差异预览
@@ -99,6 +106,11 @@ Ampify 是一个**多功能实用型 VS Code 扩展**，整合了**文件路径 
 - 使用视图工具栏 **Search / Filter by Tag / Refresh / Create / Import**
 - 预览、注入、移除或删除命令
 - 注入目标可通过 `ampify.commands.injectTarget` 自定义
+
+### Settings
+
+- 从 Activity Bar 打开 **Ampify**，使用 **Settings** 面板
+- 修改存储根目录或语言后，点击 **应用并重载**
 
 > 全局 Skills 目录：`~/.vscode-ampify/vscodeskillsmanager/skills`
 > 注入目标可通过 `ampify.skills.injectTarget` 自定义

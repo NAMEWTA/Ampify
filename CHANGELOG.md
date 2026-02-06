@@ -1,5 +1,14 @@
 # Change Log
 
+## 1.6.0 - 2026-02-06
+### Added
+- 统一主视图架构并新增功能入口。
+- 设置面板新增存储根目录的“Apply & Reload”操作。
+
+### Changed
+- Skills/Commands 配置与数据统一存放到 Git Share 目录。
+- 添加 npm-git-commit-push 命令文档。
+
 ## 1.5.0 - 2026-02-04
 ### Added
 - 新增 Git Sync（Git Share）模块，用于 Skills/Commands 的统一同步入口。
