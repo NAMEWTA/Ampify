@@ -433,8 +433,11 @@ export class GitManager {
 
             const hasRemote = status.hasRemote;
 
+            const stashed = await this.stashIfNeeded();
+
             if (hasRemote) {
-                const pullResult = await this.pull();
+                const branch = await this.resolveRemoteBranch(status.branch) || status.branch || 'main';
+                const pullResult = await this.pullWithRebase(branch);
                 if (!pullResult.success) {
                     return {
                         success: false,
@@ -442,6 +445,13 @@ export class GitManager {
                         authError: pullResult.authError,
                         conflict: pullResult.conflict
                     };
+                }
+            }
+
+            if (stashed) {
+                const popped = await this.popStashAndResolve();
+                if (!popped) {
+                    return { success: false, conflict: true, error: 'Stash pop conflict' };
                 }
             }
 
@@ -471,6 +481,103 @@ export class GitManager {
             const errorMsg = error instanceof Error ? error.message : String(error);
             return { success: false, error: errorMsg };
         }
+    }
+
+    private async stashIfNeeded(): Promise<boolean> {
+        const status = await this.git.status();
+        if (status.files.length === 0) {
+            return false;
+        }
+        await this.git.stash(['push', '-u', '-m', 'ampify-auto-sync']);
+        return true;
+    }
+
+    private async popStashAndResolve(): Promise<boolean> {
+        try {
+            await this.git.stash(['pop']);
+            const status = await this.git.status();
+            if (status.conflicted && status.conflicted.length > 0) {
+                return this.resolveConflictsByTheirs();
+            }
+            return true;
+        } catch (error) {
+            console.error('Stash pop failed:', error);
+            return false;
+        }
+    }
+
+    private async pullWithRebase(branch: string): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean }> {
+        try {
+            await this.git.fetch(['--all']);
+            await this.git.pull('origin', branch, ['--rebase']);
+
+            const status = await this.git.status();
+            if (status.conflicted && status.conflicted.length > 0) {
+                return { success: false, conflict: true, error: 'Rebase conflict' };
+            }
+
+            return { success: true };
+        } catch (error: unknown) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            if (this.isAuthError(errorMsg)) {
+                return { success: false, authError: true, error: errorMsg };
+            }
+
+            if (this.isConflictError(errorMsg)) {
+                await this.git.raw(['rebase', '--abort']).catch(() => undefined);
+                const merged = await this.pullAndMerge(branch);
+                return merged;
+            }
+
+            return { success: false, error: errorMsg };
+        }
+    }
+
+    private async pullAndMerge(branch: string): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean }> {
+        try {
+            await this.git.pull('origin', branch);
+            const status = await this.git.status();
+            if (status.conflicted && status.conflicted.length > 0) {
+                const resolved = await this.resolveConflictsByTheirs();
+                if (!resolved) {
+                    return { success: false, conflict: true, error: 'Merge conflict' };
+                }
+            }
+            return { success: true };
+        } catch (error: unknown) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            return {
+                success: false,
+                error: errorMsg,
+                authError: this.isAuthError(errorMsg),
+                conflict: this.isConflictError(errorMsg)
+            };
+        }
+    }
+
+    private async resolveConflictsByTheirs(): Promise<boolean> {
+        try {
+            await this.git.raw(['checkout', '--theirs', '.']);
+            await this.stageAll();
+            await this.git.commit('Auto-resolve: accept remote changes');
+            return true;
+        } catch (error) {
+            console.error('Auto-resolve conflicts failed:', error);
+            return false;
+        }
+    }
+
+    private isAuthError(errorMsg: string): boolean {
+        return errorMsg.includes('Authentication') ||
+            errorMsg.includes('Permission denied') ||
+            errorMsg.includes('could not read Username');
+    }
+
+    private isConflictError(errorMsg: string): boolean {
+        return errorMsg.includes('CONFLICT') ||
+            errorMsg.includes('Merge conflict') ||
+            errorMsg.includes('Automatic merge failed') ||
+            errorMsg.includes('could not apply');
     }
 
     private getConfiguredRemoteUrls(): string[] {

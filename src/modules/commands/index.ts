@@ -5,7 +5,12 @@ import { CommandConfigManager } from './core/commandConfigManager';
 import { CommandApplier } from './core/commandApplier';
 import { CommandImporter } from './core/commandImporter';
 import { CommandCreator } from './core/commandCreator';
-import { CommandTreeProvider, CommandTreeItem } from './views/commandTreeProvider';
+
+/** Bridge 兼容的 item 类型 */
+interface CommandItemLike {
+    itemType?: string;
+    data?: unknown;
+}
 
 /**
  * 注册 Commands Manager 模块
@@ -20,23 +25,14 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
     const importer = CommandImporter.getInstance();
     const creator = CommandCreator.getInstance();
 
-    // 初始化 TreeView
-    const treeProvider = new CommandTreeProvider();
-    const treeView = vscode.window.createTreeView('ampify-commands-tree', {
-        treeDataProvider: treeProvider,
-        showCollapseAll: true,
-        canSelectMany: false,
-        dragAndDropController: treeProvider
-    });
-
-    context.subscriptions.push(treeView);
+    // TreeView 已由 mainView 模块统一管理
 
     // ==================== 注册命令 ====================
 
-    // 刷新
+    // 刷新 (由 mainView 统一刷新)
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.commands.refresh', () => {
-            treeProvider.refresh();
+            vscode.commands.executeCommand('ampify.mainView.refresh');
         })
     );
 
@@ -48,7 +44,8 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
                 placeHolder: I18n.get('commands.searchPlaceholder')
             });
             if (keyword !== undefined) {
-                treeProvider.setFilter(keyword || undefined);
+                // 搜索状态由 mainView bridge 管理
+                vscode.commands.executeCommand('ampify.mainView.refresh');
             }
         })
     );
@@ -71,7 +68,7 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
             );
 
             if (selected && selected.length > 0) {
-                treeProvider.setFilter(undefined, selected.map(s => s.label));
+                vscode.commands.executeCommand('ampify.mainView.refresh');
             }
         })
     );
@@ -79,8 +76,8 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
     // 清除过滤
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.commands.clearFilter', () => {
-            treeProvider.clearFilter();
             vscode.window.showInformationMessage(I18n.get('commands.filterCleared'));
+            vscode.commands.executeCommand('ampify.mainView.refresh');
         })
     );
 
@@ -89,7 +86,7 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
         vscode.commands.registerCommand('ampify.commands.create', async () => {
             const success = await creator.create();
             if (success) {
-                treeProvider.refresh();
+                vscode.commands.executeCommand('ampify.mainView.refresh');
             }
         })
     );
@@ -99,14 +96,14 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
         vscode.commands.registerCommand('ampify.commands.import', async () => {
             const success = await importer.importFromDialog();
             if (success) {
-                treeProvider.refresh();
+                vscode.commands.executeCommand('ampify.mainView.refresh');
             }
         })
     );
 
     // 应用到项目
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.commands.apply', async (item: CommandTreeItem) => {
+        vscode.commands.registerCommand('ampify.commands.apply', async (item: CommandItemLike) => {
             if (!item || item.itemType !== 'commandItem') {
                 return;
             }
@@ -138,7 +135,7 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
 
     // 从项目移除
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.commands.remove', async (item: CommandTreeItem) => {
+        vscode.commands.registerCommand('ampify.commands.remove', async (item: CommandItemLike) => {
             if (!item || item.itemType !== 'commandItem') {
                 return;
             }
@@ -170,7 +167,7 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
 
     // 删除命令
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.commands.delete', async (item: CommandTreeItem) => {
+        vscode.commands.registerCommand('ampify.commands.delete', async (item: CommandItemLike) => {
             if (!item || item.itemType !== 'commandItem') {
                 return;
             }
@@ -180,13 +177,13 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
             vscode.window.showInformationMessage(
                 I18n.get('commands.deleted', command.meta.command)
             );
-            treeProvider.refresh();
+            vscode.commands.executeCommand('ampify.mainView.refresh');
         })
     );
 
     // 打开命令文件
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.commands.open', async (item: CommandTreeItem) => {
+        vscode.commands.registerCommand('ampify.commands.open', async (item: CommandItemLike) => {
             if (!item || item.itemType !== 'commandItem') {
                 return;
             }
@@ -199,7 +196,7 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
 
     // 预览命令
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.commands.preview', async (item: CommandTreeItem) => {
+        vscode.commands.registerCommand('ampify.commands.preview', async (item: CommandItemLike) => {
             if (!item || item.itemType !== 'commandItem') {
                 return;
             }

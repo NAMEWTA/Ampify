@@ -1,28 +1,19 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
-import { GitShareTreeProvider } from './views/gitShareTreeProvider';
 import { I18n } from '../../common/i18n';
 import { getGitShareDir } from '../../common/paths';
-import { DiffViewer } from '../../common/git';
+import { DiffViewer, GitManager } from '../../common/git';
 
-export function registerGitShare(context: vscode.ExtensionContext): GitShareTreeProvider {
+export function registerGitShare(context: vscode.ExtensionContext): void {
     console.log('Loading Git Share module...');
 
-    const treeProvider = new GitShareTreeProvider();
-    const gitManager = treeProvider.getGitManager();
+    const gitManager = new GitManager();
 
     gitManager.ensureInit();
-
-    const treeView = vscode.window.createTreeView('ampify-gitshare-tree', {
-        treeDataProvider: treeProvider,
-        showCollapseAll: true
-    });
-    context.subscriptions.push(treeView);
 
     const configPath = gitManager.getConfigPath();
     let configWatcher: fs.FSWatcher | undefined;
     let reloadTimer: NodeJS.Timeout | undefined;
-    let autoSyncTimer: NodeJS.Timeout | undefined;
 
     if (fs.existsSync(configPath)) {
         configWatcher = fs.watch(configPath, { persistent: false }, () => {
@@ -30,45 +21,13 @@ export function registerGitShare(context: vscode.ExtensionContext): GitShareTree
                 clearTimeout(reloadTimer);
             }
             reloadTimer = setTimeout(() => {
-                treeProvider.refresh();
+                vscode.commands.executeCommand('ampify.mainView.refresh');
             }, 300);
         });
     }
 
-    const runAutoSync = async (): Promise<void> => {
-        const result = await gitManager.sync();
-
-        if (result.success) {
-            treeProvider.refresh();
-            vscode.commands.executeCommand('ampify.skills.refresh');
-            vscode.commands.executeCommand('ampify.commands.refresh');
-        } else if (result.conflict) {
-            vscode.window.showErrorMessage(I18n.get('gitShare.mergeConflict'));
-        } else if (result.authError) {
-            vscode.window.showErrorMessage(I18n.get('gitShare.configureAuth'));
-        } else if (result.error) {
-            vscode.window.showErrorMessage(I18n.get('gitShare.syncFailed', result.error));
-        }
-    };
-
-    const startAutoSync = (): void => {
-        if (autoSyncTimer) {
-            clearInterval(autoSyncTimer);
-            autoSyncTimer = undefined;
-        }
-
-        autoSyncTimer = setInterval(() => {
-            void runAutoSync();
-        }, 300 * 1000);
-    };
-
-    startAutoSync();
-
     context.subscriptions.push({
         dispose: () => {
-            if (autoSyncTimer) {
-                clearInterval(autoSyncTimer);
-            }
             if (configWatcher) {
                 configWatcher.close();
             }
@@ -80,7 +39,7 @@ export function registerGitShare(context: vscode.ExtensionContext): GitShareTree
 
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.gitShare.refresh', () => {
-            treeProvider.refresh();
+            vscode.commands.executeCommand('ampify.mainView.refresh');
         })
     );
 
@@ -94,7 +53,7 @@ export function registerGitShare(context: vscode.ExtensionContext): GitShareTree
                 } else {
                     vscode.window.showInformationMessage(I18n.get('gitShare.syncSuccess'));
                 }
-                treeProvider.refresh();
+                vscode.commands.executeCommand('ampify.mainView.refresh');
                 vscode.commands.executeCommand('ampify.skills.refresh');
                 vscode.commands.executeCommand('ampify.commands.refresh');
             } else {
@@ -107,6 +66,66 @@ export function registerGitShare(context: vscode.ExtensionContext): GitShareTree
                 } else {
                     vscode.window.showErrorMessage(I18n.get('gitShare.syncFailed', result.error || 'Unknown error'));
                 }
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ampify.gitShare.pull', async () => {
+            const result = await gitManager.pull();
+            if (result.success) {
+                if (result.noRemote) {
+                    vscode.window.showWarningMessage(I18n.get('gitShare.noRemote'));
+                } else {
+                    vscode.window.showInformationMessage(I18n.get('gitShare.pullSuccess'));
+                }
+                vscode.commands.executeCommand('ampify.mainView.refresh');
+            } else if (result.conflict) {
+                vscode.window.showErrorMessage(I18n.get('gitShare.mergeConflict'));
+            } else if (result.authError) {
+                vscode.window.showErrorMessage(I18n.get('gitShare.configureAuth'));
+            } else {
+                vscode.window.showErrorMessage(I18n.get('gitShare.pullFailed', result.error || 'Unknown error'));
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ampify.gitShare.push', async () => {
+            const result = await gitManager.push();
+            if (result.success) {
+                if (result.noRemote) {
+                    vscode.window.showWarningMessage(I18n.get('gitShare.noRemote'));
+                } else {
+                    vscode.window.showInformationMessage(I18n.get('gitShare.pushSuccess'));
+                }
+                vscode.commands.executeCommand('ampify.mainView.refresh');
+            } else if (result.conflict) {
+                vscode.window.showErrorMessage(I18n.get('gitShare.mergeConflict'));
+            } else if (result.authError) {
+                vscode.window.showErrorMessage(I18n.get('gitShare.configureAuth'));
+            } else {
+                vscode.window.showErrorMessage(I18n.get('gitShare.pushFailed', result.error || 'Unknown error'));
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ampify.gitShare.commit', async () => {
+            const message = await vscode.window.showInputBox({
+                prompt: I18n.get('gitShare.commitPrompt'),
+                value: I18n.get('gitShare.commitDefaultMessage')
+            });
+            if (message === undefined) {
+                return;
+            }
+
+            const committed = await gitManager.commit(message || I18n.get('gitShare.commitDefaultMessage'));
+            if (committed) {
+                vscode.window.showInformationMessage(I18n.get('gitShare.commitSuccess'));
+                vscode.commands.executeCommand('ampify.mainView.refresh');
+            } else {
+                vscode.window.showErrorMessage(I18n.get('gitShare.commitFailed', 'Commit failed'));
             }
         })
     );
@@ -193,11 +212,10 @@ export function registerGitShare(context: vscode.ExtensionContext): GitShareTree
                 await gitManager.setRemotes(parsedRemoteUrls);
             }
 
-            treeProvider.refresh();
+            vscode.commands.executeCommand('ampify.mainView.refresh');
             vscode.window.showInformationMessage(I18n.get('gitShare.configUpdated'));
         })
     );
 
     console.log('Git Share module loaded');
-    return treeProvider;
 }

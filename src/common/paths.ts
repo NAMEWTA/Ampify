@@ -1,12 +1,34 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import * as vscode from 'vscode';
 
 export const APP_ROOT_NAME = '.vscode-ampify';
 export const GIT_SHARE_DIR_NAME = 'gitshare';
 
+function normalizeRootDir(rootDir: string): string {
+    const trimmed = rootDir.trim();
+    if (trimmed.startsWith('~')) {
+        const suffix = trimmed.slice(1).replace(/^[/\\]/, '');
+        return path.join(os.homedir(), suffix);
+    }
+    if (path.isAbsolute(trimmed)) {
+        return path.resolve(trimmed);
+    }
+    return path.resolve(os.homedir(), trimmed);
+}
+
+export function getRootDir(): string {
+    const config = vscode.workspace.getConfiguration('ampify');
+    const rootDir = config.get<string>('rootDir') || '';
+    if (!rootDir.trim()) {
+        return path.join(os.homedir(), APP_ROOT_NAME);
+    }
+    return normalizeRootDir(rootDir);
+}
+
 export function getAppRootDir(): string {
-    return path.join(os.homedir(), APP_ROOT_NAME);
+    return getRootDir();
 }
 
 export function getModuleDir(moduleName: string): string {

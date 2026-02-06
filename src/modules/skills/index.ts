@@ -3,32 +3,30 @@ import { SkillConfigManager } from './core/skillConfigManager';
 import { SkillApplier } from './core/skillApplier';
 import { SkillImporter } from './core/skillImporter';
 import { SkillCreator } from './core/skillCreator';
-import { SkillTreeProvider, SkillTreeItem } from './views/skillTreeProvider';
 import { AgentMdManager } from './core/agentMdManager';
 import { LoadedSkill } from '../../common/types';
 import { I18n } from '../../common/i18n';
+
+/** Bridge 兼容�?item 类型 */
+interface SkillItemLike {
+    itemType?: string;
+    data?: unknown;
+}
 
 export async function registerSkillManager(context: vscode.ExtensionContext): Promise<void> {
     console.log('Loading Skills module...');
 
     try {
-        // 初始化核心组件（使用单例模式）
+        // 初始化核心组件（使用单例模式�?
         const configManager = SkillConfigManager.getInstance();
         configManager.ensureInit();
 
         const applier = new SkillApplier(configManager);
         const importer = new SkillImporter(configManager);
         const creator = new SkillCreator(configManager);
-        const treeProvider = new SkillTreeProvider(configManager);
         const agentMdManager = new AgentMdManager(configManager);
 
-        // 注册 TreeDataProvider（带拖拽支持）
-        const treeView = vscode.window.createTreeView('ampify-skills-tree', {
-            treeDataProvider: treeProvider,
-            dragAndDropController: treeProvider,
-            showCollapseAll: true
-        });
-        context.subscriptions.push(treeView);
+        // TreeView 已由 mainView 模块统一管理
 
 
     // ==================== 注册命令 ====================
@@ -36,7 +34,7 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
     // 刷新
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.skills.refresh', () => {
-            treeProvider.refresh();
+            vscode.commands.executeCommand('ampify.mainView.refresh');
         })
     );
 
@@ -45,19 +43,20 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         vscode.commands.registerCommand('ampify.skills.search', async () => {
             const keyword = await vscode.window.showInputBox({
                 prompt: I18n.get('skills.searchPlaceholder'),
-                value: treeProvider.getFilterState().keyword || ''
+                value: ''
             });
 
             if (keyword !== undefined) {
-                treeProvider.setSearchKeyword(keyword || undefined);
+                // 搜索状态由 mainView bridge 管理
                 if (keyword) {
                     vscode.window.showInformationMessage(I18n.get('skills.filterActive', keyword));
                 }
+                vscode.commands.executeCommand('ampify.mainView.refresh');
             }
         })
     );
 
-    // 按标签过滤
+    // 按标签过�?
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.skills.filterByTag', async () => {
             const allTags = configManager.getAllTags();
@@ -67,10 +66,9 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
                 return;
             }
 
-            const currentTags = treeProvider.getFilterState().tags || [];
             const items = allTags.map(tag => ({
                 label: tag,
-                picked: currentTags.includes(tag)
+                picked: false
             }));
 
             const selected = await vscode.window.showQuickPick(items, {
@@ -80,12 +78,12 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
 
             if (selected !== undefined) {
                 const tags = selected.map(item => item.label);
-                treeProvider.setTagFilter(tags.length > 0 ? tags : undefined);
                 if (tags.length > 0) {
                     vscode.window.showInformationMessage(
                         I18n.get('skills.filterActive', tags.join(', '))
                     );
                 }
+                vscode.commands.executeCommand('ampify.mainView.refresh');
             }
         })
     );
@@ -93,22 +91,22 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
     // 清除过滤
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.skills.clearFilter', () => {
-            treeProvider.clearFilter();
             vscode.window.showInformationMessage(I18n.get('skills.filterCleared'));
+            vscode.commands.executeCommand('ampify.mainView.refresh');
         })
     );
 
-    // 创建新 Skill
+    // 创建�?Skill
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.skills.create', async () => {
             const result = await creator.create();
             if (result.success) {
-                treeProvider.refresh();
+                vscode.commands.executeCommand('ampify.mainView.refresh');
             }
         })
     );
 
-    // 导入 Skill（对话框）
+    // 导入 Skill（对话框�?
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.skills.import', async () => {
             const result = await importer.importFromDialog();
@@ -116,14 +114,14 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
                 vscode.window.showInformationMessage(
                     I18n.get('skills.importSuccess', result.skillName)
                 );
-                treeProvider.refresh();
+                vscode.commands.executeCommand('ampify.mainView.refresh');
             } else if (result.error && result.error !== 'No directory selected' && result.error !== 'User cancelled') {
                 vscode.window.showErrorMessage(I18n.get('skills.importFailed', result.error));
             }
         })
     );
 
-    // 从 URI 导入（拖拽）
+    // �?URI 导入（拖拽）
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.skills.importFromUris', async (uris: vscode.Uri[]) => {
             const result = await importer.importFromUris(uris);
@@ -131,7 +129,7 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
                 vscode.window.showInformationMessage(
                     `Successfully imported ${result.success} skill(s)`
                 );
-                treeProvider.refresh();
+                vscode.commands.executeCommand('ampify.mainView.refresh');
             }
             if (result.failed > 0) {
                 vscode.window.showWarningMessage(
@@ -141,9 +139,9 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         })
     );
 
-    // 应用 Skill 到项目
+    // 应用 Skill 到项�?
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.apply', async (item: SkillTreeItem) => {
+        vscode.commands.registerCommand('ampify.skills.apply', async (item: SkillItemLike) => {
             if (!item || item.itemType !== 'skillItem') return;
             
             const workspaceRoot = getWorkspaceRoot();
@@ -169,7 +167,7 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         })
     );
 
-    // 同步 AGENT.md（全量扫描 injectTarget）
+    // 同步 AGENT.md（全量扫�?injectTarget�?
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.skills.syncToAgentMd', () => {
             const workspaceRoot = getWorkspaceRoot();
@@ -192,14 +190,14 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
 
     // 预览 SKILL.md
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.preview', async (item: SkillTreeItem | LoadedSkill) => {
+        vscode.commands.registerCommand('ampify.skills.preview', async (item: SkillItemLike | LoadedSkill) => {
             let skill: LoadedSkill;
             
-            if ('itemType' in item) {
+            if ('itemType' in item && item.itemType) {
                 if (item.itemType !== 'skillItem') return;
                 skill = item.data as LoadedSkill;
             } else {
-                skill = item;
+                skill = item as LoadedSkill;
             }
 
             if (skill.skillMdPath) {
@@ -219,9 +217,9 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
     );
 
 
-    // 打开 Skills 文件夹
+    // 打开 Skills 文件�?
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.openFolder', (item?: SkillTreeItem) => {
+        vscode.commands.registerCommand('ampify.skills.openFolder', (item?: SkillItemLike) => {
             let folderPath: string;
             
             if (item && item.itemType === 'skillItem') {
@@ -237,7 +235,7 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
 
     // 删除 Skill
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.delete', async (item: SkillTreeItem) => {
+        vscode.commands.registerCommand('ampify.skills.delete', async (item: SkillItemLike) => {
             if (!item || item.itemType !== 'skillItem') return;
             
             const skill = item.data as LoadedSkill;
@@ -251,15 +249,15 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
                 const success = configManager.deleteSkill(skill.meta.name);
                 if (success) {
                     vscode.window.showInformationMessage(I18n.get('skills.deleted', skill.meta.name));
-                    treeProvider.refresh();
+                    vscode.commands.executeCommand('ampify.mainView.refresh');
                 }
             }
         })
     );
 
-    // 从项目移除 Skill
+    // 从项目移�?Skill
     context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.remove', async (item: SkillTreeItem) => {
+        vscode.commands.registerCommand('ampify.skills.remove', async (item: SkillItemLike) => {
             if (!item || item.itemType !== 'skillItem') return;
             
             const workspaceRoot = getWorkspaceRoot();

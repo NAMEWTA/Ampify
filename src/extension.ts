@@ -3,14 +3,14 @@ import { registerCopier } from './modules/copier';
 import { registerLauncher } from './modules/launcher';
 import { registerSkillManager } from './modules/skills';
 import { registerCommandManager } from './modules/commands';
-import { registerTabBar } from './modules/tabBar';
+import { registerMainView } from './modules/mainView';
 import { registerGitShare } from './modules/gitShare';
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Activating Ampify Extension...');
     
-    // Register Tab Bar (must be first to set default context)
-    registerTabBar(context);
+    // Register Main View (unified webview, must be first)
+    registerMainView(context);
 
     // Register the original "Copier" module
     registerCopier(context);

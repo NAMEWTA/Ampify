@@ -1,26 +1,36 @@
 import * as vscode from 'vscode';
 import { ConfigManager } from './core/configManager';
 import { ProcessEngine } from './core/processEngine';
-import { InstanceTreeProvider, InstanceItem } from './views/instanceTreeProvider';
 import { I18n } from '../../common/i18n';
+
+interface InstanceItemLike {
+    label: string;
+    description?: string;
+    instanceConfig?: {
+        dirName: string;
+        description: string;
+        vscodeArgs: string[];
+        defaultProject?: string;
+    };
+    key: string;
+}
 
 export function registerLauncher(context: vscode.ExtensionContext) {
     const configManager = new ConfigManager();
     const processEngine = new ProcessEngine(configManager);
-    const treeProvider = new InstanceTreeProvider(configManager);
 
-    vscode.window.registerTreeDataProvider('ampify-launcher-instances', treeProvider);
+    // TreeView 已由 mainView 模块统一管理
 
     // Launch
-    context.subscriptions.push(vscode.commands.registerCommand('ampify.launcher.launch', (item: InstanceItem) => {
+    context.subscriptions.push(vscode.commands.registerCommand('ampify.launcher.launch', (item: InstanceItemLike) => {
         if (item && item.instanceConfig) {
             processEngine.launch(item.instanceConfig);
         }
     }));
 
-    // Refresh
+    // Refresh (由 mainView 统一刷新)
     context.subscriptions.push(vscode.commands.registerCommand('ampify.launcher.refresh', () => {
-        treeProvider.refresh();
+        // 刷新由 mainView 处理
     }));
     
     // Open Config
@@ -48,18 +58,18 @@ export function registerLauncher(context: vscode.ExtensionContext) {
             vscodeArgs: ["--new-window"]
         };
         configManager.saveConfig(config);
-        treeProvider.refresh();
+        vscode.commands.executeCommand('ampify.mainView.refresh');
     }));
 
     // Delete Instance
-    context.subscriptions.push(vscode.commands.registerCommand('ampify.launcher.delete', async (item: InstanceItem) => {
+    context.subscriptions.push(vscode.commands.registerCommand('ampify.launcher.delete', async (item: InstanceItemLike) => {
         if (!item) return;
         const confirm = await vscode.window.showWarningMessage(I18n.get('launcher.confirmDelete', item.label), 'Yes', 'No');
         if (confirm === 'Yes') {
             const config = configManager.getConfig();
             delete config.instances[item.key];
             configManager.saveConfig(config);
-            treeProvider.refresh();
+            vscode.commands.executeCommand('ampify.mainView.refresh');
         }
     }));
     

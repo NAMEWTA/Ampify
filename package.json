@@ -46,29 +46,9 @@
     "views": {
       "ampify": [
         {
-          "id": "ampify-tab-bar",
+          "id": "ampify-main-view",
           "name": "Ampify",
           "type": "webview"
-        },
-        {
-          "id": "ampify-launcher-instances",
-          "name": "Launcher",
-          "when": "ampify.activeTab == 'launcher'"
-        },
-        {
-          "id": "ampify-skills-tree",
-          "name": "Skills",
-          "when": "ampify.activeTab == 'skills'"
-        },
-        {
-          "id": "ampify-commands-tree",
-          "name": "Commands",
-          "when": "ampify.activeTab == 'commands'"
-        },
-        {
-          "id": "ampify-gitshare-tree",
-          "name": "Git Sync",
-          "when": "ampify.activeTab == 'gitshare'"
         }
       ]
     },
@@ -237,6 +217,21 @@
         "icon": "$(sync)"
       },
       {
+        "command": "ampify.gitShare.pull",
+        "title": "Pull",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "ampify.gitShare.push",
+        "title": "Push",
+        "icon": "$(cloud-upload)"
+      },
+      {
+        "command": "ampify.gitShare.commit",
+        "title": "Commit",
+        "icon": "$(git-commit)"
+      },
+      {
         "command": "ampify.gitShare.showDiff",
         "title": "Show Changes",
         "icon": "$(diff)"
@@ -280,155 +275,8 @@
           "command": "ampify.copy-absolute-path-line"
         }
       ],
-      "view/title": [
-        {
-          "command": "ampify.launcher.add",
-          "when": "view == ampify-launcher-instances",
-          "group": "navigation"
-        },
-        {
-          "command": "ampify.launcher.refresh",
-          "when": "view == ampify-launcher-instances",
-          "group": "navigation"
-        },
-        {
-          "command": "ampify.launcher.editConfig",
-          "when": "view == ampify-launcher-instances",
-          "group": "navigation"
-        },
-        {
-          "command": "ampify.skills.search",
-          "when": "view == ampify-skills-tree",
-          "group": "navigation@1"
-        },
-        {
-          "command": "ampify.skills.filterByTag",
-          "when": "view == ampify-skills-tree",
-          "group": "navigation@2"
-        },
-        {
-          "command": "ampify.skills.refresh",
-          "when": "view == ampify-skills-tree",
-          "group": "navigation@4"
-        },
-        {
-          "command": "ampify.skills.create",
-          "when": "view == ampify-skills-tree",
-          "group": "navigation@5"
-        },
-        {
-          "command": "ampify.skills.openFolder",
-          "when": "view == ampify-skills-tree",
-          "group": "navigation@6"
-        },
-        {
-          "command": "ampify.skills.syncToAgentMd",
-          "when": "view == ampify-skills-tree",
-          "group": "navigation@7"
-        },
-        {
-          "command": "ampify.commands.search",
-          "when": "view == ampify-commands-tree",
-          "group": "navigation@1"
-        },
-        {
-          "command": "ampify.commands.filterByTag",
-          "when": "view == ampify-commands-tree",
-          "group": "navigation@2"
-        },
-        {
-          "command": "ampify.commands.refresh",
-          "when": "view == ampify-commands-tree",
-          "group": "navigation@3"
-        },
-        {
-          "command": "ampify.commands.create",
-          "when": "view == ampify-commands-tree",
-          "group": "navigation@4"
-        },
-        {
-          "command": "ampify.commands.import",
-          "when": "view == ampify-commands-tree",
-          "group": "navigation@5"
-        },
-        {
-          "command": "ampify.commands.openFolder",
-          "when": "view == ampify-commands-tree",
-          "group": "navigation@6"
-        },
-        {
-          "command": "ampify.gitShare.sync",
-          "when": "view == ampify-gitshare-tree",
-          "group": "navigation@1"
-        },
-        {
-          "command": "ampify.gitShare.showDiff",
-          "when": "view == ampify-gitshare-tree",
-          "group": "navigation@2"
-        },
-        {
-          "command": "ampify.gitShare.refresh",
-          "when": "view == ampify-gitshare-tree",
-          "group": "navigation@3"
-        },
-        {
-          "command": "ampify.gitShare.openFolder",
-          "when": "view == ampify-gitshare-tree",
-          "group": "navigation@4"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "ampify.launcher.launch",
-          "when": "view == ampify-launcher-instances",
-          "group": "inline"
-        },
-        {
-          "command": "ampify.launcher.delete",
-          "when": "view == ampify-launcher-instances",
-          "group": "inline"
-        },
-        {
-          "command": "ampify.skills.apply",
-          "when": "view == ampify-skills-tree && viewItem == skillItem",
-          "group": "inline@1"
-        },
-        {
-          "command": "ampify.skills.preview",
-          "when": "view == ampify-skills-tree && viewItem == skillItem",
-          "group": "inline@2"
-        },
-        {
-          "command": "ampify.skills.openFolder",
-          "when": "view == ampify-skills-tree && viewItem == skillItem",
-          "group": "1_edit@1"
-        },
-        {
-          "command": "ampify.skills.delete",
-          "when": "view == ampify-skills-tree && viewItem == skillItem",
-          "group": "2_delete"
-        },
-        {
-          "command": "ampify.commands.apply",
-          "when": "view == ampify-commands-tree && viewItem == commandItem",
-          "group": "inline@1"
-        },
-        {
-          "command": "ampify.commands.preview",
-          "when": "view == ampify-commands-tree && viewItem == commandItem",
-          "group": "inline@2"
-        },
-        {
-          "command": "ampify.commands.remove",
-          "when": "view == ampify-commands-tree && viewItem == commandItem",
-          "group": "1_edit@1"
-        },
-        {
-          "command": "ampify.commands.delete",
-          "when": "view == ampify-commands-tree && viewItem == commandItem",
-          "group": "2_delete"
-        }
-      ]
+      "view/title": [],
+      "view/item/context": []
     },
     "configuration": {
       "title": "Ampify",
@@ -441,6 +289,11 @@
           ],
           "default": "zh-cn",
           "description": "Language for Ampify extension messages (Ampify 扩展的语言设置)"
+        },
+        "ampify.rootDir": {
+          "type": "string",
+          "default": "",
+          "description": "Root directory for Ampify data storage. Leave empty to use ~/.vscode-ampify/ (Ampify 数据存储根目录)"
         },
         "ampify.skills.injectTarget": {
           "type": "string",
@@ -462,12 +315,13 @@
     "lint": "eslint src --ext ts"
   },
   "dependencies": {
+    "@vscode/codicons": "^0.0.44",
     "simple-git": "^3.22.0",
     "yaml": "^2.5.1"
   },
   "devDependencies": {
-    "@types/vscode": "^1.108.0",
     "@types/node": "24.x",
+    "@types/vscode": "^1.108.0",
     "@typescript-eslint/eslint-plugin": "^8.0.1",
     "@typescript-eslint/parser": "^8.0.1",
     "eslint": "^9.4.0",
