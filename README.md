@@ -12,6 +12,21 @@ Ampify is a practical, all-in-one VS Code extension that helps you move faster. 
 - Model Proxy: local HTTP reverse proxy (OpenAI + Anthropic compatible) with API key, model routing, and logs
 - Unified MainView with sections for all modules
 
+## Screenshots
+
+![MainView Dashboard](docs/images/dashboard.png)
+MainView overview with all modules in one place.
+![Skills Manager](docs/images/skills.png)
+Skills library with search, tags, preview, and inject.
+![Commands Manager](docs/images/commands.png)
+Commands library with create, preview, and apply.
+![Git Sync](docs/images/gitsync.png)
+Git Share sync and diff preview for skills/commands.
+![Model Proxy](docs/images/modelProxy.png)
+Local proxy with models, stats, and recent logs.
+![Settings](docs/images/settings.png)
+Settings panel with root directory and language.
+
 ## Usage
 
 ### Copy Path & Line
@@ -70,6 +85,21 @@ Ampify 是一个实用型 VS Code 扩展，将**路径行号复制**、**多账�
 - Git Share：统一同步与差异预览
 - Model Proxy：本地 HTTP 反代（兼容 OpenAI/Anthropic），支持 API Key、模型路由与日志
 - MainView 统一入口
+
+## 截图
+
+![MainView 总览](docs/images/dashboard.png)
+MainView 总览：统一入口与模块导航。
+![Skills 管理](docs/images/skills.png)
+Skills 管理：搜索、标签过滤、预览与注入。
+![Commands 管理](docs/images/commands.png)
+Commands 管理：创建、预览与应用到项目。
+![Git Sync](docs/images/gitsync.png)
+Git Sync：共享仓库同步与差异预览。
+![Model Proxy](docs/images/modelProxy.png)
+Model Proxy：本地反代、模型选择与日志。
+![Settings](docs/images/settings.png)
+Settings：根目录与语言配置。
 
 ## 使用方法
 
