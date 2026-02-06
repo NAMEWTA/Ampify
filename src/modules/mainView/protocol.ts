@@ -183,6 +183,20 @@ export interface ModelProxyLabels {
     logRequestId: string;
     logDuration: string;
     logClose: string;
+    viewAllLogs: string;
+    logViewerTitle: string;
+    logYear: string;
+    logMonth: string;
+    logDay: string;
+    logAll: string;
+    logSuccess: string;
+    logErrors: string;
+    logSearchPlaceholder: string;
+    logSelectDate: string;
+    logNoResults: string;
+    logTotalEntries: string;
+    logTime: string;
+    noLogs: string;
 }
 
 export interface ModelProxyModelInfo {
@@ -205,6 +219,26 @@ export interface ModelProxyLogInfo {
     error?: string;
     inputContent?: string;
     outputContent?: string;
+}
+
+/** 日志文件信息（按日期） */
+export interface LogFileInfo {
+    year: string;
+    month: string;
+    day: string;
+    /** YYYY-MM-DD */
+    date: string;
+    fileSize: number;
+    entryCount: number;
+}
+
+/** 日志查询结果 */
+export interface LogQueryResult {
+    entries: ModelProxyLogInfo[];
+    total: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
 }
 
 export interface SettingsOption {
@@ -263,7 +297,9 @@ export type WebviewMessage =
     | { type: 'clearFilter'; section: SectionId }
     | { type: 'toggleTag'; section: SectionId; tag: string }
     | { type: 'selectProxyModel'; modelId: string }
-    | { type: 'proxyAction'; actionId: string };
+    | { type: 'proxyAction'; actionId: string }
+    | { type: 'requestLogFiles' }
+    | { type: 'queryLogs'; date: string; page: number; pageSize: number; statusFilter: 'all' | 'success' | 'error'; keyword?: string };
 
 // ==================== Extension → Webview 消息 ====================
 
@@ -276,4 +312,6 @@ export type ExtensionMessage =
     | { type: 'showOverlay'; data: OverlayData }
     | { type: 'hideOverlay' }
     | { type: 'showConfirm'; data: ConfirmData }
-    | { type: 'updateModelProxy'; data: ModelProxyDashboardData };
+    | { type: 'updateModelProxy'; data: ModelProxyDashboardData }
+    | { type: 'updateLogFiles'; files: LogFileInfo[] }
+    | { type: 'updateLogQuery'; result: LogQueryResult; date: string; statusFilter: string; keyword?: string };

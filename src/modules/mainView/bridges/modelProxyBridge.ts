@@ -3,7 +3,7 @@
  * 将 Model Proxy 模块数据适配为 ModelProxyDashboardData 和 TreeNode[]
  */
 import * as vscode from 'vscode';
-import { TreeNode, ToolbarAction, ModelProxyDashboardData, ModelProxyModelInfo, ModelProxyLogInfo, ModelProxyLabels } from '../protocol';
+import { TreeNode, ToolbarAction, ModelProxyDashboardData, ModelProxyModelInfo, ModelProxyLogInfo, ModelProxyLabels, LogFileInfo, LogQueryResult } from '../protocol';
 import { ProxyConfigManager } from '../../modelProxy/core/proxyConfigManager';
 import { LogManager } from '../../modelProxy/core/logManager';
 import { I18n } from '../../../common/i18n';
@@ -120,7 +120,21 @@ export class ModelProxyBridge {
             logError: I18n.get('modelProxy.logError'),
             logRequestId: I18n.get('modelProxy.logRequestId'),
             logDuration: I18n.get('modelProxy.logDuration'),
-            logClose: I18n.get('modelProxy.logClose')
+            logClose: I18n.get('modelProxy.logClose'),
+            viewAllLogs: I18n.get('modelProxy.viewAllLogs'),
+            logViewerTitle: I18n.get('modelProxy.logViewerTitle'),
+            logYear: I18n.get('modelProxy.logYear'),
+            logMonth: I18n.get('modelProxy.logMonth'),
+            logDay: I18n.get('modelProxy.logDay'),
+            logAll: I18n.get('modelProxy.logAll'),
+            logSuccess: I18n.get('modelProxy.logSuccess'),
+            logErrors: I18n.get('modelProxy.logErrors'),
+            logSearchPlaceholder: I18n.get('modelProxy.logSearchPlaceholder'),
+            logSelectDate: I18n.get('modelProxy.logSelectDate'),
+            logNoResults: I18n.get('modelProxy.logNoResults'),
+            logTotalEntries: I18n.get('modelProxy.logTotalEntries'),
+            logTime: I18n.get('modelProxy.logTime'),
+            noLogs: I18n.get('modelProxy.noLogs')
         };
     }
 
@@ -193,5 +207,44 @@ export class ModelProxyBridge {
         // 同步保存到 VS Code Settings
         const vsConfig = vscode.workspace.getConfiguration('ampify');
         await vsConfig.update('modelProxy.defaultModel', modelId, vscode.ConfigurationTarget.Global);
+    }
+
+    /**
+     * 获取所有日志文件列表（按日期分组）
+     */
+    getLogFiles(): LogFileInfo[] {
+        return this.logManager.getLogFiles();
+    }
+
+    /**
+     * 分页查询日志
+     */
+    queryLogs(
+        date: string,
+        page: number,
+        pageSize: number,
+        statusFilter: 'all' | 'success' | 'error',
+        keyword?: string
+    ): LogQueryResult {
+        const result = this.logManager.queryLogs(date, page, pageSize, statusFilter, keyword);
+        return {
+            entries: result.entries.map(log => ({
+                timestamp: log.timestamp,
+                requestId: log.requestId || '',
+                format: log.format,
+                model: log.model || '?',
+                durationMs: log.durationMs,
+                inputTokens: log.inputTokens,
+                outputTokens: log.outputTokens,
+                status: log.status,
+                error: log.error,
+                inputContent: log.inputContent,
+                outputContent: log.outputContent
+            })),
+            total: result.total,
+            page: result.page,
+            pageSize: result.pageSize,
+            totalPages: result.totalPages
+        };
     }
 }

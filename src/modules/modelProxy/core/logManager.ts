@@ -88,6 +88,102 @@ export class LogManager {
     }
 
     /**
+     * 获取所有可用的日志文件，按年月日分组
+     */
+    getLogFiles(): { year: string; month: string; day: string; date: string; fileSize: number; entryCount: number }[] {
+        try {
+            const logsDir = this.configManager.getLogsDir();
+            if (!fs.existsSync(logsDir)) {
+                return [];
+            }
+
+            const files = fs.readdirSync(logsDir)
+                .filter(f => f.endsWith('.jsonl'))
+                .sort()
+                .reverse();
+
+            return files.map(f => {
+                const date = f.replace('.jsonl', '');
+                const [year, month, day] = date.split('-');
+                const filePath = path.join(logsDir, f);
+                const stat = fs.statSync(filePath);
+                // Quick line count estimate
+                let entryCount = 0;
+                try {
+                    const content = fs.readFileSync(filePath, 'utf8');
+                    entryCount = content.trim().split('\n').filter(Boolean).length;
+                } catch { /* ignore */ }
+
+                return { year, month, day, date, fileSize: stat.size, entryCount };
+            });
+        } catch {
+            return [];
+        }
+    }
+
+    /**
+     * 分页查询指定日期文件的日志
+     * @param date 日期字符串 YYYY-MM-DD
+     * @param page 页码（从 1 开始）
+     * @param pageSize 每页条数
+     * @param statusFilter 状态筛选 'all' | 'success' | 'error'
+     * @param keyword 搜索关键词（匹配 model / requestId / error）
+     */
+    queryLogs(
+        date: string,
+        page: number = 1,
+        pageSize: number = 20,
+        statusFilter: 'all' | 'success' | 'error' = 'all',
+        keyword?: string
+    ): { entries: ProxyLogEntry[]; total: number; page: number; pageSize: number; totalPages: number } {
+        try {
+            const logsDir = this.configManager.getLogsDir();
+            const logFile = path.join(logsDir, `${date}.jsonl`);
+
+            if (!fs.existsSync(logFile)) {
+                return { entries: [], total: 0, page, pageSize, totalPages: 0 };
+            }
+
+            const content = fs.readFileSync(logFile, 'utf8');
+            const lines = content.trim().split('\n').filter(Boolean);
+
+            // Parse all entries from this file (reversed for newest-first)
+            let allEntries: ProxyLogEntry[] = [];
+            for (let i = lines.length - 1; i >= 0; i--) {
+                try {
+                    allEntries.push(JSON.parse(lines[i]) as ProxyLogEntry);
+                } catch { /* skip invalid */ }
+            }
+
+            // Apply filters
+            if (statusFilter !== 'all') {
+                allEntries = allEntries.filter(e => e.status === statusFilter);
+            }
+
+            if (keyword) {
+                const kw = keyword.toLowerCase();
+                allEntries = allEntries.filter(e =>
+                    (e.model || '').toLowerCase().includes(kw) ||
+                    (e.requestId || '').toLowerCase().includes(kw) ||
+                    (e.error || '').toLowerCase().includes(kw) ||
+                    (e.format || '').toLowerCase().includes(kw)
+                );
+            }
+
+            const total = allEntries.length;
+            const totalPages = Math.max(1, Math.ceil(total / pageSize));
+            const safePage = Math.min(Math.max(1, page), totalPages);
+            const start = (safePage - 1) * pageSize;
+            const entries = allEntries.slice(start, start + pageSize);
+
+            return { entries, total, page: safePage, pageSize, totalPages };
+        } catch (error) {
+            console.error('Failed to query logs:', error);
+            return { entries: [], total: 0, page, pageSize, totalPages: 0 };
+        }
+    }
+
+    /**
      * 获取今日日志统计（含平均延迟）
      */
     getTodayStats(): { requests: number; tokens: number; errors: number; avgLatencyMs: number } {

@@ -234,6 +234,26 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 await this.handleProxyAction(msg.actionId);
                 break;
             }
+
+            case 'requestLogFiles': {
+                const files = this.modelProxyBridge.getLogFiles();
+                this.postMessage({ type: 'updateLogFiles', files });
+                break;
+            }
+
+            case 'queryLogs': {
+                const result = this.modelProxyBridge.queryLogs(
+                    msg.date, msg.page, msg.pageSize, msg.statusFilter, msg.keyword
+                );
+                this.postMessage({
+                    type: 'updateLogQuery',
+                    result,
+                    date: msg.date,
+                    statusFilter: msg.statusFilter,
+                    keyword: msg.keyword
+                });
+                break;
+            }
         }
     }
 

@@ -89,6 +89,12 @@ export function getJs(): string {
             case 'updateModelProxy':
                 renderModelProxy(msg.data);
                 break;
+            case 'updateLogFiles':
+                renderLogViewer(msg.files);
+                break;
+            case 'updateLogQuery':
+                renderLogQueryResult(msg.result, msg.date, msg.statusFilter, msg.keyword);
+                break;
             case 'setActiveSection':
                 currentSection = msg.section;
                 setActiveNavItem(msg.section);
@@ -322,13 +328,16 @@ export function getJs(): string {
         }
         html += '</div>';
 
-        // ── Recent Logs ──
+        // ── Recent Logs (compact) ──
+        html += '<div class="proxy-section-title proxy-logs-title">';
+        html += escapeHtml(L.recentLogs || 'Recent Logs');
+        html += '<span class="proxy-logs-actions">';
+        html += '<button class="proxy-logs-folder-btn" data-proxy-action="openLogs" title="' + escapeHtml(L.openLogsFolder || 'Open Logs Folder') + '"><i class="codicon codicon-folder-opened"></i></button>';
+        html += '<button class="proxy-logs-folder-btn proxy-view-all-logs-btn" title="' + escapeHtml(L.viewAllLogs || 'View All Logs') + '"><i class="codicon codicon-list-flat"></i></button>';
+        html += '</span>';
+        html += '</div>';
+
         if (data.recentLogs && data.recentLogs.length > 0) {
-            html += '<div class="proxy-section-title proxy-logs-title" data-toggle="proxy-logs-list">';
-            html += escapeHtml(L.recentLogs || 'Recent Logs');
-            html += ' <i class="codicon codicon-chevron-down proxy-logs-chevron"></i>';
-            html += '<button class="proxy-logs-folder-btn" data-proxy-action="openLogs" title="' + escapeHtml(L.openLogsFolder || 'Open Logs Folder') + '"><i class="codicon codicon-folder-opened"></i></button>';
-            html += '</div>';
             html += '<div class="proxy-logs-list" id="proxy-logs-list">';
             for (let idx = 0; idx < data.recentLogs.length; idx++) {
                 const log = data.recentLogs[idx];
@@ -347,10 +356,15 @@ export function getJs(): string {
                 \`;
             }
             html += '</div>';
+        } else {
+            html += '<div class="proxy-logs-empty"><i class="codicon codicon-inbox"></i> ' + escapeHtml(L.noLogs || 'No logs yet') + '</div>';
         }
 
         html += '</div>';
         body.innerHTML = html;
+
+        // Store labels ref for log viewer
+        window.__proxyLabels = L;
 
         // ── Bind events ──
         // Model row click → select + collapse
@@ -359,7 +373,6 @@ export function getJs(): string {
                 const modelId = row.dataset.modelId;
                 if (modelId) {
                     vscode.postMessage({ type: 'selectProxyModel', modelId });
-                    // Collapse list after selection
                     const list = document.getElementById('proxy-models-list');
                     const chevron = body.querySelector('.proxy-models-chevron');
                     if (list) list.classList.add('collapsed');
@@ -368,7 +381,7 @@ export function getJs(): string {
             });
         });
 
-        // Models toggle (expand / collapse)
+        // Models toggle
         const modelsToggle = body.querySelector('.proxy-models-toggle');
         if (modelsToggle) {
             modelsToggle.addEventListener('click', () => {
@@ -389,18 +402,12 @@ export function getJs(): string {
             });
         });
 
-        // Logs toggle (click on title text, not folder button)
-        const logsTitle = body.querySelector('.proxy-logs-title');
-        if (logsTitle) {
-            logsTitle.addEventListener('click', (e) => {
-                // Don't toggle if clicked on the folder button
-                if (e.target.closest('.proxy-logs-folder-btn')) return;
-                const list = document.getElementById('proxy-logs-list');
-                const chevron = logsTitle.querySelector('.proxy-logs-chevron');
-                if (list) {
-                    list.classList.toggle('collapsed');
-                    if (chevron) chevron.classList.toggle('rotated', !list.classList.contains('collapsed'));
-                }
+        // "View All Logs" button → open log viewer panel
+        const viewAllBtn = body.querySelector('.proxy-view-all-logs-btn');
+        if (viewAllBtn) {
+            viewAllBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                vscode.postMessage({ type: 'requestLogFiles' });
             });
         }
 
@@ -409,10 +416,313 @@ export function getJs(): string {
             row.addEventListener('click', () => {
                 const idx = parseInt(row.dataset.logIdx, 10);
                 if (!isNaN(idx) && data.recentLogs[idx]) {
-                    showLogDetail(data.recentLogs[idx], L);
+                    showLogDetail(data.recentLogs[idx], window.__proxyLabels || {});
                 }
             });
         });
+    }
+
+    // ==================== Log Viewer Panel ====================
+
+    let logViewerState = {
+        files: [],
+        selectedDate: '',
+        page: 1,
+        pageSize: 20,
+        statusFilter: 'all',
+        keyword: '',
+        result: null
+    };
+
+    function renderLogViewer(files) {
+        logViewerState.files = files;
+
+        // Remove existing backdrop
+        const existing = document.querySelector('.log-viewer-backdrop');
+        if (existing) existing.remove();
+
+        const L = window.__proxyLabels || {};
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'log-viewer-backdrop';
+
+        let html = '<div class="log-viewer-panel">';
+
+        // Header
+        html += '<div class="log-viewer-header">';
+        html += '<span class="log-viewer-title"><i class="codicon codicon-output"></i> ' + escapeHtml(L.logViewerTitle || 'Log Viewer') + '</span>';
+        html += '<button class="log-viewer-close"><i class="codicon codicon-close"></i></button>';
+        html += '</div>';
+
+        // Date selector
+        html += '<div class="log-viewer-toolbar">';
+
+        // Group files by year > month
+        const grouped = {};
+        for (const f of files) {
+            if (!grouped[f.year]) grouped[f.year] = {};
+            if (!grouped[f.year][f.month]) grouped[f.year][f.month] = [];
+            grouped[f.year][f.month].push(f);
+        }
+
+        // Year selector
+        const years = Object.keys(grouped).sort().reverse();
+        html += '<select class="log-viewer-select" id="lv-year"><option value="">' + escapeHtml(L.logYear || 'Year') + '</option>';
+        for (const y of years) { html += '<option value="' + y + '">' + y + '</option>'; }
+        html += '</select>';
+
+        // Month selector (populated dynamically)
+        html += '<select class="log-viewer-select" id="lv-month" disabled><option value="">' + escapeHtml(L.logMonth || 'Month') + '</option></select>';
+
+        // Day selector (populated dynamically)
+        html += '<select class="log-viewer-select" id="lv-day" disabled><option value="">' + escapeHtml(L.logDay || 'Day') + '</option></select>';
+
+        // Status filter
+        html += '<select class="log-viewer-select" id="lv-status">';
+        html += '<option value="all">' + escapeHtml(L.logAll || 'All') + '</option>';
+        html += '<option value="success">' + escapeHtml(L.logSuccess || 'Success') + '</option>';
+        html += '<option value="error">' + escapeHtml(L.logErrors || 'Errors') + '</option>';
+        html += '</select>';
+
+        // Keyword search
+        html += '<div class="log-viewer-search">';
+        html += '<i class="codicon codicon-search"></i>';
+        html += '<input type="text" id="lv-keyword" class="log-viewer-input" placeholder="' + escapeHtml(L.logSearchPlaceholder || 'Search...') + '" />';
+        html += '</div>';
+
+        html += '</div>'; // toolbar
+
+        // Content area
+        html += '<div class="log-viewer-content" id="lv-content">';
+        html += '<div class="log-viewer-empty"><i class="codicon codicon-calendar"></i><br/>' + escapeHtml(L.logSelectDate || 'Select a date to view logs') + '</div>';
+        html += '</div>';
+
+        // Pagination bar
+        html += '<div class="log-viewer-pagination" id="lv-pagination" style="display:none;"></div>';
+
+        html += '</div>'; // panel
+
+        backdrop.innerHTML = html;
+        document.body.appendChild(backdrop);
+
+        // Store grouped data for cascading selects
+        const lvGrouped = grouped;
+
+        // ── Bind events ──
+        const closeViewer = () => backdrop.remove();
+        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeViewer(); });
+        backdrop.querySelector('.log-viewer-close').addEventListener('click', closeViewer);
+        const escHandler = (e) => { if (e.key === 'Escape') { closeViewer(); document.removeEventListener('keydown', escHandler); } };
+        document.addEventListener('keydown', escHandler);
+
+        const yearSel = backdrop.querySelector('#lv-year');
+        const monthSel = backdrop.querySelector('#lv-month');
+        const daySel = backdrop.querySelector('#lv-day');
+        const statusSel = backdrop.querySelector('#lv-status');
+        const keywordInput = backdrop.querySelector('#lv-keyword');
+
+        yearSel.addEventListener('change', () => {
+            const y = yearSel.value;
+            monthSel.innerHTML = '<option value="">' + escapeHtml(L.logMonth || 'Month') + '</option>';
+            daySel.innerHTML = '<option value="">' + escapeHtml(L.logDay || 'Day') + '</option>';
+            daySel.disabled = true;
+            if (y && lvGrouped[y]) {
+                const months = Object.keys(lvGrouped[y]).sort().reverse();
+                for (const m of months) {
+                    monthSel.innerHTML += '<option value="' + m + '">' + m + '</option>';
+                }
+                monthSel.disabled = false;
+            } else {
+                monthSel.disabled = true;
+            }
+            logViewerState.selectedDate = '';
+        });
+
+        monthSel.addEventListener('change', () => {
+            const y = yearSel.value;
+            const m = monthSel.value;
+            daySel.innerHTML = '<option value="">' + escapeHtml(L.logDay || 'Day') + '</option>';
+            if (y && m && lvGrouped[y] && lvGrouped[y][m]) {
+                const days = lvGrouped[y][m].sort((a, b) => b.day.localeCompare(a.day));
+                for (const d of days) {
+                    daySel.innerHTML += '<option value="' + d.day + '">' + d.day + ' (' + d.entryCount + ')</option>';
+                }
+                daySel.disabled = false;
+            } else {
+                daySel.disabled = true;
+            }
+            logViewerState.selectedDate = '';
+        });
+
+        daySel.addEventListener('change', () => {
+            const y = yearSel.value;
+            const m = monthSel.value;
+            const d = daySel.value;
+            if (y && m && d) {
+                logViewerState.selectedDate = y + '-' + m + '-' + d;
+                logViewerState.page = 1;
+                fireLogQuery();
+            }
+        });
+
+        statusSel.addEventListener('change', () => {
+            logViewerState.statusFilter = statusSel.value;
+            logViewerState.page = 1;
+            if (logViewerState.selectedDate) fireLogQuery();
+        });
+
+        let searchTimeout;
+        keywordInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                logViewerState.keyword = keywordInput.value.trim();
+                logViewerState.page = 1;
+                if (logViewerState.selectedDate) fireLogQuery();
+            }, 300);
+        });
+
+        // Auto-select today if available
+        const today = new Date().toISOString().slice(0, 10);
+        const [ty, tm, td] = today.split('-');
+        if (lvGrouped[ty] && lvGrouped[ty][tm]) {
+            const hasToday = lvGrouped[ty][tm].some(f => f.day === td);
+            if (hasToday) {
+                yearSel.value = ty;
+                yearSel.dispatchEvent(new Event('change'));
+                setTimeout(() => {
+                    monthSel.value = tm;
+                    monthSel.dispatchEvent(new Event('change'));
+                    setTimeout(() => {
+                        daySel.value = td;
+                        daySel.dispatchEvent(new Event('change'));
+                    }, 10);
+                }, 10);
+            }
+        }
+    }
+
+    function fireLogQuery() {
+        vscode.postMessage({
+            type: 'queryLogs',
+            date: logViewerState.selectedDate,
+            page: logViewerState.page,
+            pageSize: logViewerState.pageSize,
+            statusFilter: logViewerState.statusFilter,
+            keyword: logViewerState.keyword || undefined
+        });
+    }
+
+    function renderLogQueryResult(result, date, statusFilter, keyword) {
+        logViewerState.result = result;
+        const L = window.__proxyLabels || {};
+        const content = document.querySelector('#lv-content');
+        const pagination = document.querySelector('#lv-pagination');
+        if (!content) return;
+
+        if (!result || result.entries.length === 0) {
+            content.innerHTML = '<div class="log-viewer-empty"><i class="codicon codicon-search"></i><br/>' + escapeHtml(L.logNoResults || 'No matching logs') + '</div>';
+            if (pagination) { pagination.style.display = 'none'; }
+            return;
+        }
+
+        // Summary
+        let html = '<div class="log-viewer-summary">';
+        html += '<span>' + escapeHtml(date) + '</span>';
+        html += '<span class="log-viewer-summary-count">' + result.total + ' ' + escapeHtml(L.logTotalEntries || 'entries') + '</span>';
+        html += '</div>';
+
+        // Log table
+        html += '<div class="log-viewer-table">';
+
+        // Header
+        html += '<div class="log-viewer-thead">';
+        html += '<span class="lv-col-status"></span>';
+        html += '<span class="lv-col-time">' + escapeHtml(L.logTime || 'Time') + '</span>';
+        html += '<span class="lv-col-format">Format</span>';
+        html += '<span class="lv-col-model">Model</span>';
+        html += '<span class="lv-col-duration">' + escapeHtml(L.logDuration || 'Duration') + '</span>';
+        html += '<span class="lv-col-tokens">Tokens</span>';
+        html += '</div>';
+
+        for (let i = 0; i < result.entries.length; i++) {
+            const log = result.entries[i];
+            const time = new Date(log.timestamp).toLocaleTimeString('en-US', { hour12: false });
+            const duration = (log.durationMs / 1000).toFixed(2);
+            const ok = log.status === 'success';
+            html += \`
+                <div class="log-viewer-row" data-lv-idx="\${i}">
+                    <span class="lv-col-status"><i class="codicon codicon-\${ok ? 'pass-filled' : 'error'}" style="color:\${ok ? '#788c5d' : '#d97757'}"></i></span>
+                    <span class="lv-col-time">\${time}</span>
+                    <span class="lv-col-format"><span class="proxy-log-format">\${escapeHtml(log.format)}</span></span>
+                    <span class="lv-col-model" title="\${escapeHtml(log.model)}">\${escapeHtml(log.model)}</span>
+                    <span class="lv-col-duration">\${duration}s</span>
+                    <span class="lv-col-tokens">\${log.inputTokens}\u2191 \${log.outputTokens}\u2193</span>
+                </div>
+            \`;
+        }
+
+        html += '</div>';
+        content.innerHTML = html;
+
+        // Bind row click
+        content.querySelectorAll('.log-viewer-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const idx = parseInt(row.dataset.lvIdx, 10);
+                if (!isNaN(idx) && result.entries[idx]) {
+                    showLogDetail(result.entries[idx], L);
+                }
+            });
+        });
+
+        // Pagination
+        if (pagination && result.totalPages > 1) {
+            pagination.style.display = 'flex';
+            let pHtml = '';
+            pHtml += '<button class="lv-page-btn" data-page="prev" ' + (result.page <= 1 ? 'disabled' : '') + '><i class="codicon codicon-chevron-left"></i></button>';
+            
+            // Smart page numbers
+            const pages = getPageNumbers(result.page, result.totalPages);
+            for (const p of pages) {
+                if (p === '...') {
+                    pHtml += '<span class="lv-page-ellipsis">\u2026</span>';
+                } else {
+                    pHtml += '<button class="lv-page-btn' + (p === result.page ? ' active' : '') + '" data-page="' + p + '">' + p + '</button>';
+                }
+            }
+            
+            pHtml += '<button class="lv-page-btn" data-page="next" ' + (result.page >= result.totalPages ? 'disabled' : '') + '><i class="codicon codicon-chevron-right"></i></button>';
+            pHtml += '<span class="lv-page-info">' + result.page + ' / ' + result.totalPages + '</span>';
+            pagination.innerHTML = pHtml;
+
+            pagination.querySelectorAll('.lv-page-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const p = btn.dataset.page;
+                    if (p === 'prev') {
+                        logViewerState.page = Math.max(1, logViewerState.page - 1);
+                    } else if (p === 'next') {
+                        logViewerState.page = Math.min(result.totalPages, logViewerState.page + 1);
+                    } else {
+                        logViewerState.page = parseInt(p, 10);
+                    }
+                    fireLogQuery();
+                });
+            });
+        } else if (pagination) {
+            pagination.style.display = 'none';
+        }
+    }
+
+    function getPageNumbers(current, total) {
+        if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+        const pages = [];
+        pages.push(1);
+        if (current > 3) pages.push('...');
+        for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+            pages.push(i);
+        }
+        if (current < total - 2) pages.push('...');
+        pages.push(total);
+        return pages;
     }
 
     function showLogDetail(log, L) {
