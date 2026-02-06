@@ -155,7 +155,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
 
             // --- Quick Actions from Dashboard ---
             case 'quickAction':
-                await this.handleQuickAction(msg.actionId);
+                await this.handleQuickAction(msg.actionId, msg.section);
                 break;
 
             // --- Overlay / Confirm ---
@@ -416,22 +416,14 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private async handleQuickAction(actionId: string): Promise<void> {
-        switch (actionId) {
-            case 'launch':
-                // Navigate to launcher section and show add overlay
-                this.postMessage({ type: 'setActiveSection', section: 'launcher' });
-                setTimeout(() => this.showLauncherAddOverlay(), 200);
-                break;
-            case 'createSkill':
-                this.postMessage({ type: 'setActiveSection', section: 'skills' });
-                setTimeout(() => this.showSkillCreateOverlay(), 200);
-                break;
-            case 'createCommand':
-                this.postMessage({ type: 'setActiveSection', section: 'commands' });
-                setTimeout(() => this.showCommandCreateOverlay(), 200);
-                break;
-        }
+    private async handleQuickAction(actionId: string, section: SectionId): Promise<void> {
+        this._activeSection = section;
+        this.postMessage({ type: 'setActiveSection', section });
+        await this.sendSectionData(section);
+
+        setTimeout(() => {
+            void this.handleToolbarAction(section, actionId);
+        }, 150);
     }
 
     private async handleDrop(section: SectionId, uris: string[]): Promise<void> {

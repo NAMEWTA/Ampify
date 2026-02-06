@@ -69,9 +69,11 @@ export interface QuickAction {
     id: string;
     label: string;
     iconId: string;
-    command: string;
-    /** 'command' executes VS Code command; 'overlay' sends quickAction to provider */
-    action?: 'command' | 'overlay';
+    command?: string;
+    /** 'command' executes VS Code command; 'toolbar' routes to toolbar action */
+    action?: 'command' | 'toolbar';
+    section?: SectionId;
+    actionId?: string;
 }
 
 // ==================== 工具栏操作 ====================
@@ -169,7 +171,7 @@ export type WebviewMessage =
     | { type: 'dropFiles'; uris: string[]; section: SectionId }
     | { type: 'changeSetting'; key: string; value: string; scope: SettingsScope }
     | { type: 'settingsAction'; command: string }
-    | { type: 'quickAction'; actionId: string }
+    | { type: 'quickAction'; actionId: string; section: SectionId }
     | { type: 'overlaySubmit'; overlayId: string; values: Record<string, string> }
     | { type: 'overlayCancel'; overlayId: string }
     | { type: 'confirmResult'; confirmId: string; confirmed: boolean }

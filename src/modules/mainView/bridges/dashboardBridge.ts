@@ -84,10 +84,10 @@ export class DashboardBridge {
 
     private getQuickActions(): QuickAction[] {
         return [
-            { id: 'launch', label: I18n.get('dashboard.quickLaunch'), iconId: 'rocket', command: '', action: 'overlay' },
-            { id: 'createSkill', label: I18n.get('dashboard.quickCreateSkill'), iconId: 'add', command: '', action: 'overlay' },
-            { id: 'createCommand', label: I18n.get('dashboard.quickCreateCommand'), iconId: 'add', command: '', action: 'overlay' },
-            { id: 'gitSync', label: I18n.get('dashboard.quickGitSync'), iconId: 'sync', command: 'ampify.gitShare.sync' }
+            { id: 'launch', label: I18n.get('dashboard.quickLaunch'), iconId: 'rocket', action: 'toolbar', section: 'launcher', actionId: 'add' },
+            { id: 'createSkill', label: I18n.get('dashboard.quickCreateSkill'), iconId: 'add', action: 'toolbar', section: 'skills', actionId: 'create' },
+            { id: 'createCommand', label: I18n.get('dashboard.quickCreateCommand'), iconId: 'add', action: 'toolbar', section: 'commands', actionId: 'create' },
+            { id: 'gitSync', label: I18n.get('dashboard.quickGitSync'), iconId: 'sync', command: 'ampify.gitShare.sync', action: 'command' }
         ];
     }
 }

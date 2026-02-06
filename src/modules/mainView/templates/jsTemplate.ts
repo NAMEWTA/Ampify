@@ -137,8 +137,10 @@ export function getJs(): string {
             html += '<div class="quick-actions">';
             for (const action of data.quickActions) {
                 const actionType = action.action || 'command';
+                const section = action.section || '';
+                const actionId = action.actionId || action.id;
                 html += \`
-                    <button class="quick-action-btn" data-command="\${action.command}" data-action-type="\${actionType}" data-action-id="\${action.id}">
+                    <button class="quick-action-btn" data-command="\${action.command}" data-action-type="\${actionType}" data-action-id="\${actionId}" data-section="\${section}">
                         <i class="codicon codicon-\${action.iconId}"></i>
                         <span>\${action.label}</span>
                     </button>
@@ -154,8 +156,12 @@ export function getJs(): string {
         body.querySelectorAll('.quick-action-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const actionType = btn.dataset.actionType || 'command';
-                if (actionType === 'overlay') {
-                    vscode.postMessage({ type: 'quickAction', actionId: btn.dataset.actionId });
+                if (actionType === 'toolbar') {
+                    vscode.postMessage({
+                        type: 'quickAction',
+                        actionId: btn.dataset.actionId,
+                        section: btn.dataset.section
+                    });
                 } else {
                     vscode.postMessage({ type: 'executeCommand', command: btn.dataset.command });
                 }
