@@ -1,5 +1,12 @@
 # Change Log
 
+## 1.6.1 - 2026-02-06
+### Changed
+- Enhanced MainView with improved CSS and JS templates for better UI/UX
+- Improved skill and command module integration and refactored structure
+- Enhanced npm-git-commit-push command for fully automated version releases
+- Simplified SKILLS.md structure for better maintainability
+
 ## 1.6.0 - 2026-02-06
 ### Added
 - 统一主视图架构并新增功能入口。
