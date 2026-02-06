@@ -5,7 +5,7 @@
 
 // ==================== 导航 Section ====================
 
-export type SectionId = 'dashboard' | 'launcher' | 'skills' | 'commands' | 'gitshare' | 'settings';
+export type SectionId = 'dashboard' | 'launcher' | 'skills' | 'commands' | 'gitshare' | 'modelProxy' | 'settings';
 
 // ==================== 通用树节点 ====================
 
@@ -124,6 +124,89 @@ export interface ConfirmData {
 export type SettingsFieldKind = 'text' | 'select' | 'textarea';
 export type SettingsScope = 'vscode' | 'git';
 
+// ==================== Model Proxy Dashboard ====================
+
+export interface ModelProxyDashboardData {
+    /** 是否运行中 */
+    running: boolean;
+    /** 端口号 */
+    port: number;
+    /** 绑定地址 */
+    bindAddress: string;
+    /** 完整 Base URL */
+    baseUrl: string;
+    /** API Key（已脱敏） */
+    maskedApiKey: string;
+    /** 完整 API Key（用于复制） */
+    fullApiKey: string;
+    /** 当前默认模型 ID */
+    defaultModelId: string;
+    /** 今日请求数 */
+    todayRequests: number;
+    /** 今日 Token 数 */
+    todayTokens: number;
+    /** 今日错误数 */
+    todayErrors: number;
+    /** 平均延迟 ms */
+    avgLatencyMs: number;
+    /** 可用模型列表 */
+    models: ModelProxyModelInfo[];
+    /** 最近日志 */
+    recentLogs: ModelProxyLogInfo[];
+    /** i18n 标签 */
+    labels: ModelProxyLabels;
+}
+
+export interface ModelProxyLabels {
+    statusRunning: string;
+    statusStopped: string;
+    offline: string;
+    requests: string;
+    tokens: string;
+    errorRate: string;
+    avgLatency: string;
+    connection: string;
+    baseUrl: string;
+    apiKey: string;
+    copy: string;
+    regenerate: string;
+    availableModels: string;
+    selectModelHint: string;
+    noModels: string;
+    recentLogs: string;
+    tokensMax: string;
+    openLogsFolder: string;
+    logDetailTitle: string;
+    logInput: string;
+    logOutput: string;
+    logError: string;
+    logRequestId: string;
+    logDuration: string;
+    logClose: string;
+}
+
+export interface ModelProxyModelInfo {
+    id: string;
+    name: string;
+    vendor: string;
+    family: string;
+    maxInputTokens: number;
+}
+
+export interface ModelProxyLogInfo {
+    timestamp: string;
+    requestId: string;
+    format: string;
+    model: string;
+    durationMs: number;
+    inputTokens: number;
+    outputTokens: number;
+    status: string;
+    error?: string;
+    inputContent?: string;
+    outputContent?: string;
+}
+
 export interface SettingsOption {
     label: string;
     value: string;
@@ -178,7 +261,9 @@ export type WebviewMessage =
     | { type: 'filterByKeyword'; section: SectionId; keyword: string }
     | { type: 'filterByTags'; section: SectionId; tags: string[] }
     | { type: 'clearFilter'; section: SectionId }
-    | { type: 'toggleTag'; section: SectionId; tag: string };
+    | { type: 'toggleTag'; section: SectionId; tag: string }
+    | { type: 'selectProxyModel'; modelId: string }
+    | { type: 'proxyAction'; actionId: string };
 
 // ==================== Extension → Webview 消息 ====================
 
@@ -190,4 +275,5 @@ export type ExtensionMessage =
     | { type: 'updateSettings'; data: SettingsData }
     | { type: 'showOverlay'; data: OverlayData }
     | { type: 'hideOverlay' }
-    | { type: 'showConfirm'; data: ConfirmData };
+    | { type: 'showConfirm'; data: ConfirmData }
+    | { type: 'updateModelProxy'; data: ModelProxyDashboardData };

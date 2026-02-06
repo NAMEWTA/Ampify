@@ -81,4 +81,5 @@ Ampify/
 - Commands Manager 模块：references/module-commands.md
 - Git Share 模块：references/module-gitshare.md
 - MainView 模块（含 Bridge TreeNode 结构流图）：references/module-mainview.md
+- Model Proxy 模块（HTTP 反代理、双格式兼容、日志）：references/module-modelproxy.md
 - 编码规范与开发流程：references/coding-conventions.md

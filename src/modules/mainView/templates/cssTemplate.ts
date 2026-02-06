@@ -638,6 +638,516 @@ html, body {
     opacity: 0.7;
 }
 
+/* ==================== Model Proxy Dashboard ==================== */
+.proxy-dashboard {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.proxy-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.proxy-stats-grid > :last-child:nth-child(odd) {
+    grid-column: span 2;
+}
+
+.proxy-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 6px;
+    background: var(--vscode-editor-background, rgba(255,255,255,0.03));
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.15));
+    transition: border-color 0.15s ease;
+}
+
+.proxy-stat-card:hover {
+    border-color: rgba(128,128,128,0.3);
+}
+
+.proxy-stat-icon {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.proxy-stat-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.proxy-stat-value {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.proxy-stat-label {
+    font-size: 10px;
+    opacity: 0.55;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.proxy-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.6;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+}
+
+.proxy-section-hint {
+    font-weight: 400;
+    font-size: 10px;
+    opacity: 0.6;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* Connection Info */
+.proxy-connection {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.15));
+    border-radius: 6px;
+    background: var(--vscode-editor-background, rgba(255,255,255,0.03));
+    overflow: hidden;
+}
+
+.proxy-conn-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.1));
+}
+
+.proxy-conn-row:last-child {
+    border-bottom: none;
+}
+
+.proxy-conn-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.7;
+    white-space: nowrap;
+    min-width: 66px;
+}
+
+.proxy-conn-label .codicon {
+    font-size: 12px;
+}
+
+.proxy-conn-value {
+    flex: 1;
+    font-size: 11px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    opacity: 0.85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
+.proxy-conn-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    opacity: 0.5;
+    font-size: 12px;
+    flex-shrink: 0;
+    transition: all 0.12s ease;
+}
+
+.proxy-conn-btn:hover {
+    opacity: 1;
+    background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+}
+
+/* Model List (compact collapsible) */
+.proxy-models-toggle {
+    cursor: pointer;
+    user-select: none;
+}
+
+.proxy-models-toggle:hover {
+    opacity: 0.85;
+}
+
+.proxy-models-chevron {
+    font-size: 12px;
+    transition: transform 0.15s ease;
+    display: inline-block;
+}
+
+.proxy-models-chevron.rotated {
+    transform: rotate(90deg);
+}
+
+.proxy-models-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.15));
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--vscode-editor-background, rgba(255,255,255,0.03));
+}
+
+.proxy-models-list.collapsed {
+    display: none;
+}
+
+.proxy-model-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.08));
+    transition: background 0.1s ease;
+}
+
+.proxy-model-row:last-child {
+    border-bottom: none;
+}
+
+.proxy-model-row:hover {
+    background: var(--vscode-list-hoverBackground);
+}
+
+.proxy-model-row.selected {
+    background: rgba(217,119,87,0.06);
+}
+
+.proxy-model-radio {
+    font-size: 14px;
+    flex-shrink: 0;
+    opacity: 0.5;
+}
+
+.proxy-model-row.selected .proxy-model-radio {
+    opacity: 1;
+}
+
+.proxy-model-name {
+    font-size: 11px;
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.proxy-model-tag {
+    display: inline-flex;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    background: var(--vscode-badge-background, rgba(128,128,128,0.15));
+    color: var(--vscode-badge-foreground, var(--vscode-descriptionForeground));
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.proxy-model-tokens {
+    font-size: 10px;
+    opacity: 0.5;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.proxy-empty-models {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px;
+    font-size: 12px;
+    opacity: 0.6;
+    justify-content: center;
+}
+
+/* Recent Logs */
+.proxy-logs-title {
+    cursor: pointer;
+}
+
+.proxy-logs-title:hover {
+    opacity: 0.85;
+}
+
+.proxy-logs-chevron {
+    font-size: 12px;
+    transition: transform 0.15s ease;
+}
+
+.proxy-logs-chevron.rotated {
+    transform: rotate(180deg);
+}
+
+.proxy-logs-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.15));
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--vscode-editor-background, rgba(255,255,255,0.03));
+}
+
+.proxy-logs-list.collapsed {
+    display: none;
+}
+
+.proxy-log-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    font-size: 11px;
+    border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.08));
+}
+
+.proxy-log-row:last-child {
+    border-bottom: none;
+}
+
+.proxy-log-row .codicon {
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.proxy-log-time {
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 10px;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+.proxy-log-format {
+    padding: 0 4px;
+    border-radius: 2px;
+    background: rgba(106,155,204,0.15);
+    color: #6a9bcc;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.proxy-log-model {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.75;
+}
+
+.proxy-log-duration {
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 10px;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
+.proxy-log-tokens {
+    font-size: 10px;
+    opacity: 0.45;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.proxy-log-row {
+    cursor: pointer;
+}
+
+/* Logs folder button */
+.proxy-logs-folder-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: none;
+    color: var(--vscode-descriptionForeground);
+    cursor: pointer;
+    border-radius: 3px;
+    opacity: 0.6;
+    margin-left: 4px;
+    vertical-align: middle;
+    padding: 0;
+    font-size: 12px;
+}
+
+.proxy-logs-folder-btn:hover {
+    opacity: 1;
+    background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+}
+
+/* Log Detail Popup */
+.proxy-log-detail-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+}
+
+.proxy-log-detail-panel {
+    background: var(--vscode-editor-background, #1e1e1e);
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.3));
+    border-radius: 8px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.proxy-log-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.15));
+    flex-shrink: 0;
+}
+
+.proxy-log-detail-title {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.proxy-log-detail-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: none;
+    color: var(--vscode-foreground);
+    cursor: pointer;
+    border-radius: 3px;
+    opacity: 0.7;
+}
+
+.proxy-log-detail-close:hover {
+    opacity: 1;
+    background: var(--vscode-toolbar-hoverBackground);
+}
+
+.proxy-log-detail-body {
+    overflow-y: auto;
+    padding: 10px 14px;
+    flex: 1;
+}
+
+.proxy-log-detail-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.proxy-log-detail-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 11px;
+}
+
+.proxy-log-detail-label {
+    flex-shrink: 0;
+    width: 80px;
+    opacity: 0.6;
+    text-align: right;
+}
+
+.proxy-log-detail-value {
+    flex: 1;
+    min-width: 0;
+    word-break: break-all;
+}
+
+.proxy-log-detail-value.mono {
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 10px;
+}
+
+.proxy-log-detail-section {
+    margin-top: 8px;
+}
+
+.proxy-log-detail-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+    margin-bottom: 4px;
+}
+
+.proxy-log-detail-pre {
+    background: var(--vscode-textCodeBlock-background, rgba(128,128,128,0.1));
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.12));
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0;
+}
+
+.proxy-log-detail-pre.error {
+    border-color: rgba(217,119,87,0.3);
+    color: #d97757;
+}
+
 /* ==================== Scrollbar ==================== */
 .content-body::-webkit-scrollbar {
     width: 6px;

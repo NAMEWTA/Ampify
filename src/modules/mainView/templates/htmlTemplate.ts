@@ -19,6 +19,7 @@ const NAV_ITEMS: NavItem[] = [
     { id: 'skills', label: 'Skills', iconClass: 'codicon-library' },
     { id: 'commands', label: 'Commands', iconClass: 'codicon-terminal' },
     { id: 'gitshare', label: 'Git Sync', iconClass: 'codicon-git-merge' },
+    { id: 'modelProxy', label: 'Model Proxy', iconClass: 'codicon-radio-tower' },
     { id: 'settings', label: 'Settings', iconClass: 'codicon-settings-gear' },
 ];
 

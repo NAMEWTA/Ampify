@@ -165,3 +165,85 @@ export interface LoadedCommand {
     /** 命令正文内容 */
     content?: string;
 }
+
+// ==================== Model Proxy Types ====================
+
+/**
+ * Model Proxy 配置
+ */
+export interface ProxyConfig {
+    /** HTTP 服务端口 */
+    port: number;
+    /** API Key（自动生成） */
+    apiKey: string;
+    /** 是否启用代理 */
+    enabled: boolean;
+    /** 默认模型 ID */
+    defaultModelId: string;
+    /** 是否启用日志 */
+    logEnabled: boolean;
+    /** 绑定地址 */
+    bindAddress: string;
+}
+
+/**
+ * 代理运行状态
+ */
+export interface ProxyStatus {
+    /** 是否正在运行 */
+    running: boolean;
+    /** 当前端口 */
+    port: number;
+    /** 完整 URL */
+    url: string;
+    /** 可用模型数 */
+    modelCount: number;
+    /** 当前活跃模型 */
+    activeModel: string;
+}
+
+/**
+ * 代理日志条目
+ */
+export interface ProxyLogEntry {
+    /** ISO 时间戳 */
+    timestamp: string;
+    /** 请求 UUID */
+    requestId: string;
+    /** 请求格式 */
+    format: 'openai' | 'anthropic';
+    /** 使用的模型 */
+    model: string;
+    /** 输入 token 估算 */
+    inputTokens: number;
+    /** 输出 token 估算 */
+    outputTokens: number;
+    /** 请求耗时 ms */
+    durationMs: number;
+    /** 请求状态 */
+    status: 'success' | 'error';
+    /** 错误信息 */
+    error?: string;
+    /** 输入消息内容（完整记录） */
+    inputContent?: string;
+    /** 输出消息内容（完整记录） */
+    outputContent?: string;
+}
+
+/**
+ * 可用模型信息
+ */
+export interface AvailableModel {
+    /** 模型 ID */
+    id: string;
+    /** 模型名称 */
+    name: string;
+    /** 提供商 */
+    vendor: string;
+    /** 模型族 */
+    family: string;
+    /** 版本 */
+    version: string;
+    /** 最大输入 tokens */
+    maxInputTokens: number;
+}

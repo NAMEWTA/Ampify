@@ -86,6 +86,9 @@ export function getJs(): string {
             case 'updateSettings':
                 renderSettings(msg.data);
                 break;
+            case 'updateModelProxy':
+                renderModelProxy(msg.data);
+                break;
             case 'setActiveSection':
                 currentSection = msg.section;
                 setActiveNavItem(msg.section);
@@ -243,6 +246,260 @@ export function getJs(): string {
         });
     }
 
+    // ==================== Model Proxy Rendering ====================
+    function renderModelProxy(data) {
+        const body = document.querySelector('.content-body');
+        if (!body) return;
+
+        const running = data.running;
+        const L = data.labels || {};
+        const errorRate = data.todayRequests > 0
+            ? ((data.todayErrors / data.todayRequests) * 100).toFixed(1) + '%'
+            : '0%';
+        const avgLatency = data.avgLatencyMs > 0
+            ? (data.avgLatencyMs / 1000).toFixed(2) + 's'
+            : '—';
+
+        let html = '<div class="proxy-dashboard">';
+
+        // ── Stats Grid ──
+        html += '<div class="proxy-stats-grid">';
+        html += makeProxyStatCard(
+            running ? 'pass-filled' : 'circle-slash',
+            running ? '#788c5d' : '#888',
+            running ? (L.statusRunning || 'Running') : (L.statusStopped || 'Stopped'),
+            running ? ':' + data.port : (L.offline || 'Offline')
+        );
+        html += makeProxyStatCard('pulse', '#6a9bcc', String(data.todayRequests), L.requests || 'Requests');
+        html += makeProxyStatCard('symbol-numeric', '#d97757', String(data.todayTokens), L.tokens || 'Tokens');
+        html += makeProxyStatCard('warning', data.todayErrors > 0 ? '#d97757' : '#788c5d', errorRate, L.errorRate || 'Error Rate');
+        html += makeProxyStatCard('clock', '#6a9bcc', avgLatency, L.avgLatency || 'Avg Latency');
+        html += '</div>';
+
+        // ── Connection Info (only when running) ──
+        if (running) {
+            html += '<div class="proxy-section-title">' + escapeHtml(L.connection || 'CONNECTION') + '</div>';
+            html += '<div class="proxy-connection">';
+            html += \`
+                <div class="proxy-conn-row">
+                    <span class="proxy-conn-label"><i class="codicon codicon-link"></i> \${escapeHtml(L.baseUrl || 'Base URL')}</span>
+                    <span class="proxy-conn-value">\${escapeHtml(data.baseUrl)}</span>
+                    <button class="proxy-conn-btn" data-proxy-action="copyUrl" title="\${escapeHtml(L.copy || 'Copy')}"><i class="codicon codicon-copy"></i></button>
+                </div>
+                <div class="proxy-conn-row">
+                    <span class="proxy-conn-label"><i class="codicon codicon-key"></i> \${escapeHtml(L.apiKey || 'API Key')}</span>
+                    <span class="proxy-conn-value">\${escapeHtml(data.maskedApiKey)}</span>
+                    <button class="proxy-conn-btn" data-proxy-action="copyKey" title="\${escapeHtml(L.copy || 'Copy')}"><i class="codicon codicon-copy"></i></button>
+                    <button class="proxy-conn-btn" data-proxy-action="regenerateKey" title="\${escapeHtml(L.regenerate || 'Regenerate')}"><i class="codicon codicon-refresh"></i></button>
+                </div>
+            \`;
+            html += '</div>';
+        }
+
+        // ── Available Models (collapsible compact list) ──
+        const modelsTitle = escapeHtml(L.availableModels || 'Available Models');
+        const modelsHint = escapeHtml(L.selectModelHint || 'Click to select default');
+        html += '<div class="proxy-section-title proxy-models-toggle" data-toggle="proxy-models-list">';
+        html += modelsTitle + ' <span class="proxy-section-hint">' + modelsHint + '</span>';
+        html += ' <i class="codicon codicon-chevron-right proxy-models-chevron"></i>';
+        html += '</div>';
+        html += '<div class="proxy-models-list collapsed" id="proxy-models-list">';
+        if (data.models && data.models.length > 0) {
+            for (const model of data.models) {
+                const isSelected = model.id === data.defaultModelId;
+                html += \`
+                    <div class="proxy-model-row\${isSelected ? ' selected' : ''}" data-model-id="\${escapeHtml(model.id)}">
+                        <i class="codicon codicon-\${isSelected ? 'check' : 'circle-outline'} proxy-model-radio" style="color:\${isSelected ? '#d97757' : 'inherit'}"></i>
+                        <span class="proxy-model-name">\${escapeHtml(model.name || model.id)}</span>
+                        <span class="proxy-model-tag">\${escapeHtml(model.vendor)}</span>
+                        <span class="proxy-model-tag">\${escapeHtml(model.family)}</span>
+                        <span class="proxy-model-tokens">\${model.maxInputTokens.toLocaleString()} \${L.tokensMax || 'tokens max'}</span>
+                    </div>
+                \`;
+            }
+        } else {
+            html += '<div class="proxy-empty-models"><i class="codicon codicon-warning"></i> ' + escapeHtml(L.noModels || 'No models available') + '</div>';
+        }
+        html += '</div>';
+
+        // ── Recent Logs ──
+        if (data.recentLogs && data.recentLogs.length > 0) {
+            html += '<div class="proxy-section-title proxy-logs-title" data-toggle="proxy-logs-list">';
+            html += escapeHtml(L.recentLogs || 'Recent Logs');
+            html += ' <i class="codicon codicon-chevron-down proxy-logs-chevron"></i>';
+            html += '<button class="proxy-logs-folder-btn" data-proxy-action="openLogs" title="' + escapeHtml(L.openLogsFolder || 'Open Logs Folder') + '"><i class="codicon codicon-folder-opened"></i></button>';
+            html += '</div>';
+            html += '<div class="proxy-logs-list" id="proxy-logs-list">';
+            for (let idx = 0; idx < data.recentLogs.length; idx++) {
+                const log = data.recentLogs[idx];
+                const time = new Date(log.timestamp).toLocaleTimeString('en-US', { hour12: false });
+                const duration = (log.durationMs / 1000).toFixed(1);
+                const ok = log.status === 'success';
+                html += \`
+                    <div class="proxy-log-row" data-log-idx="\${idx}">
+                        <i class="codicon codicon-\${ok ? 'check' : 'error'}" style="color:\${ok ? '#788c5d' : '#d97757'}"></i>
+                        <span class="proxy-log-time">\${time}</span>
+                        <span class="proxy-log-format">\${escapeHtml(log.format)}</span>
+                        <span class="proxy-log-model">\${escapeHtml(log.model)}</span>
+                        <span class="proxy-log-duration">\${duration}s</span>
+                        <span class="proxy-log-tokens">\${log.inputTokens}\u2191 \${log.outputTokens}\u2193</span>
+                    </div>
+                \`;
+            }
+            html += '</div>';
+        }
+
+        html += '</div>';
+        body.innerHTML = html;
+
+        // ── Bind events ──
+        // Model row click → select + collapse
+        body.querySelectorAll('.proxy-model-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const modelId = row.dataset.modelId;
+                if (modelId) {
+                    vscode.postMessage({ type: 'selectProxyModel', modelId });
+                    // Collapse list after selection
+                    const list = document.getElementById('proxy-models-list');
+                    const chevron = body.querySelector('.proxy-models-chevron');
+                    if (list) list.classList.add('collapsed');
+                    if (chevron) { chevron.classList.remove('rotated'); }
+                }
+            });
+        });
+
+        // Models toggle (expand / collapse)
+        const modelsToggle = body.querySelector('.proxy-models-toggle');
+        if (modelsToggle) {
+            modelsToggle.addEventListener('click', () => {
+                const list = document.getElementById('proxy-models-list');
+                const chevron = modelsToggle.querySelector('.proxy-models-chevron');
+                if (list) {
+                    list.classList.toggle('collapsed');
+                    if (chevron) chevron.classList.toggle('rotated', !list.classList.contains('collapsed'));
+                }
+            });
+        }
+
+        // Connection action buttons
+        body.querySelectorAll('[data-proxy-action]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                vscode.postMessage({ type: 'proxyAction', actionId: btn.dataset.proxyAction });
+            });
+        });
+
+        // Logs toggle (click on title text, not folder button)
+        const logsTitle = body.querySelector('.proxy-logs-title');
+        if (logsTitle) {
+            logsTitle.addEventListener('click', (e) => {
+                // Don't toggle if clicked on the folder button
+                if (e.target.closest('.proxy-logs-folder-btn')) return;
+                const list = document.getElementById('proxy-logs-list');
+                const chevron = logsTitle.querySelector('.proxy-logs-chevron');
+                if (list) {
+                    list.classList.toggle('collapsed');
+                    if (chevron) chevron.classList.toggle('rotated', !list.classList.contains('collapsed'));
+                }
+            });
+        }
+
+        // Log row click → show detail popup
+        body.querySelectorAll('.proxy-log-row').forEach(row => {
+            row.addEventListener('click', () => {
+                const idx = parseInt(row.dataset.logIdx, 10);
+                if (!isNaN(idx) && data.recentLogs[idx]) {
+                    showLogDetail(data.recentLogs[idx], L);
+                }
+            });
+        });
+    }
+
+    function showLogDetail(log, L) {
+        // Remove any existing detail popup
+        const existingPopup = document.querySelector('.proxy-log-detail-backdrop');
+        if (existingPopup) existingPopup.remove();
+
+        const ok = log.status === 'success';
+        const time = new Date(log.timestamp).toLocaleString();
+        const duration = (log.durationMs / 1000).toFixed(2);
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'proxy-log-detail-backdrop';
+
+        let detailHtml = '<div class="proxy-log-detail-panel">';
+        detailHtml += '<div class="proxy-log-detail-header">';
+        detailHtml += '<span class="proxy-log-detail-title">' + escapeHtml(L.logDetailTitle || 'Log Detail') + '</span>';
+        detailHtml += '<button class="proxy-log-detail-close"><i class="codicon codicon-close"></i></button>';
+        detailHtml += '</div>';
+
+        detailHtml += '<div class="proxy-log-detail-body">';
+
+        // Meta info
+        detailHtml += '<div class="proxy-log-detail-meta">';
+        detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">' + escapeHtml(L.logRequestId || 'Request ID') + '</span><span class="proxy-log-detail-value mono">' + escapeHtml(log.requestId || '—') + '</span></div>';
+        detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">Time</span><span class="proxy-log-detail-value">' + escapeHtml(time) + '</span></div>';
+        detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">Model</span><span class="proxy-log-detail-value">' + escapeHtml(log.model) + '</span></div>';
+        detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">Format</span><span class="proxy-log-detail-value">' + escapeHtml(log.format) + '</span></div>';
+        detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">' + escapeHtml(L.logDuration || 'Duration') + '</span><span class="proxy-log-detail-value">' + duration + 's</span></div>';
+        detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">Tokens</span><span class="proxy-log-detail-value">' + log.inputTokens + ' \u2191 / ' + log.outputTokens + ' \u2193</span></div>';
+        detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">Status</span><span class="proxy-log-detail-value" style="color:' + (ok ? '#788c5d' : '#d97757') + '">' + (ok ? '\u2713 success' : '\u2717 error') + '</span></div>';
+        detailHtml += '</div>';
+
+        // Error
+        if (log.error) {
+            detailHtml += '<div class="proxy-log-detail-section">';
+            detailHtml += '<div class="proxy-log-detail-section-title">' + escapeHtml(L.logError || 'Error') + '</div>';
+            detailHtml += '<pre class="proxy-log-detail-pre error">' + escapeHtml(log.error) + '</pre>';
+            detailHtml += '</div>';
+        }
+
+        // Input
+        if (log.inputContent) {
+            detailHtml += '<div class="proxy-log-detail-section">';
+            detailHtml += '<div class="proxy-log-detail-section-title">' + escapeHtml(L.logInput || 'Input') + '</div>';
+            let inputDisplay = log.inputContent;
+            try { inputDisplay = JSON.stringify(JSON.parse(log.inputContent), null, 2); } catch {}
+            detailHtml += '<pre class="proxy-log-detail-pre">' + escapeHtml(inputDisplay) + '</pre>';
+            detailHtml += '</div>';
+        }
+
+        // Output
+        if (log.outputContent) {
+            detailHtml += '<div class="proxy-log-detail-section">';
+            detailHtml += '<div class="proxy-log-detail-section-title">' + escapeHtml(L.logOutput || 'Output') + '</div>';
+            detailHtml += '<pre class="proxy-log-detail-pre">' + escapeHtml(log.outputContent) + '</pre>';
+            detailHtml += '</div>';
+        }
+
+        detailHtml += '</div>'; // body
+        detailHtml += '</div>'; // panel
+
+        backdrop.innerHTML = detailHtml;
+        document.body.appendChild(backdrop);
+
+        // Close handlers
+        const closePopup = () => backdrop.remove();
+        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closePopup(); });
+        backdrop.querySelector('.proxy-log-detail-close').addEventListener('click', closePopup);
+        const escHandler = (e) => { if (e.key === 'Escape') { closePopup(); document.removeEventListener('keydown', escHandler); } };
+        document.addEventListener('keydown', escHandler);
+    }
+
+    function makeProxyStatCard(iconId, color, value, label) {
+        return \`
+            <div class="proxy-stat-card">
+                <div class="proxy-stat-icon" style="color:\${color};background:\${color}22;">
+                    <i class="codicon codicon-\${iconId}"></i>
+                </div>
+                <div class="proxy-stat-info">
+                    <div class="proxy-stat-value">\${value}</div>
+                    <div class="proxy-stat-label">\${label}</div>
+                </div>
+            </div>
+        \`;
+    }
+
     // ==================== Section Rendering ====================
     function renderSection(section, tree, toolbarActions, tags, activeTags) {
         currentTreeData = tree;
@@ -258,6 +515,7 @@ export function getJs(): string {
             skills: 'SKILLS',
             commands: 'COMMANDS',
             gitshare: 'GIT SYNC',
+            modelProxy: 'MODEL PROXY',
             settings: 'SETTINGS'
         };
         

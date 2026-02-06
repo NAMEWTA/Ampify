@@ -109,6 +109,44 @@ export class SettingsBridge {
                         placeholder: 'https://github.com/user/repo.git'
                     }
                 ]
+            },
+            {
+                id: 'modelProxy',
+                title: I18n.get('settings.section.modelProxy'),
+                fields: [
+                    {
+                        key: 'modelProxy.port',
+                        label: I18n.get('settings.modelProxy.port.label'),
+                        description: I18n.get('settings.modelProxy.port.desc'),
+                        value: String(config.get<number>('modelProxy.port') || 18080),
+                        kind: 'text',
+                        scope: 'vscode',
+                        placeholder: '18080'
+                    },
+                    {
+                        key: 'modelProxy.bindAddress',
+                        label: I18n.get('settings.modelProxy.bindAddress.label'),
+                        description: I18n.get('settings.modelProxy.bindAddress.desc'),
+                        value: config.get<string>('modelProxy.bindAddress') || '127.0.0.1',
+                        kind: 'text',
+                        scope: 'vscode',
+                        placeholder: '127.0.0.1'
+                    },
+                    {
+                        key: 'modelProxy.defaultModel',
+                        label: I18n.get('settings.modelProxy.defaultModel.label'),
+                        description: I18n.get('settings.modelProxy.defaultModel.desc'),
+                        value: config.get<string>('modelProxy.defaultModel') || '',
+                        kind: 'text',
+                        scope: 'vscode',
+                        placeholder: '',
+                        action: {
+                            label: I18n.get('modelProxy.restartProxy'),
+                            iconId: 'debug-restart',
+                            command: 'restartProxy'
+                        }
+                    }
+                ]
             }
         ];
 
