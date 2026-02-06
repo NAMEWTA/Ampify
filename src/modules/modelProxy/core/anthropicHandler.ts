@@ -67,9 +67,10 @@ export class AnthropicHandler {
             // 构建请求选项
             const options: vscode.LanguageModelChatRequestOptions = {};
             const modelOptions: Record<string, unknown> = {};
+            const maxTokens = request.max_tokens && request.max_tokens > 0 ? request.max_tokens : 1024;
             if (request.temperature !== undefined) { modelOptions['temperature'] = request.temperature; }
             if (request.top_p !== undefined) { modelOptions['top_p'] = request.top_p; }
-            if (request.max_tokens !== undefined) { modelOptions['max_tokens'] = request.max_tokens; }
+            modelOptions['max_tokens'] = maxTokens;
             if (request.top_k !== undefined) { modelOptions['top_k'] = request.top_k; }
             if (request.stop_sequences !== undefined) { modelOptions['stop_sequences'] = request.stop_sequences; }
             if (request.thinking !== undefined) { modelOptions['thinking'] = request.thinking; }
@@ -323,8 +324,14 @@ export class AnthropicHandler {
                             type: 'tool_use',
                             id: part.callId,
                             name: part.name,
-                            input: part.input
+                            input: {}
                         }
+                    });
+                    const inputJson = JSON.stringify(part.input ?? {});
+                    this.writeSSE(res, 'content_block_delta', {
+                        type: 'content_block_delta',
+                        index: currentBlockIndex,
+                        delta: { type: 'input_json_delta', partial_json: inputJson }
                     });
                     this.writeSSE(res, 'content_block_stop', {
                         type: 'content_block_stop',
