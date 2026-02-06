@@ -9,7 +9,8 @@ Ampify is a practical, all-in-one VS Code extension that helps you move faster. 
 - Skills Manager with SKILL.md metadata, search, tag filter, preview, and inject
 - Commands Manager with single-file command definitions and project injection
 - Git Share sync and diff preview for skills and commands repositories
-- Model Proxy: local HTTP reverse proxy (OpenAI + Anthropic compatible) with API key, model routing, and logs
+- Model Proxy: local HTTP reverse proxy (OpenAI + Anthropic compatible) with API key, model routing, instance management, and logs
+- Enhanced Anthropic handler with tool integration, SSE support, and improved request serialization
 - Unified MainView with sections for all modules
 
 ## Screenshots
@@ -83,7 +84,8 @@ Ampify 是一个实用型 VS Code 扩展，将**路径行号复制**、**多账�
 - Skills Manager：SKILL.md 元数据、搜索、标签过滤、预览与注入
 - Commands Manager：单文件命令管理与项目注入
 - Git Share：统一同步与差异预览
-- Model Proxy：本地 HTTP 反代（兼容 OpenAI/Anthropic），支持 API Key、模型路由与日志
+- Model Proxy：本地 HTTP 反代（兼容 OpenAI/Anthropic），支持实例管理、API Key、模型路由与日志
+- 增强的 Anthropic 处理器：工具集成、SSE 支持与改进的请求序列化
 - MainView 统一入口
 
 ## 截图

@@ -1,5 +1,17 @@
 # Change Log
 
+## 2.2.0 - 2026-02-07
+### Added
+- Enhance model proxy functionality with instance key management and improved port handling
+- Enhance Anthropic and OpenAI handlers with tool integration and logging improvements
+
+### Changed
+- Enhance AnthropicHandler: Set default max_tokens and serialize input for SSE
+- Improve proxy UI action handling and event delegation
+
+### Fixed
+- Ensure logs directory exists before attempting to reveal in OS
+
 ## 2.1.0 - 2026-02-06
 ### Changed
 - README screenshots added to highlight core features
