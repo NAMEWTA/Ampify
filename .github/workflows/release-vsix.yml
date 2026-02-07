@@ -45,11 +45,12 @@ jobs:
         run: node scripts/copy-assets.js
 
       - name: Install extension prod deps (pnpm)
-        run: pnpm --filter ./packages/extension... install --prod --ignore-scripts
+        working-directory: packages/extension
+        run: HUSKY=0 pnpm install --prod --ignore-scripts --config.node-linker=hoisted
 
       - name: Package VSIX
         working-directory: packages/extension
-        run: pnpm exec vsce package
+        run: pnpm dlx @vscode/vsce@3.0.0 package
 
       - name: Create Release and Upload VSIX
         uses: softprops/action-gh-release@v2
