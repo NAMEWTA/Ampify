@@ -1,5 +1,14 @@
 # Change Log
 
+## 2.3.0 - 2026-02-07
+### Added
+- Update API key binding management and enhance UI for bindings
+- Enhance API key binding management with add, remove, and copy functionalities
+- Implement API key binding management with add and remove functionality
+- Initialize Vue 3 application with Pinia state management and VS Code API integration
+- Add git-worktree-create and git-worktree-finish commands for managing Git worktrees
+- Add examples for DatePicker, Dialog, Form, Input, Message, Select, Table components and guides for design, global config, i18n, installation, quick start, theme customization, and project setup
+
 ## 2.2.0 - 2026-02-07
 ### Added
 - Enhance model proxy functionality with instance key management and improved port handling
