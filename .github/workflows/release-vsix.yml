@@ -44,6 +44,10 @@ jobs:
       - name: Copy assets for packaging
         run: node scripts/copy-assets.js
 
+      - name: Install extension prod deps (npm)
+        working-directory: packages/extension
+        run: npm install --omit=dev --no-package-lock
+
       - name: Package VSIX
         working-directory: packages/extension
         run: pnpm exec vsce package
