@@ -12,45 +12,46 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 
 扩展在启动完成后激活（`onStartupFinished`），统一注册各模块命令，并在 Activity Bar 提供主入口视图。
 
-- 入口文件： [src/extension.ts](src/extension.ts)
-- 扩展清单： [package.json](package.json)
+- 入口文件： [packages/extension/src/extension.ts](packages/extension/src/extension.ts)
+- 扩展清单： [packages/extension/package.json](packages/extension/package.json)
 - 变更记录： [CHANGELOG.md](CHANGELOG.md)
 
 ## 项目结构
-- [src/](src/)：扩展源代码
-  - [src/extension.ts](src/extension.ts)：扩展入口与模块编排
-  - [src/common/](src/common/)：公共能力（i18n、类型、路径、Git）
-    - [src/common/i18n.ts](src/common/i18n.ts)：国际化字典与读取
-    - [src/common/paths.ts](src/common/paths.ts)：路径与目录工具
-    - [src/common/baseConfigManager.ts](src/common/baseConfigManager.ts)：配置管理基类
-    - [src/common/types/index.ts](src/common/types/index.ts)：共享类型定义
-    - [src/common/git/](src/common/git/)：Git 管理与 diff 视图
-  - [src/modules/](src/modules/)：功能模块
-    - [src/modules/copier/](src/modules/copier/)：复制路径与行号
-    - [src/modules/launcher/](src/modules/launcher/)：多账户启动器
-      - [src/modules/launcher/core/](src/modules/launcher/core/)：配置与进程启动
-    - [src/modules/skills/](src/modules/skills/)：Skills Manager
-      - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、创建、AGENTS.md 同步
-      - [src/modules/skills/templates/](src/modules/skills/templates/)：SKILL.md 模板
-    - [src/modules/commands/](src/modules/commands/)：Commands Manager
-      - [src/modules/commands/core/](src/modules/commands/core/)：配置、导入、应用、创建
-      - [src/modules/commands/templates/](src/modules/commands/templates/)：Command MD 模板
-    - [src/modules/gitShare/](src/modules/gitShare/)：Git Share
-    - [src/modules/modelProxy/](src/modules/modelProxy/)：Model Proxy
-      - [src/modules/modelProxy/core/](src/modules/modelProxy/core/)：代理配置、鉴权、模型桥接、日志与 HTTP 服务
-    - [src/modules/mainView/](src/modules/mainView/)：统一主视图（Webview）
-      - [src/modules/mainView/bridges/](src/modules/mainView/bridges/)：数据桥接
-      - [src/modules/mainView/templates/](src/modules/mainView/templates/)：HTML/CSS/JS 模板
-      - [src/modules/mainView/protocol.ts](src/modules/mainView/protocol.ts)：通信协议
-- [package.json](package.json)：扩展清单、命令、快捷键、脚本与依赖
-- [tsconfig.json](tsconfig.json)：TypeScript 编译配置
-- [eslint.config.js](eslint.config.js)：ESLint 规则
+- [packages/extension/src/](packages/extension/src/)：扩展源代码
+  - [packages/extension/src/extension.ts](packages/extension/src/extension.ts)：扩展入口与模块编排
+  - [packages/extension/src/common/](packages/extension/src/common/)：公共能力（i18n、类型、路径、Git）
+    - [packages/extension/src/common/i18n.ts](packages/extension/src/common/i18n.ts)：国际化字典与读取
+    - [packages/extension/src/common/paths.ts](packages/extension/src/common/paths.ts)：路径与目录工具
+    - [packages/extension/src/common/baseConfigManager.ts](packages/extension/src/common/baseConfigManager.ts)：配置管理基类
+    - [packages/extension/src/common/types/index.ts](packages/extension/src/common/types/index.ts)：共享类型定义
+    - [packages/extension/src/common/git/](packages/extension/src/common/git/)：Git 管理与 diff 视图
+  - [packages/extension/src/modules/](packages/extension/src/modules/)：功能模块
+    - [packages/extension/src/modules/copier/](packages/extension/src/modules/copier/)：复制路径与行号
+    - [packages/extension/src/modules/launcher/](packages/extension/src/modules/launcher/)：多账户启动器
+      - [packages/extension/src/modules/launcher/core/](packages/extension/src/modules/launcher/core/)：配置与进程启动
+    - [packages/extension/src/modules/skills/](packages/extension/src/modules/skills/)：Skills Manager
+      - [packages/extension/src/modules/skills/core/](packages/extension/src/modules/skills/core/)：配置、导入、应用、创建、AGENTS.md 同步
+      - [packages/extension/src/modules/skills/templates/](packages/extension/src/modules/skills/templates/)：SKILL.md 模板
+    - [packages/extension/src/modules/commands/](packages/extension/src/modules/commands/)：Commands Manager
+      - [packages/extension/src/modules/commands/core/](packages/extension/src/modules/commands/core/)：配置、导入、应用、创建
+      - [packages/extension/src/modules/commands/templates/](packages/extension/src/modules/commands/templates/)：Command MD 模板
+    - [packages/extension/src/modules/gitShare/](packages/extension/src/modules/gitShare/)：Git Share
+    - [packages/extension/src/modules/modelProxy/](packages/extension/src/modules/modelProxy/)：Model Proxy
+      - [packages/extension/src/modules/modelProxy/core/](packages/extension/src/modules/modelProxy/core/)：代理配置、鉴权、模型桥接、日志与 HTTP 服务
+    - [packages/extension/src/modules/mainView/](packages/extension/src/modules/mainView/)：统一主视图（Webview）
+      - [packages/extension/src/modules/mainView/bridges/](packages/extension/src/modules/mainView/bridges/)：数据桥接
+      - [packages/extension/src/modules/mainView/templates/](packages/extension/src/modules/mainView/templates/)：HTML/CSS/JS 模板
+- [packages/shared/](packages/shared/)：共享类型与协议
+- [packages/webview/](packages/webview/)：Webview 前端
+- [packages/extension/package.json](packages/extension/package.json)：扩展清单、命令、快捷键、脚本与依赖
+- [packages/extension/tsconfig.json](packages/extension/tsconfig.json)：TypeScript 编译配置
+- [packages/extension/eslint.config.js](packages/extension/eslint.config.js)：ESLint 规则
 - [README.md](README.md)：使用说明
 - [CHANGELOG.md](CHANGELOG.md)：版本变更
 - [.vscode/](.vscode/)：本地调试配置
   - [.vscode/launch.json](.vscode/launch.json)：调试配置
   - [.vscode/tasks.json](.vscode/tasks.json)：构建任务
-- [.vscodeignore](.vscodeignore)：VSIX 打包忽略规则
+- [packages/extension/.vscodeignore](packages/extension/.vscodeignore)：VSIX 打包忽略规则
 - [LICENSE](LICENSE)：许可证
 - [icon.png](icon.png)：扩展图标
 
@@ -78,14 +79,14 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 3. MainView 通过 Bridge 展示实例列表
 
 ### Skills Manager 逻辑
-1. [src/modules/skills/core/skillConfigManager.ts](src/modules/skills/core/skillConfigManager.ts) 负责配置与技能扫描
-2. [src/modules/skills/templates/skillMdTemplate.ts](src/modules/skills/templates/skillMdTemplate.ts) 生成 SKILL.md 模板
-3. [src/modules/skills/core/agentMdManager.ts](src/modules/skills/core/agentMdManager.ts) 生成 SKILLS.md 并更新 AGENTS.md
+1. [packages/extension/src/modules/skills/core/skillConfigManager.ts](packages/extension/src/modules/skills/core/skillConfigManager.ts) 负责配置与技能扫描
+2. [packages/extension/src/modules/skills/templates/skillMdTemplate.ts](packages/extension/src/modules/skills/templates/skillMdTemplate.ts) 生成 SKILL.md 模板
+3. [packages/extension/src/modules/skills/core/agentMdManager.ts](packages/extension/src/modules/skills/core/agentMdManager.ts) 生成 SKILLS.md 并更新 AGENTS.md
 4. 技能数据存储在 Git Share 目录（可同步）
 
 ### Commands Manager 逻辑
-1. [src/modules/commands/core/commandConfigManager.ts](src/modules/commands/core/commandConfigManager.ts) 负责配置与命令扫描
-2. [src/modules/commands/templates/commandMdTemplate.ts](src/modules/commands/templates/commandMdTemplate.ts) 生成命令 MD 模板
+1. [packages/extension/src/modules/commands/core/commandConfigManager.ts](packages/extension/src/modules/commands/core/commandConfigManager.ts) 负责配置与命令扫描
+2. [packages/extension/src/modules/commands/templates/commandMdTemplate.ts](packages/extension/src/modules/commands/templates/commandMdTemplate.ts) 生成命令 MD 模板
 3. 命令采用扁平结构，文件名必须与 frontmatter 的 `command` 字段一致
 4. 命令数据存储在 Git Share 目录（可同步）
 
@@ -104,7 +105,7 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 ### MainView 逻辑
 1. `AmpifyViewProvider` 统一渲染 7 个 section
 2. Bridge 层将模块数据适配为 `TreeNode[]`
-3. [src/modules/mainView/protocol.ts](src/modules/mainView/protocol.ts) 定义 Webview ↔ Extension 消息协议
+3. [packages/shared/src/protocol.ts](packages/shared/src/protocol.ts) 定义 Webview ↔ Extension 消息协议
 
 ## 数据存储结构
 默认根目录为 `~/.vscode-ampify/`（可通过 `ampify.rootDir` 修改）：
@@ -146,7 +147,7 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 复制命令已注册到编辑器右键菜单，模块命令在 MainView 内提供入口。
 
 ## 配置项
-配置定义在 [package.json](package.json)：
+配置定义在 [packages/extension/package.json](packages/extension/package.json)：
 - `ampify.language`：语言（en/zh-cn）
 - `ampify.rootDir`：数据根目录
 - `ampify.skills.injectTarget`：Skills 注入目录
@@ -157,9 +158,9 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 
 ## 开发与构建
 脚本定义在 [package.json](package.json)：
-- `npm run compile`：编译 TypeScript
-- `npm run watch`：监视模式编译
-- `npm run lint`：运行 ESLint
+- `pnpm run build`：构建全部包（shared + extension + webview）
+- `pnpm run watch`：监视模式构建
+- `pnpm run lint`：运行 ESLint
 
 调试入口使用 [.vscode/launch.json](.vscode/launch.json) 中的“调试扩展”，并在启动前执行构建任务。
 

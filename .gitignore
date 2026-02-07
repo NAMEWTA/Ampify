@@ -5,3 +5,6 @@ node_modules
 *.vsix
 .trae/
 .DS_Store
+.turbo/
+*.tsbuildinfo
+__pycache__

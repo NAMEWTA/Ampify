@@ -6,8 +6,8 @@
       "type": "extensionHost",
       "request": "launch",
       "runtimeExecutable": "${execPath}",
-      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
-      "outFiles": ["${workspaceFolder}/out/**/*.js"],
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}/packages/extension"],
+      "outFiles": ["${workspaceFolder}/packages/extension/out/**/*.js"],
       "preLaunchTask": "Build extension (compile)"
     }
   ]

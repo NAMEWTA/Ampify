@@ -15,7 +15,7 @@
 
 ## TypeScript 与 ESLint
 - `tsconfig.json` 启用 `strict: true`
-- ESLint 使用 Flat Config，见 [eslint.config.js](../../../eslint.config.js)
+- ESLint 使用 Flat Config，见 [packages/extension/eslint.config.js](../../../packages/extension/eslint.config.js)
 - 禁止未使用变量（允许 `_` 前缀）
 
 ## 国际化规范
@@ -44,7 +44,7 @@ try {
 - 本地独立配置可继承 `BaseConfigManager<T>`
 
 ## 命令与视图
-- 所有命令必须在 [package.json](../../../package.json) 中声明
+- 所有命令必须在 [packages/extension/package.json](../../../packages/extension/package.json) 中声明
 - MainView 使用 Webview + Bridge，禁止新增 TreeDataProvider
 
 ## MainView Bridge 接入
@@ -53,17 +53,17 @@ try {
 3. 在 `AmpifyViewProvider` 的 `sendSectionData()` 中挂载
 
 ## 开发流程
-1. 创建目录：`src/modules/{moduleName}/`
-2. 定义类型：`src/common/types/index.ts`
-3. 增加 i18n：`src/common/i18n.ts`
-4. 注册命令：`package.json`
-5. 注册模块：`src/extension.ts`
+1. 创建目录：`packages/extension/src/modules/{moduleName}/`
+2. 定义类型：`packages/extension/src/common/types/index.ts`
+3. 增加 i18n：`packages/extension/src/common/i18n.ts`
+4. 注册命令：`packages/extension/package.json`
+5. 注册模块：`packages/extension/src/extension.ts`
 6. 接入 MainView Bridge
 
 ## 构建与调试
-- `npm run compile`
-- `npm run watch`
-- `npm run lint`
+- `pnpm run build`
+- `pnpm run watch`
+- `pnpm run lint`
 - 调试：F5 启动扩展开发宿主
 
 ## 版本发布

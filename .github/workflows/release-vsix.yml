@@ -15,10 +15,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Verify tag matches package.json version
         run: |
           TAG="${GITHUB_REF_NAME#v}"
-          PKG_VERSION="$(node -p "require('./package.json').version")"
+          PKG_VERSION="$(node -p "require('./packages/extension/package.json').version")"
           if [ "$TAG" != "$PKG_VERSION" ]; then
             echo "Tag version ($TAG) does not match package.json version ($PKG_VERSION)."
             exit 1
@@ -28,18 +33,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'pnpm'
 
       - name: Install dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Install webview dependencies
-        run: cd webview && npm install
+      - name: Build packages
+        run: pnpm turbo run build
 
-      - name: Compile extension
-        run: npm run compile
+      - name: Copy assets for packaging
+        run: node scripts/copy-assets.js
 
       - name: Package VSIX
-        run: npx @vscode/vsce package
+        working-directory: packages/extension
+        run: pnpm exec vsce package
 
       - name: Create Release and Upload VSIX
         uses: softprops/action-gh-release@v2
@@ -48,6 +55,6 @@ jobs:
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
-          files: '*.vsix'
+          files: 'packages/extension/*.vsix'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

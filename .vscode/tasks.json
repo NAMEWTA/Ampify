@@ -4,10 +4,10 @@
 		{
 			"label": "Build extension (compile)",
 			"type": "shell",
-			"command": "npm",
+			"command": "pnpm",
 			"args": [
 				"run",
-				"compile"
+				"build"
 			],
 			"isBackground": false,
 			"problemMatcher": [

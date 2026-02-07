@@ -4,12 +4,12 @@
 MainView 使用单一 `WebviewViewProvider` 统一渲染 7 个业务模块（dashboard、launcher、skills、commands、gitshare、modelProxy、settings）。Webview 采用 Vue 3 + Vite + Pinia + Element Plus 架构，Extension Host 仅负责数据桥接与消息处理，所有 UI 渲染在 webview 内完成。
 
 ## 目录结构
-- src/modules/mainView/index.ts
-- src/modules/mainView/AmpifyViewProvider.ts
-- src/modules/mainView/protocol.ts
-- src/modules/mainView/bridges/*.ts
-- src/modules/mainView/templates/vueHtmlTemplate.ts
-- webview/
+- packages/extension/src/modules/mainView/index.ts
+- packages/extension/src/modules/mainView/AmpifyViewProvider.ts
+- packages/extension/src/modules/mainView/bridges/*.ts
+- packages/extension/src/modules/mainView/templates/vueHtmlTemplate.ts
+- packages/shared/src/protocol.ts
+- packages/webview/
   - src/main.ts
   - src/App.vue
   - src/components/**
@@ -17,19 +17,18 @@ MainView 使用单一 `WebviewViewProvider` 统一渲染 7 个业务模块（das
   - src/composables/useMessageRouter.ts
   - src/utils/{rpcClient,vscodeApi}.ts
   - src/styles/**
-  - src/types/protocol.ts
 
 ## 架构关系
 
 ```mermaid
 flowchart TB
     VP[AmpifyViewProvider]
-    PRO[protocol.ts]
+    PRO[shared protocol.ts]
     BR[Bridges]
     VUE[Vue App]
     RPC[rpcClient + message router]
     HTML[vueHtmlTemplate]
-    VITE[Vite build -> out/webview]
+    VITE[Vite build -> packages/extension/out/webview]
 
     VP --> PRO
     VP --> BR
@@ -43,13 +42,13 @@ flowchart TB
 ## Vue 构建与运行时加载
 
 ### Vite 构建流程
-- 入口：webview/src/main.ts
-- 构建输出：out/webview/index.html + out/webview/assets/index.js (+ style.css)
+- 入口：packages/webview/src/main.ts
+- 构建输出：packages/extension/out/webview/index.html + assets/index.js
 - Vite 配置：单 chunk（inlineDynamicImports）、CSP 友好（esbuild minify, no eval）
 - Element Plus：通过 unplugin-auto-import + unplugin-vue-components 按需引入
 
 ### Extension Host 加载逻辑
-入口：src/modules/mainView/templates/vueHtmlTemplate.ts
+入口：packages/extension/src/modules/mainView/templates/vueHtmlTemplate.ts
 
 步骤：
 1. 读取 out/webview/index.html
@@ -58,10 +57,10 @@ flowchart TB
 4. 注入 codicon.css
 5. 注入 window.__AMPIFY_INIT__（activeSection, instanceKey）
 
-回退逻辑：如构建产物不存在，展示提示页面并提示 `npm run compile:webview`。
+回退逻辑：如构建产物不存在，展示提示页面并提示 `pnpm --filter ampify-webview build`。
 
 ### Webview 初始化流程
-入口：webview/src/main.ts
+入口：packages/webview/src/main.ts
 
 1. 初始化 rpcClient 消息监听
 2. mount Vue App
@@ -70,8 +69,7 @@ flowchart TB
 
 ## Webview ↔ Extension 交互协议
 协议定义：
-- Extension 侧：src/modules/mainView/protocol.ts
-- Webview 侧：webview/src/types/protocol.ts
+- 协议：packages/shared/src/protocol.ts
 
 当前兼容两套机制：
 - Legacy 消息：`{ type: 'xxx' }` 直接 postMessage
@@ -178,13 +176,13 @@ flowchart LR
   2) `updateModelProxy` 发送 dashboard 数据
 
 ## 开发与构建命令
-- `npm run compile`：Extension + Webview 全量编译
-- `npm run compile:webview`：仅构建 Webview
-- `npm run dev:webview`：Vite dev server（仅前端调试）
-- `npm run watch:webview`：Webview build watch
+- `pnpm run build`：shared + extension + webview 全量构建
+- `pnpm --filter ampify-webview build`：仅构建 Webview
+- `pnpm --filter ampify-webview dev`：Vite dev server（仅前端调试）
+- `pnpm --filter ampify-webview watch`：Webview build watch
 
 ## 开发注意事项
-- Webview 侧全部开发在 webview/ 内完成
+- Webview 侧全部开发在 packages/webview/ 内完成
 - 不再使用旧模板（htmlTemplate/cssTemplate/jsTemplate 已移除）
 - Webview 内无需直接访问 vscode API，请通过 rpcClient 发送消息
-- 所有与 Extension 的交互都必须在 protocol.ts 中定义类型
+- 所有与 Extension 的交互都必须在 packages/shared/src/protocol.ts 中定义类型

@@ -19,46 +19,51 @@ description: Ampify VS Code 扩展开发规范指南。用于新建功能模块�
 
 ```
 Ampify/
-├── src/
-│   ├── extension.ts
-│   ├── common/
-│   │   ├── baseConfigManager.ts
-│   │   ├── i18n.ts
-│   │   ├── paths.ts
-│   │   ├── types/
-│   │   │   └── index.ts
-│   │   └── git/
-│   │       ├── gitManager.ts
-│   │       ├── diffViewer.ts
-│   │       └── index.ts
-│   └── modules/
-│       ├── copier/
-│       ├── launcher/
-│       │   └── core/
-│       ├── skills/
-│       │   ├── core/
-│       │   └── templates/
-│       ├── commands/
-│       │   ├── core/
-│       │   └── templates/
-│       ├── gitShare/
-│       └── mainView/
-│           ├── bridges/
-│           ├── templates/
-│           └── protocol.ts
+├── packages/
+│   ├── extension/
+│   │   ├── src/
+│   │   │   ├── extension.ts
+│   │   │   ├── common/
+│   │   │   │   ├── baseConfigManager.ts
+│   │   │   │   ├── i18n.ts
+│   │   │   │   ├── paths.ts
+│   │   │   │   ├── types/
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── git/
+│   │   │   │       ├── gitManager.ts
+│   │   │   │       ├── diffViewer.ts
+│   │   │   │       └── index.ts
+│   │   │   └── modules/
+│   │   │       ├── copier/
+│   │   │       ├── launcher/
+│   │   │       │   └── core/
+│   │   │       ├── skills/
+│   │   │       │   ├── core/
+│   │   │       │   └── templates/
+│   │   │       ├── commands/
+│   │   │       │   ├── core/
+│   │   │       │   └── templates/
+│   │   │       ├── gitShare/
+│   │   │       └── mainView/
+│   │   │           ├── bridges/
+│   │   │           └── templates/
+│   │   ├── package.json
+│   │   ├── tsconfig.json
+│   │   └── eslint.config.js
+│   ├── webview/
+│   └── shared/
+│       └── src/protocol.ts
 ├── package.json
-├── tsconfig.json
-├── eslint.config.js
 └── .vscode/
 ```
 
 ## 新增功能的标准流程
-1. 创建模块目录与入口 `index.ts`
-2. 定义类型（如需共享）到 `common/types/index.ts`
+1. 创建模块目录与入口 `packages/extension/src/modules/{moduleName}/index.ts`
+2. 定义类型（如需共享）到 `packages/extension/src/common/types/index.ts`
 3. 如果需要本地配置，继承 `BaseConfigManager<T>`；如果需要 Git 同步，存储到 `gitshare/` 目录并自建 config
-4. 添加 i18n 键到 `common/i18n.ts`
-5. 在 `package.json` 声明命令或配置
-6. 在 `extension.ts` 注册模块
+4. 添加 i18n 键到 `packages/extension/src/common/i18n.ts`
+5. 在 `packages/extension/package.json` 声明命令或配置
+6. 在 `packages/extension/src/extension.ts` 注册模块
 7. 如需要 UI，接入 MainView：创建 Bridge，实现 `getTreeData()` / `getToolbar()` / `executeAction()`
 
 ## 公共能力速查

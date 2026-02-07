@@ -145,3 +145,63 @@ Settings：根目录与语言配置。
 - 在 **Settings** 中修改根目录或语言并点击 **Apply & Reload**
 
 > 全局数据根目录默认 `~/.vscode-ampify/`，可通过 `ampify.rootDir` 修改。
+
+---
+
+## Development (Monorepo)
+
+This repository uses **pnpm workspaces + Turborepo** with three packages:
+
+- `packages/extension` (VS Code extension)
+- `packages/webview` (Vue 3 webview)
+- `packages/shared` (shared protocol types)
+
+### Install
+
+```
+pnpm install
+```
+
+### Build all packages
+
+```
+pnpm run build
+```
+
+### Package VSIX
+
+```
+pnpm run prepackage
+cd packages/extension
+pnpm exec vsce package
+```
+
+---
+
+## 开发（Monorepo）
+
+仓库使用 **pnpm workspaces + Turborepo**，包含三个包：
+
+- `packages/extension`（VS Code 扩展）
+- `packages/webview`（Vue 3 Webview）
+- `packages/shared`（共享协议类型）
+
+### 安装依赖
+
+```
+pnpm install
+```
+
+### 构建全部包
+
+```
+pnpm run build
+```
+
+### 打包 VSIX
+
+```
+pnpm run prepackage
+cd packages/extension
+pnpm exec vsce package
+```
