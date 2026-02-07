@@ -3,7 +3,7 @@
  * 单一 WebviewView 渲染所有模块
  */
 import * as vscode from 'vscode';
-import { getHtml } from './templates/htmlTemplate';
+import { getVueHtml } from './templates/vueHtmlTemplate';
 import {
     SectionId,
     WebviewMessage,
@@ -67,10 +67,14 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.options = {
             enableScripts: true,
-            localResourceRoots: [this._extensionUri]
+            localResourceRoots: [
+                this._extensionUri,
+                vscode.Uri.joinPath(this._extensionUri, 'out', 'webview'),
+                vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode', 'codicons')
+            ]
         };
 
-        webviewView.webview.html = getHtml(
+        webviewView.webview.html = getVueHtml(
             webviewView.webview,
             this._extensionUri,
             this._activeSection,

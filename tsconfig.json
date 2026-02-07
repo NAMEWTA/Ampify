@@ -1,4 +1,5 @@
 {
+	"exclude": ["webview", "out"],
 	"compilerOptions": {
 		"module": "commonjs",
 		"target": "ES2020",

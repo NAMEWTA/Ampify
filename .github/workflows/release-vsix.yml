@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install webview dependencies
+        run: cd webview && npm install
+
       - name: Compile extension
         run: npm run compile
 

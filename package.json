@@ -370,8 +370,12 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "compile": "tsc -p ./ && cd webview && npm run build",
+    "compile:ext": "tsc -p ./",
+    "compile:webview": "cd webview && npm run build",
     "watch": "tsc -watch -p ./",
+    "watch:webview": "cd webview && npx vite build --watch",
+    "dev:webview": "cd webview && npx vite",
     "lint": "eslint src --ext ts"
   },
   "dependencies": {
