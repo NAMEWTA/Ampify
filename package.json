@@ -283,8 +283,18 @@
       },
       {
         "command": "ampify.modelProxy.selectModel",
-        "title": "Select Default Model",
+        "title": "Add Model Binding",
         "icon": "$(hubot)"
+      },
+      {
+        "command": "ampify.modelProxy.addBinding",
+        "title": "Add API Key Binding",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ampify.modelProxy.removeBinding",
+        "title": "Remove API Key Binding",
+        "icon": "$(trash)"
       },
       {
         "command": "ampify.modelProxy.viewLogs",
@@ -359,11 +369,6 @@
           "type": "string",
           "default": "127.0.0.1",
           "description": "Bind address for the Model Proxy server. Use 0.0.0.0 to allow external access (模型代理服务器绑定地址)"
-        },
-        "ampify.modelProxy.defaultModel": {
-          "type": "string",
-          "default": "",
-          "description": "Default model ID for the proxy. Leave empty for auto-routing to the first available model (代理默认模型 ID，留空自动路由到第一个可用模型)"
         }
       }
     }

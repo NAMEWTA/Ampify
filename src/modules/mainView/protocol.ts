@@ -135,12 +135,8 @@ export interface ModelProxyDashboardData {
     bindAddress: string;
     /** 完整 Base URL */
     baseUrl: string;
-    /** API Key（已脱敏） */
-    maskedApiKey: string;
-    /** 完整 API Key（用于复制） */
-    fullApiKey: string;
-    /** 当前默认模型 ID */
-    defaultModelId: string;
+    /** API Key 绑定列表 */
+    bindings: ModelProxyBindingInfo[];
     /** 今日请求数 */
     todayRequests: number;
     /** 今日 Token 数 */
@@ -157,6 +153,17 @@ export interface ModelProxyDashboardData {
     labels: ModelProxyLabels;
 }
 
+/** API Key 绑定信息（传递给 Webview） */
+export interface ModelProxyBindingInfo {
+    id: string;
+    maskedKey: string;
+    fullKey: string;
+    modelId: string;
+    modelName: string;
+    label: string;
+    createdAt: number;
+}
+
 export interface ModelProxyLabels {
     statusRunning: string;
     statusStopped: string;
@@ -171,7 +178,6 @@ export interface ModelProxyLabels {
     copy: string;
     regenerate: string;
     availableModels: string;
-    selectModelHint: string;
     noModels: string;
     recentLogs: string;
     tokensMax: string;
@@ -298,6 +304,9 @@ export type WebviewMessage =
     | { type: 'toggleTag'; section: SectionId; tag: string }
     | { type: 'selectProxyModel'; modelId: string }
     | { type: 'proxyAction'; actionId: string }
+    | { type: 'addProxyBinding' }
+    | { type: 'removeProxyBinding'; bindingId: string }
+    | { type: 'copyProxyBindingKey'; bindingId: string }
     | { type: 'requestLogFiles' }
     | { type: 'queryLogs'; date: string; page: number; pageSize: number; statusFilter: 'all' | 'success' | 'error'; keyword?: string };
 

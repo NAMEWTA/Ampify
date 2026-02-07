@@ -1,13 +1,13 @@
 /**
  * Model Proxy 模块入口
  * 注册命令并管理代理服务器生命周期
+ * 支持多 API Key 绑定，每个 Key 对应一个特定模型
  */
 import * as vscode from 'vscode';
 import { ProxyConfigManager } from './core/proxyConfigManager';
 import { ProxyServer } from './core/proxyServer';
 import { ModelBridge } from './core/modelBridge';
 import { LogManager } from './core/logManager';
-import { AuthManager } from './core/authManager';
 import { I18n } from '../../common/i18n';
 import { ensureDir } from '../../common/paths';
 
@@ -63,24 +63,63 @@ export async function registerModelProxy(context: vscode.ExtensionContext): Prom
             await stopProxy();
         }),
 
-        vscode.commands.registerCommand('ampify.modelProxy.copyKey', () => {
-            const config = configManager.getConfig();
-            if (config.apiKey) {
-                void vscode.env.clipboard.writeText(config.apiKey);
+        vscode.commands.registerCommand('ampify.modelProxy.copyKey', async () => {
+            const bindings = configManager.getBindings();
+            if (bindings.length === 0) {
+                vscode.window.showWarningMessage(I18n.get('modelProxy.noBindings'));
+                return;
+            }
+            if (bindings.length === 1) {
+                void vscode.env.clipboard.writeText(bindings[0].apiKey);
+                vscode.window.showInformationMessage(I18n.get('modelProxy.keyCopied'));
+                return;
+            }
+            // 多个绑定时让用户选择
+            const items = bindings.map(b => ({
+                label: b.label,
+                description: b.modelId,
+                detail: `Key: ${b.apiKey.slice(0, 8)}...${b.apiKey.slice(-4)}`,
+                binding: b
+            }));
+            const selected = await vscode.window.showQuickPick(items, {
+                placeHolder: I18n.get('modelProxy.selectBindingToCopy')
+            });
+            if (selected) {
+                void vscode.env.clipboard.writeText(selected.binding.apiKey);
                 vscode.window.showInformationMessage(I18n.get('modelProxy.keyCopied'));
             }
         }),
 
         vscode.commands.registerCommand('ampify.modelProxy.regenerateKey', async () => {
+            const bindings = configManager.getBindings();
+            if (bindings.length === 0) {
+                vscode.window.showWarningMessage(I18n.get('modelProxy.noBindings'));
+                return;
+            }
+            // 选择要重新生成的绑定
+            let bindingId: string;
+            if (bindings.length === 1) {
+                bindingId = bindings[0].id;
+            } else {
+                const items = bindings.map(b => ({
+                    label: b.label,
+                    description: b.modelId,
+                    detail: `Key: ${b.apiKey.slice(0, 8)}...${b.apiKey.slice(-4)}`,
+                    bindingId: b.id
+                }));
+                const selected = await vscode.window.showQuickPick(items, {
+                    placeHolder: I18n.get('modelProxy.selectBindingToRegenerate')
+                });
+                if (!selected) { return; }
+                bindingId = selected.bindingId;
+            }
             const answer = await vscode.window.showWarningMessage(
                 I18n.get('modelProxy.confirmRegenerate'),
                 { modal: true },
                 I18n.get('skills.yes')
             );
             if (answer === I18n.get('skills.yes')) {
-                const config = configManager.getConfig();
-                config.apiKey = AuthManager.generateKey();
-                configManager.saveConfig(config);
+                configManager.regenerateBindingKey(bindingId);
                 vscode.window.showInformationMessage(I18n.get('modelProxy.keyRegenerated'));
             }
         }),
@@ -92,7 +131,7 @@ export async function registerModelProxy(context: vscode.ExtensionContext): Prom
             vscode.window.showInformationMessage(I18n.get('modelProxy.urlCopied'));
         }),
 
-        vscode.commands.registerCommand('ampify.modelProxy.selectModel', async () => {
+        vscode.commands.registerCommand('ampify.modelProxy.addBinding', async () => {
             if (!modelBridge) { return; }
             const models = modelBridge.getAvailableModels();
             if (models.length === 0) {
@@ -100,22 +139,65 @@ export async function registerModelProxy(context: vscode.ExtensionContext): Prom
                 return;
             }
 
+            // 选择模型
             const items = models.map(m => ({
                 label: m.name || m.id,
                 description: `${m.vendor} · ${m.family}`,
                 detail: `ID: ${m.id} | Max tokens: ${m.maxInputTokens}`,
                 modelId: m.id
             }));
-
             const selected = await vscode.window.showQuickPick(items, {
                 placeHolder: I18n.get('modelProxy.selectModel')
             });
+            if (!selected) { return; }
 
-            if (selected) {
-                const config = configManager.getConfig();
-                config.defaultModelId = selected.modelId;
-                configManager.saveConfig(config);
+            // 输入别名
+            const label = await vscode.window.showInputBox({
+                prompt: I18n.get('modelProxy.bindingLabelPrompt'),
+                value: selected.label
+            });
+            if (!label) { return; }
+
+            const binding = configManager.addBinding(selected.modelId, label);
+            vscode.window.showInformationMessage(I18n.get('modelProxy.bindingCreated', label));
+
+            // 自动复制新 Key 到剪贴板
+            void vscode.env.clipboard.writeText(binding.apiKey);
+            vscode.window.showInformationMessage(I18n.get('modelProxy.keyCopied'));
+        }),
+
+        vscode.commands.registerCommand('ampify.modelProxy.removeBinding', async () => {
+            const bindings = configManager.getBindings();
+            if (bindings.length === 0) {
+                vscode.window.showWarningMessage(I18n.get('modelProxy.noBindings'));
+                return;
             }
+
+            const items = bindings.map(b => ({
+                label: b.label,
+                description: b.modelId,
+                detail: `Key: ${b.apiKey.slice(0, 8)}...${b.apiKey.slice(-4)}`,
+                bindingId: b.id
+            }));
+            const selected = await vscode.window.showQuickPick(items, {
+                placeHolder: I18n.get('modelProxy.selectBindingToRemove')
+            });
+            if (!selected) { return; }
+
+            const answer = await vscode.window.showWarningMessage(
+                I18n.get('modelProxy.confirmRemoveBinding', selected.label),
+                { modal: true },
+                I18n.get('skills.yes')
+            );
+            if (answer === I18n.get('skills.yes')) {
+                configManager.removeBinding(selected.bindingId);
+                vscode.window.showInformationMessage(I18n.get('modelProxy.bindingRemoved', selected.label));
+            }
+        }),
+
+        // 保留 selectModel 作为 addBinding 的别名
+        vscode.commands.registerCommand('ampify.modelProxy.selectModel', async () => {
+            await vscode.commands.executeCommand('ampify.modelProxy.addBinding');
         }),
 
         vscode.commands.registerCommand('ampify.modelProxy.viewLogs', async () => {
@@ -157,6 +239,13 @@ async function startProxy(): Promise<void> {
 
     if (modelBridge.getAvailableModels().length === 0) {
         vscode.window.showWarningMessage(I18n.get('modelProxy.noModels'));
+        return;
+    }
+
+    // 检查是否有绑定
+    const bindings = configManager.getBindings();
+    if (bindings.length === 0) {
+        vscode.window.showWarningMessage(I18n.get('modelProxy.noBindings'));
         return;
     }
 
@@ -223,8 +312,10 @@ async function stopProxy(): Promise<void> {
 function updateStatusBar(running: boolean, port?: number): void {
     if (!statusBarItem) { return; }
     if (running) {
-        statusBarItem.text = `$(radio-tower) Proxy :${port || '?'}`;
-        statusBarItem.tooltip = 'Model Proxy: Running — Click to stop';
+        const configManager = ProxyConfigManager.getInstance();
+        const bindingCount = configManager.getBindings().length;
+        statusBarItem.text = `$(radio-tower) Proxy :${port || '?'} [${bindingCount}]`;
+        statusBarItem.tooltip = `Model Proxy: Running — ${bindingCount} binding(s) — Click to stop`;
         statusBarItem.backgroundColor = undefined;
     } else {
         statusBarItem.text = '$(radio-tower) Proxy Off';

@@ -6,7 +6,7 @@ import * as http from 'http';
 import * as vscode from 'vscode';
 import { ModelBridge, AnthropicChatRequest, AnthropicTool, AnthropicToolChoice } from './modelBridge';
 import { LogManager } from './logManager';
-import { ProxyLogEntry } from '../../../common/types';
+import { ProxyLogEntry, ApiKeyBinding } from '../../../common/types';
 
 export class AnthropicHandler {
     constructor(
@@ -16,30 +16,33 @@ export class AnthropicHandler {
 
     /**
      * 处理 POST /v1/messages
+     * 使用 binding 绑定的模型，忽略请求体中的 model 字段
      */
-    async handleMessages(body: string, res: http.ServerResponse): Promise<void> {
+    async handleMessages(body: string, res: http.ServerResponse, binding: ApiKeyBinding): Promise<void> {
         const startTime = Date.now();
         const requestId = this.logManager.generateRequestId();
         let logEntry: Partial<ProxyLogEntry> = {
             timestamp: new Date().toISOString(),
             requestId,
             format: 'anthropic',
-            status: 'success'
+            status: 'success',
+            bindingId: binding.id,
+            bindingLabel: binding.label
         };
 
         try {
             const request = JSON.parse(body) as AnthropicChatRequest;
-            logEntry.model = request.model;
+            logEntry.model = binding.modelId;
 
             // 记录输入内容
             logEntry.inputContent = JSON.stringify({ system: request.system, messages: request.messages });
 
-            // 查找模型
-            const model = this.modelBridge.findModel(request.model) || this.modelBridge.getConfiguredDefaultModel();
+            // 使用绑定的模型（忽略请求体中的 model 字段）
+            const model = this.modelBridge.findModel(binding.modelId);
             if (!model) {
-                this.sendError(res, 404, 'not_found_error', 'No models available');
+                this.sendError(res, 503, 'model_unavailable', `Bound model "${binding.modelId}" is not available`);
                 logEntry.status = 'error';
-                logEntry.error = 'No models available';
+                logEntry.error = `Bound model "${binding.modelId}" is not available`;
                 return;
             }
 
