@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import * as crypto from 'crypto';
 import { ModelBridge, OpenAIChatRequest, OpenAITool, OpenAIToolChoice } from './modelBridge';
 import { LogManager } from './logManager';
-import { ProxyLogEntry } from '../../../common/types';
+import { ProxyLogEntry, ApiKeyBinding } from '../../../common/types';
 
 export class OpenAIHandler {
     constructor(
@@ -16,10 +16,14 @@ export class OpenAIHandler {
     ) {}
 
     /**
-     * 处理 GET /v1/models
+     * 处理 GET /v1/models — 仅返回该 Key 绑定的模型
      */
-    handleModels(res: http.ServerResponse): void {
-        const models = this.modelBridge.getAvailableModels();
+    handleModels(res: http.ServerResponse, binding: ApiKeyBinding): void {
+        const allModels = this.modelBridge.getAvailableModels();
+        // 仅返回绑定的模型
+        const boundModel = allModels.find(m => m.id === binding.modelId || m.family === binding.modelId);
+        const models = boundModel ? [boundModel] : [];
+
         const data = {
             object: 'list',
             data: models.map(m => ({
@@ -39,30 +43,33 @@ export class OpenAIHandler {
 
     /**
      * 处理 POST /v1/chat/completions
+     * 使用 binding 绑定的模型，忽略请求体中的 model 字段
      */
-    async handleChatCompletions(body: string, res: http.ServerResponse): Promise<void> {
+    async handleChatCompletions(body: string, res: http.ServerResponse, binding: ApiKeyBinding): Promise<void> {
         const startTime = Date.now();
         const requestId = this.logManager.generateRequestId();
         let logEntry: Partial<ProxyLogEntry> = {
             timestamp: new Date().toISOString(),
             requestId,
             format: 'openai',
-            status: 'success'
+            status: 'success',
+            bindingId: binding.id,
+            bindingLabel: binding.label
         };
 
         try {
             const request = JSON.parse(body) as OpenAIChatRequest;
-            logEntry.model = request.model;
+            logEntry.model = binding.modelId;
 
             // 记录输入内容
             logEntry.inputContent = JSON.stringify(request.messages);
 
-            // 查找模型
-            const model = this.modelBridge.findModel(request.model) || this.modelBridge.getConfiguredDefaultModel();
+            // 使用绑定的模型（忽略请求体中的 model 字段）
+            const model = this.modelBridge.findModel(binding.modelId);
             if (!model) {
-                this.sendError(res, 404, 'model_not_found', 'No models available');
+                this.sendError(res, 503, 'model_unavailable', `Bound model "${binding.modelId}" is not available`);
                 logEntry.status = 'error';
-                logEntry.error = 'No models available';
+                logEntry.error = `Bound model "${binding.modelId}" is not available`;
                 return;
             }
 

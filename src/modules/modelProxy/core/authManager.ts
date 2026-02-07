@@ -4,6 +4,7 @@
  */
 import * as crypto from 'crypto';
 import * as http from 'http';
+import { ApiKeyBinding, AuthResult } from '../../../common/types';
 
 const KEY_PREFIX = 'amp-';
 
@@ -40,23 +41,32 @@ export class AuthManager {
     }
 
     /**
-     * 验证请求中的 API Key 是否匹配
+     * 验证请求中的 API Key 是否匹配某个绑定
+     * 返回 AuthResult，包含匹配到的绑定信息
      */
-    static validateRequest(req: http.IncomingMessage, expectedKey: string): boolean {
+    static validateRequest(req: http.IncomingMessage, bindings: ApiKeyBinding[]): AuthResult {
         const key = AuthManager.extractKey(req);
-        if (!key || !expectedKey) {
-            return false;
+        if (!key || bindings.length === 0) {
+            return { valid: false };
         }
-        // 使用 timingSafeEqual 防止时序攻击
-        try {
-            const a = Buffer.from(key, 'utf8');
-            const b = Buffer.from(expectedKey, 'utf8');
-            if (a.length !== b.length) {
-                return false;
+
+        const keyBuf = Buffer.from(key, 'utf8');
+
+        for (const binding of bindings) {
+            if (!binding.apiKey) { continue; }
+            try {
+                const expectedBuf = Buffer.from(binding.apiKey, 'utf8');
+                if (keyBuf.length !== expectedBuf.length) {
+                    continue;
+                }
+                if (crypto.timingSafeEqual(keyBuf, expectedBuf)) {
+                    return { valid: true, binding };
+                }
+            } catch {
+                continue;
             }
-            return crypto.timingSafeEqual(a, b);
-        } catch {
-            return false;
         }
+
+        return { valid: false };
     }
 }

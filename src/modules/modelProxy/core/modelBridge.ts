@@ -101,27 +101,6 @@ export class ModelBridge {
     }
 
     /**
-     * 获取配置的默认模型（读取 config.defaultModelId 或 VS Code Settings）
-     * 若配置了 defaultModelId 则按该 ID 查找；否则 fallback 到第一个可用模型
-     */
-    getConfiguredDefaultModel(): vscode.LanguageModelChat | undefined {
-        try {
-            const { ProxyConfigManager } = require('./proxyConfigManager') as typeof import('./proxyConfigManager');
-            const configManager = ProxyConfigManager.getInstance();
-            const defaultModelId = configManager.getDefaultModelId();
-            if (defaultModelId) {
-                const found = this.findModel(defaultModelId);
-                if (found) {
-                    return found;
-                }
-            }
-        } catch {
-            // ignore
-        }
-        return this.getDefaultModel();
-    }
-
-    /**
      * 发送请求到模型并返回流式响应
      */
     async sendRequest(

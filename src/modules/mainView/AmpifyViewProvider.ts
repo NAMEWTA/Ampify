@@ -230,9 +230,26 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
 
             // --- Model Proxy custom messages ---
             case 'selectProxyModel': {
-                await this.modelProxyBridge.setDefaultModel(msg.modelId);
-                vscode.window.showInformationMessage(I18n.get('modelProxy.modelUpdated', msg.modelId));
+                // Legacy: now handled via addBinding command
+                await vscode.commands.executeCommand('ampify.modelProxy.addBinding');
                 await this.sendModelProxyData();
+                break;
+            }
+
+            case 'addProxyBinding': {
+                await vscode.commands.executeCommand('ampify.modelProxy.addBinding');
+                await this.sendModelProxyData();
+                break;
+            }
+
+            case 'removeProxyBinding': {
+                await this.modelProxyBridge.removeBinding(msg.bindingId);
+                await this.sendModelProxyData();
+                break;
+            }
+
+            case 'copyProxyBindingKey': {
+                await this.modelProxyBridge.copyBindingKey(msg.bindingId);
                 break;
             }
 
@@ -796,6 +813,12 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 break;
             case 'regenerateKey':
                 await vscode.commands.executeCommand('ampify.modelProxy.regenerateKey');
+                break;
+            case 'addBinding':
+                await vscode.commands.executeCommand('ampify.modelProxy.addBinding');
+                break;
+            case 'removeBinding':
+                await vscode.commands.executeCommand('ampify.modelProxy.removeBinding');
                 break;
             case 'openLogs':
                 await vscode.commands.executeCommand('ampify.modelProxy.viewLogs');

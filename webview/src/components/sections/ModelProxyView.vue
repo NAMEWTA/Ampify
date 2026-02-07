@@ -40,23 +40,46 @@
               </button>
             </el-tooltip>
           </div>
-          <div class="conn-row">
-            <span class="conn-label">{{ L.apiKey }}</span>
-            <code class="conn-value">{{ store.dashboard.maskedApiKey }}</code>
-            <el-tooltip :content="L.copy" placement="top">
-              <button class="icon-btn" @click="store.proxyAction('copyKey')">
-                <CodiconIcon name="copy" />
+        </div>
+
+        <!-- API Key Bindings -->
+        <div class="bindings-section" v-if="store.dashboard.running">
+          <div class="section-header">
+            <h3 class="section-title" style="margin-bottom: 0">API KEY BINDINGS ({{ store.dashboard.bindings.length }})</h3>
+            <div class="section-header-actions">
+              <button class="text-btn" @click="store.addBinding()">
+                <CodiconIcon name="add" /> {{ L.addBinding }}
               </button>
-            </el-tooltip>
-            <el-tooltip :content="L.regenerate" placement="top">
-              <button class="icon-btn" @click="store.proxyAction('regenerateKey')">
-                <CodiconIcon name="refresh" />
-              </button>
-            </el-tooltip>
+            </div>
+          </div>
+          <div v-if="store.dashboard.bindings.length === 0" class="empty-hint">
+            <CodiconIcon name="info" /> {{ L.noBindings }}
+          </div>
+          <div v-else class="binding-list">
+            <div
+              v-for="binding in store.dashboard.bindings"
+              :key="binding.id"
+              class="binding-row"
+            >
+              <CodiconIcon name="key" />
+              <span class="binding-label">{{ binding.label || binding.id }}</span>
+              <el-tag size="small" type="info">{{ binding.modelName || binding.modelId }}</el-tag>
+              <code class="conn-value binding-key">{{ binding.maskedKey }}</code>
+              <el-tooltip :content="L.copy" placement="top">
+                <button class="icon-btn" @click="store.copyBindingKey(binding.id)">
+                  <CodiconIcon name="copy" />
+                </button>
+              </el-tooltip>
+              <el-tooltip :content="L.removeBinding" placement="top">
+                <button class="icon-btn icon-btn-danger" @click="store.removeBinding(binding.id)">
+                  <CodiconIcon name="trash" />
+                </button>
+              </el-tooltip>
+            </div>
           </div>
         </div>
 
-        <!-- Available Models -->
+        <!-- Available Models (read-only, collapsible) -->
         <div class="models-section">
           <div class="section-header" @click="modelsExpanded = !modelsExpanded">
             <i :class="['codicon', modelsExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right']"></i>
@@ -68,13 +91,8 @@
               v-for="model in store.dashboard.models"
               :key="model.id"
               class="model-row"
-              :class="{ selected: model.id === store.dashboard.defaultModelId }"
-              @click="store.selectModel(model.id)"
             >
-              <CodiconIcon
-                :name="model.id === store.dashboard.defaultModelId ? 'check' : 'circle-outline'"
-                :color="model.id === store.dashboard.defaultModelId ? '#d97757' : undefined"
-              />
+              <CodiconIcon name="symbol-misc" />
               <span class="model-name">{{ model.name }}</span>
               <el-tag size="small" type="info">{{ model.vendor }}</el-tag>
               <el-tag size="small">{{ model.family }}</el-tag>
@@ -254,6 +272,31 @@ function formatTime(ts: string): string {
   opacity: 0.7;
 }
 .icon-btn:hover { opacity: 1; background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31)); }
+.icon-btn-danger:hover { color: #f48771; }
+
+.bindings-section { margin-bottom: 16px; }
+
+.binding-list { margin-top: 4px; }
+
+.binding-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+.binding-row:hover { background: var(--vscode-list-hoverBackground, #2a2d2e); }
+
+.binding-label {
+  font-weight: 500;
+  min-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.binding-key { flex: 1; }
 
 .section-header {
   display: flex;
@@ -291,12 +334,10 @@ function formatTime(ts: string): string {
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  cursor: pointer;
   border-radius: 3px;
   font-size: 12px;
 }
 .model-row:hover { background: var(--vscode-list-hoverBackground, #2a2d2e); }
-.model-row.selected { background: var(--vscode-list-activeSelectionBackground, #094771); }
 
 .model-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .model-tokens { font-size: 11px; color: var(--vscode-descriptionForeground, #717171); }

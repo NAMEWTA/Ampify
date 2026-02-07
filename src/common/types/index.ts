@@ -169,17 +169,41 @@ export interface LoadedCommand {
 // ==================== Model Proxy Types ====================
 
 /**
+ * API Key 绑定记录：一个 Key 对应一个模型
+ */
+export interface ApiKeyBinding {
+    /** 绑定记录 ID（8 位 hex） */
+    id: string;
+    /** API Key（amp-前缀 + 64 hex） */
+    apiKey: string;
+    /** 绑定的模型 ID */
+    modelId: string;
+    /** 用户定义的绑定别名 */
+    label: string;
+    /** 创建时间戳（ms） */
+    createdAt: number;
+}
+
+/**
+ * 认证结果
+ */
+export interface AuthResult {
+    /** 是否验证通过 */
+    valid: boolean;
+    /** 匹配到的绑定记录 */
+    binding?: ApiKeyBinding;
+}
+
+/**
  * Model Proxy 配置
  */
 export interface ProxyConfig {
     /** HTTP 服务端口 */
     port: number;
-    /** API Key（自动生成） */
-    apiKey: string;
+    /** API Key 绑定列表（每个 Key 对应一个模型） */
+    apiKeyBindings: ApiKeyBinding[];
     /** 是否启用代理 */
     enabled: boolean;
-    /** 默认模型 ID */
-    defaultModelId: string;
     /** 是否启用日志 */
     logEnabled: boolean;
     /** 绑定地址 */
@@ -230,6 +254,10 @@ export interface ProxyLogEntry {
     outputContent?: string;
     /** 实例标识（Launcher key） */
     instanceKey?: string;
+    /** 绑定记录 ID */
+    bindingId?: string;
+    /** 绑定别名 */
+    bindingLabel?: string;
 }
 
 /**

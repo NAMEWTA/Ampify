@@ -38,6 +38,18 @@ export const useModelProxyStore = defineStore('modelProxy', () => {
     rpcClient.send({ type: 'selectProxyModel', modelId })
   }
 
+  function addBinding() {
+    rpcClient.send({ type: 'addProxyBinding' })
+  }
+
+  function removeBinding(bindingId: string) {
+    rpcClient.send({ type: 'removeProxyBinding', bindingId })
+  }
+
+  function copyBindingKey(bindingId: string) {
+    rpcClient.send({ type: 'copyProxyBindingKey', bindingId })
+  }
+
   function proxyAction(actionId: string) {
     rpcClient.send({ type: 'proxyAction', actionId })
   }
@@ -78,6 +90,9 @@ export const useModelProxyStore = defineStore('modelProxy', () => {
     setLogFiles,
     setLogQuery,
     selectModel,
+    addBinding,
+    removeBinding,
+    copyBindingKey,
     proxyAction,
     requestLogFiles,
     queryLogs,

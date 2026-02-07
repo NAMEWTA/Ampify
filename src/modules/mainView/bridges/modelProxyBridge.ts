@@ -3,7 +3,7 @@
  * 将 Model Proxy 模块数据适配为 ModelProxyDashboardData 和 TreeNode[]
  */
 import * as vscode from 'vscode';
-import { TreeNode, ToolbarAction, ModelProxyDashboardData, ModelProxyModelInfo, ModelProxyLogInfo, ModelProxyLabels, LogFileInfo, LogQueryResult } from '../protocol';
+import { TreeNode, ToolbarAction, ModelProxyDashboardData, ModelProxyModelInfo, ModelProxyLogInfo, ModelProxyLabels, ModelProxyBindingInfo, LogFileInfo, LogQueryResult } from '../protocol';
 import { ProxyConfigManager } from '../../modelProxy/core/proxyConfigManager';
 import { LogManager } from '../../modelProxy/core/logManager';
 import { I18n } from '../../../common/i18n';
@@ -24,7 +24,6 @@ export class ModelProxyBridge {
         const config = this.configManager.getConfig();
         const port = this.configManager.getPort();
         const bindAddress = this.configManager.getBindAddress();
-        const defaultModelId = this.configManager.getDefaultModelId();
 
         // 获取运行状态
         let running = false;
@@ -35,12 +34,6 @@ export class ModelProxyBridge {
         } catch {
             running = false;
         }
-
-        // API Key
-        const key = config.apiKey || '';
-        const maskedKey = key.length > 12
-            ? `${key.slice(0, 8)}...${key.slice(-4)}`
-            : key;
 
         // 模型列表
         let models: ModelProxyModelInfo[] = [];
@@ -57,6 +50,25 @@ export class ModelProxyBridge {
                 }));
             }
         } catch { /* ignore */ }
+
+        // 构建绑定信息列表
+        const bindings: ModelProxyBindingInfo[] = config.apiKeyBindings.map(b => {
+            const key = b.apiKey || '';
+            const maskedKey = key.length > 12
+                ? `${key.slice(0, 8)}...${key.slice(-4)}`
+                : key;
+            // 查找模型名称
+            const modelInfo = models.find(m => m.id === b.modelId || m.family === b.modelId);
+            return {
+                id: b.id,
+                maskedKey,
+                fullKey: key,
+                modelId: b.modelId,
+                modelName: modelInfo?.name || b.modelId,
+                label: b.label,
+                createdAt: b.createdAt
+            };
+        });
 
         // 今日统计
         const stats = this.logManager.getTodayStats();
@@ -81,9 +93,7 @@ export class ModelProxyBridge {
             port,
             bindAddress,
             baseUrl: `http://${bindAddress}:${port}`,
-            maskedApiKey: maskedKey,
-            fullApiKey: key,
-            defaultModelId,
+            bindings,
             todayRequests: stats.requests,
             todayTokens: stats.tokens,
             todayErrors: stats.errors,
@@ -109,8 +119,10 @@ export class ModelProxyBridge {
             copy: I18n.get('modelProxy.copy'),
             regenerate: I18n.get('modelProxy.regenerate'),
             availableModels: I18n.get('modelProxy.availableModels'),
-            selectModelHint: I18n.get('modelProxy.selectModelHint'),
             noModels: I18n.get('modelProxy.noModels'),
+            addBinding: I18n.get('modelProxy.addBinding'),
+            removeBinding: I18n.get('modelProxy.removeBinding'),
+            noBindings: I18n.get('modelProxy.noBindings'),
             recentLogs: I18n.get('modelProxy.recentLogs'),
             tokensMax: I18n.get('modelProxy.tokensMax'),
             openLogsFolder: I18n.get('modelProxy.openLogsFolder'),
@@ -192,8 +204,11 @@ export class ModelProxyBridge {
             case 'regenerateKey':
                 await vscode.commands.executeCommand('ampify.modelProxy.regenerateKey');
                 break;
-            case 'selectModel':
-                await vscode.commands.executeCommand('ampify.modelProxy.selectModel');
+            case 'addBinding':
+                await vscode.commands.executeCommand('ampify.modelProxy.addBinding');
+                break;
+            case 'removeBinding':
+                await vscode.commands.executeCommand('ampify.modelProxy.removeBinding');
                 break;
             case 'openLogs':
                 await vscode.commands.executeCommand('ampify.modelProxy.viewLogs');
@@ -202,17 +217,32 @@ export class ModelProxyBridge {
     }
 
     /**
-     * 设置默认模型 ID（同时保存到 config.json 和 VS Code Settings）
+     * 复制指定绑定的 API Key
      */
-    async setDefaultModel(modelId: string): Promise<void> {
-        // 保存到 config.json
-        const config = this.configManager.getConfig();
-        config.defaultModelId = modelId;
-        this.configManager.saveConfig(config);
+    async copyBindingKey(bindingId: string): Promise<void> {
+        const binding = this.configManager.getBindingById(bindingId);
+        if (binding) {
+            await vscode.env.clipboard.writeText(binding.apiKey);
+            vscode.window.showInformationMessage(I18n.get('modelProxy.keyCopied'));
+        }
+    }
 
-        // 同步保存到 VS Code Settings
-        const vsConfig = vscode.workspace.getConfiguration('ampify');
-        await vsConfig.update('modelProxy.defaultModel', modelId, vscode.ConfigurationTarget.Global);
+    /**
+     * 删除指定绑定
+     */
+    async removeBinding(bindingId: string): Promise<void> {
+        const binding = this.configManager.getBindingById(bindingId);
+        if (!binding) { return; }
+
+        const answer = await vscode.window.showWarningMessage(
+            I18n.get('modelProxy.confirmRemoveBinding', binding.label),
+            { modal: true },
+            I18n.get('skills.yes')
+        );
+        if (answer === I18n.get('skills.yes')) {
+            this.configManager.removeBinding(bindingId);
+            vscode.window.showInformationMessage(I18n.get('modelProxy.bindingRemoved', binding.label));
+        }
     }
 
     /**

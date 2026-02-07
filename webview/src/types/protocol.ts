@@ -140,14 +140,22 @@ export interface SettingsData {
 
 // ==================== Model Proxy ====================
 
+export interface ModelProxyBindingInfo {
+  id: string
+  maskedKey: string
+  fullKey: string
+  modelId: string
+  modelName: string
+  label: string
+  createdAt: number
+}
+
 export interface ModelProxyDashboardData {
   running: boolean
   port: number
   bindAddress: string
   baseUrl: string
-  maskedApiKey: string
-  fullApiKey: string
-  defaultModelId: string
+  bindings: ModelProxyBindingInfo[]
   todayRequests: number
   todayTokens: number
   todayErrors: number
@@ -171,8 +179,10 @@ export interface ModelProxyLabels {
   copy: string
   regenerate: string
   availableModels: string
-  selectModelHint: string
   noModels: string
+  addBinding: string
+  removeBinding: string
+  noBindings: string
   recentLogs: string
   tokensMax: string
   openLogsFolder: string
@@ -286,6 +296,9 @@ export type WebviewMessage =
   | { type: 'toggleTag'; section: SectionId; tag: string }
   | { type: 'selectProxyModel'; modelId: string }
   | { type: 'proxyAction'; actionId: string }
+  | { type: 'addProxyBinding' }
+  | { type: 'removeProxyBinding'; bindingId: string }
+  | { type: 'copyProxyBindingKey'; bindingId: string }
   | { type: 'requestLogFiles' }
   | { type: 'queryLogs'; date: string; page: number; pageSize: number; statusFilter: 'all' | 'success' | 'error'; keyword?: string }
 

@@ -1,6 +1,7 @@
 /**
  * HTTP 代理服务器
  * 使用 Node.js 内置 http 模块，路由请求到 OpenAI / Anthropic 处理器
+ * 每个 API Key 绑定到特定模型，请求时根据 Key 确定使用的模型
  */
 import * as http from 'http';
 import { URL } from 'url';
@@ -107,31 +108,37 @@ export class ProxyServer {
 
         // 健康检查（无需认证）
         if (pathname === '/health' && req.method === 'GET') {
+            const config = this.configManager.getConfig();
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
                 status: 'ok',
-                models: this.modelBridge.getAvailableModels().length
+                models: this.modelBridge.getAvailableModels().length,
+                bindings: config.apiKeyBindings.length
             }));
             return;
         }
 
-        // API Key 验证
+        // API Key 验证 — 返回匹配的绑定
         const config = this.configManager.getConfig();
-        if (!AuthManager.validateRequest(req, config.apiKey)) {
+        const authResult = AuthManager.validateRequest(req, config.apiKeyBindings);
+        if (!authResult.valid || !authResult.binding) {
             this.sendError(res, 401, 'Unauthorized', 'Invalid or missing API key');
             return;
         }
 
+        const binding = authResult.binding;
+
         try {
             // 路由
             if (pathname === '/v1/models' && req.method === 'GET') {
-                this.openaiHandler.handleModels(res);
+                // 仅返回该 Key 绑定的模型
+                this.openaiHandler.handleModels(res, binding);
             } else if (pathname === '/v1/chat/completions' && req.method === 'POST') {
                 const body = await this.readBody(req);
-                await this.openaiHandler.handleChatCompletions(body, res);
+                await this.openaiHandler.handleChatCompletions(body, res, binding);
             } else if (pathname === '/v1/messages' && req.method === 'POST') {
                 const body = await this.readBody(req);
-                await this.anthropicHandler.handleMessages(body, res);
+                await this.anthropicHandler.handleMessages(body, res, binding);
             } else {
                 this.sendError(res, 404, 'Not Found', `Unknown endpoint: ${req.method} ${pathname}`);
             }
