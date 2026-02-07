@@ -46,7 +46,16 @@ jobs:
 
       - name: Install extension prod deps (npm)
         working-directory: packages/extension
-        run: npm install --omit=dev --no-package-lock
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            for (const [k, v] of Object.entries(pkg.devDependencies || {})) {
+              if (String(v).startsWith('workspace:')) delete pkg.devDependencies[k];
+            }
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+          npm install --omit=dev --no-package-lock
 
       - name: Package VSIX
         working-directory: packages/extension
