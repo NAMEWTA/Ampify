@@ -313,30 +313,44 @@ export function getJs(): string {
                     <span class="proxy-conn-value">\${escapeHtml(data.baseUrl)}</span>
                     <button class="proxy-conn-btn" data-proxy-action="copyUrl" title="\${escapeHtml(L.copy || 'Copy')}"><i class="codicon codicon-copy"></i></button>
                 </div>
-                <div class="proxy-conn-row">
-                    <span class="proxy-conn-label"><i class="codicon codicon-key"></i> \${escapeHtml(L.apiKey || 'API Key')}</span>
-                    <span class="proxy-conn-value">\${escapeHtml(data.maskedApiKey)}</span>
-                    <button class="proxy-conn-btn" data-proxy-action="copyKey" title="\${escapeHtml(L.copy || 'Copy')}"><i class="codicon codicon-copy"></i></button>
-                    <button class="proxy-conn-btn" data-proxy-action="regenerateKey" title="\${escapeHtml(L.regenerate || 'Regenerate')}"><i class="codicon codicon-refresh"></i></button>
-                </div>
             \`;
             html += '</div>';
         }
 
-        // ── Available Models (collapsible compact list) ──
+        // ── API Key Bindings ──
+        html += '<div class="proxy-section-title">' + escapeHtml(L.bindings || 'API KEY BINDINGS');
+        html += ' <button class="proxy-conn-btn" data-proxy-action="addBinding" title="' + escapeHtml(L.addBinding || 'Add Binding') + '"><i class="codicon codicon-add"></i></button>';
+        html += '</div>';
+        if (data.bindings && data.bindings.length > 0) {
+            html += '<div class="proxy-bindings-list">';
+            for (const binding of data.bindings) {
+                html += \`
+                    <div class="proxy-conn-row proxy-binding-row" data-binding-id="\${escapeHtml(binding.id)}">
+                        <span class="proxy-conn-label"><i class="codicon codicon-key"></i> \${escapeHtml(binding.label || binding.id)}</span>
+                        <span class="proxy-model-tag">\${escapeHtml(binding.modelName || binding.modelId)}</span>
+                        <span class="proxy-conn-value">\${escapeHtml(binding.maskedKey)}</span>
+                        <button class="proxy-conn-btn proxy-binding-copy" title="\${escapeHtml(L.copy || 'Copy')}"><i class="codicon codicon-copy"></i></button>
+                        <button class="proxy-conn-btn proxy-binding-remove" title="\${escapeHtml(L.removeBinding || 'Remove')}"><i class="codicon codicon-trash"></i></button>
+                    </div>
+                \`;
+            }
+            html += '</div>';
+        } else {
+            html += '<div class="proxy-empty-models"><i class="codicon codicon-info"></i> ' + escapeHtml(L.noBindings || 'No bindings yet. Add one to get started.') + '</div>';
+        }
+
+        // ── Available Models (collapsible compact list, read-only) ──
         const modelsTitle = escapeHtml(L.availableModels || 'Available Models');
-        const modelsHint = escapeHtml(L.selectModelHint || 'Click to select default');
         html += '<div class="proxy-section-title proxy-models-toggle" data-toggle="proxy-models-list">';
-        html += modelsTitle + ' <span class="proxy-section-hint">' + modelsHint + '</span>';
+        html += modelsTitle;
         html += ' <i class="codicon codicon-chevron-right proxy-models-chevron"></i>';
         html += '</div>';
         html += '<div class="proxy-models-list collapsed" id="proxy-models-list">';
         if (data.models && data.models.length > 0) {
             for (const model of data.models) {
-                const isSelected = model.id === data.defaultModelId;
                 html += \`
-                    <div class="proxy-model-row\${isSelected ? ' selected' : ''}" data-model-id="\${escapeHtml(model.id)}">
-                        <i class="codicon codicon-\${isSelected ? 'check' : 'circle-outline'} proxy-model-radio" style="color:\${isSelected ? '#d97757' : 'inherit'}"></i>
+                    <div class="proxy-model-row" data-model-id="\${escapeHtml(model.id)}">
+                        <i class="codicon codicon-symbol-misc proxy-model-radio"></i>
                         <span class="proxy-model-name">\${escapeHtml(model.name || model.id)}</span>
                         <span class="proxy-model-tag">\${escapeHtml(model.vendor)}</span>
                         <span class="proxy-model-tag">\${escapeHtml(model.family)}</span>
@@ -388,16 +402,26 @@ export function getJs(): string {
         window.__proxyLabels = L;
 
         // ── Bind events ──
-        // Model row click → select + collapse
-        body.querySelectorAll('.proxy-model-row').forEach(row => {
-            row.addEventListener('click', () => {
-                const modelId = row.dataset.modelId;
-                if (modelId) {
-                    vscode.postMessage({ type: 'selectProxyModel', modelId });
-                    const list = document.getElementById('proxy-models-list');
-                    const chevron = body.querySelector('.proxy-models-chevron');
-                    if (list) list.classList.add('collapsed');
-                    if (chevron) { chevron.classList.remove('rotated'); }
+        // Binding copy button click
+        body.querySelectorAll('.proxy-binding-copy').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const row = btn.closest('.proxy-binding-row');
+                const bindingId = row && row.dataset.bindingId;
+                if (bindingId) {
+                    vscode.postMessage({ type: 'copyProxyBindingKey', bindingId });
+                }
+            });
+        });
+
+        // Binding remove button click
+        body.querySelectorAll('.proxy-binding-remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const row = btn.closest('.proxy-binding-row');
+                const bindingId = row && row.dataset.bindingId;
+                if (bindingId) {
+                    vscode.postMessage({ type: 'removeProxyBinding', bindingId });
                 }
             });
         });
