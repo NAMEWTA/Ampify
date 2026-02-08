@@ -100,12 +100,19 @@ export class SkillImporter {
 
         for (const uri of uris) {
             const sourcePath = uri.fsPath;
-            
-            // 检查是否是目录
+
+            // Check existence
+            if (!fs.existsSync(sourcePath)) {
+                result.failed++;
+                result.errors.push(`${path.basename(sourcePath)}: File not found`);
+                continue;
+            }
+
+            // Check if it's a directory
             const stat = fs.statSync(sourcePath);
             if (!stat.isDirectory()) {
                 result.failed++;
-                result.errors.push(`${path.basename(sourcePath)}: Not a directory`);
+                result.errors.push(`${path.basename(sourcePath)}: Skills must be imported as folders containing SKILL.md`);
                 continue;
             }
 
@@ -117,6 +124,23 @@ export class SkillImporter {
                 if (importResult.error) {
                     result.errors.push(`${path.basename(sourcePath)}: ${importResult.error}`);
                 }
+            }
+        }
+
+        // Show summary for multi-drop
+        if (uris.length > 0) {
+            if (result.success > 0 && result.failed === 0) {
+                vscode.window.showInformationMessage(
+                    `Successfully imported ${result.success} skill${result.success > 1 ? 's' : ''}.`
+                );
+            } else if (result.failed > 0 && result.success === 0) {
+                vscode.window.showErrorMessage(
+                    `Import failed: ${result.errors.join('; ')}`
+                );
+            } else if (result.success > 0 && result.failed > 0) {
+                vscode.window.showWarningMessage(
+                    `Imported ${result.success}, failed ${result.failed}: ${result.errors.join('; ')}`
+                );
             }
         }
 

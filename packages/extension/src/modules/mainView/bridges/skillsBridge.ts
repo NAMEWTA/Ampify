@@ -5,7 +5,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import type { TreeNode, ToolbarAction } from '@ampify/shared';
+import type { TreeNode, ToolbarAction, CardItem, CardFileNode } from '@ampify/shared';
 import { SkillConfigManager } from '../../skills/core/skillConfigManager';
 import { LoadedSkill, FilterState } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
@@ -58,6 +58,15 @@ export class SkillsBridge {
         }
 
         return nodes;
+    }
+
+    getCardData(): CardItem[] {
+        let skills = this.configManager.loadAllSkills();
+        if (this.hasActiveFilter()) {
+            skills = this.filterSkills(skills);
+        }
+
+        return skills.map(skill => this.createCardItem(skill));
     }
 
     getToolbar(): ToolbarAction[] {
@@ -132,17 +141,7 @@ export class SkillsBridge {
     private createSkillNode(skill: LoadedSkill): TreeNode {
         const children: TreeNode[] = [];
 
-        // 标签
-        if (skill.meta.tags && skill.meta.tags.length > 0) {
-            children.push({
-                id: `skill-${skill.meta.name}-tags`,
-                label: `${I18n.get('skills.tags')}: ${skill.meta.tags.join(', ')}`,
-                iconId: 'symbol-keyword',
-                nodeType: 'detail'
-            });
-        }
-
-        // 前置依赖
+        // 前置依赖 (keep as child detail)
         if (skill.meta.prerequisites && skill.meta.prerequisites.length > 0) {
             children.push({
                 id: `skill-${skill.meta.name}-prereqs`,
@@ -178,14 +177,13 @@ export class SkillsBridge {
             });
         }
 
-        const desc = skill.meta.description.length > 50
-            ? skill.meta.description.substring(0, 50) + '...'
-            : skill.meta.description;
-
         return {
             id: `skill-${skill.meta.name}`,
             label: skill.meta.name,
-            description: desc,
+            subtitle: skill.meta.description,
+            badges: skill.meta.tags || [],
+            layout: 'twoLine',
+            pinnedActionId: 'apply',
             iconId: 'extensions',
             collapsible: children.length > 0,
             children,
@@ -202,6 +200,51 @@ export class SkillsBridge {
                 { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
             ]
         };
+    }
+
+    private createCardItem(skill: LoadedSkill): CardItem {
+        const skillMdPath = path.join(skill.path, 'SKILL.md');
+        return {
+            id: `skill-${skill.meta.name}`,
+            name: skill.meta.name,
+            description: skill.meta.description,
+            badges: skill.meta.tags || [],
+            iconId: 'extensions',
+            primaryFilePath: fs.existsSync(skillMdPath) ? skillMdPath : undefined,
+            fileTree: this.buildFileTree(skill.path),
+            actions: [
+                { id: 'apply', label: 'Apply to Project', iconId: 'play' },
+                { id: 'preview', label: 'Preview', iconId: 'open-preview' },
+                { id: 'openFolder', label: 'Open Folder', iconId: 'folder-opened' },
+                { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
+            ]
+        };
+    }
+
+    private buildFileTree(dir: string): CardFileNode[] {
+        if (!fs.existsSync(dir)) { return []; }
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        const result: CardFileNode[] = [];
+        // Directories first, then files
+        const dirs = entries.filter(e => e.isDirectory());
+        const files = entries.filter(e => e.isFile());
+        for (const d of dirs) {
+            const fullPath = path.join(dir, d.name);
+            result.push({
+                id: fullPath,
+                name: d.name,
+                isDirectory: true,
+                children: this.buildFileTree(fullPath)
+            });
+        }
+        for (const f of files) {
+            result.push({
+                id: path.join(dir, f.name),
+                name: f.name,
+                isDirectory: false
+            });
+        }
+        return result;
     }
 
     private listAllFiles(dir: string): string[] {

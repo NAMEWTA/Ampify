@@ -18,35 +18,41 @@ export let instanceKey: string = '';
 
 /**
  * 检测当前 VS Code 实例的 Launcher key。
- * 从 process.argv 中获取 --user-data-dir，读取其中的 .ampify-instance-key 文件。
+ * 通过 context.globalStorageUri 提取 user-data-dir，
+ * 再从 config.json 中反查匹配的实例名称。
  */
-function detectInstanceKey(): void {
+function detectInstanceKey(context: vscode.ExtensionContext): void {
     try {
-        const args = process.argv;
-        let userDataDir: string | undefined;
+        const globalStoragePath = context.globalStorageUri.fsPath;
 
-        for (const arg of args) {
-            if (arg.startsWith('--user-data-dir=')) {
-                userDataDir = arg.slice('--user-data-dir='.length);
-                break;
-            }
-        }
+        // globalStoragePath 形如：
+        // <rootDir>/vscodemultilauncher/userdata/<dirName>/User/globalStorage/<publisher.ext>
+        // 非 Launcher 实例则不含 vscodemultilauncher/userdata
+        const launcherMarker = path.join('vscodemultilauncher', 'userdata');
+        const markerIdx = globalStoragePath.indexOf(launcherMarker);
+        if (markerIdx < 0) return; // 非 Launcher 启动的实例
 
-        if (!userDataDir) {
-            const idx = args.indexOf('--user-data-dir');
-            if (idx >= 0 && idx + 1 < args.length) {
-                userDataDir = args[idx + 1];
-            }
-        }
+        // 提取 dirName（userdata 之后的第一级目录名）
+        const afterMarker = globalStoragePath.substring(
+            markerIdx + launcherMarker.length + 1 // +1 跳过路径分隔符
+        );
+        const dirName = afterMarker.split(/[\\/]/)[0];
+        if (!dirName) return;
 
-        if (userDataDir) {
-            userDataDir = userDataDir.replace(/^"|"$/g, '');
-            const keyFile = path.join(userDataDir, '.ampify-instance-key');
-            if (fs.existsSync(keyFile)) {
-                const key = fs.readFileSync(keyFile, 'utf8').trim();
-                if (key) {
-                    instanceKey = key;
-                }
+        // 读取 config.json
+        const rootDir = globalStoragePath.substring(0, markerIdx);
+        const configPath = path.join(rootDir, 'vscodemultilauncher', 'config.json');
+        if (!fs.existsSync(configPath)) return;
+
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8')) as {
+            instances: Record<string, { dirName: string }>;
+        };
+
+        // 反查 dirName 对应的实例 key
+        for (const [key, inst] of Object.entries(config.instances)) {
+            if (inst.dirName === dirName) {
+                instanceKey = key;
+                return;
             }
         }
     } catch {
@@ -57,9 +63,9 @@ function detectInstanceKey(): void {
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Activating Ampify Extension...');
 
-    // 检测实例身份
-    detectInstanceKey();
-    console.log(`Ampify instance key: ${instanceKey}`);
+    // 检测实例身份（从 config.json 反查）
+    detectInstanceKey(context);
+    console.log(`Ampify instance key: ${instanceKey || '(main instance)'}`);
     
     // Register Main View (unified webview, must be first)
     registerMainView(context);

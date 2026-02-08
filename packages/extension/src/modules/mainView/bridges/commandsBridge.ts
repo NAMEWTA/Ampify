@@ -3,7 +3,7 @@
  * 将 Commands 模块数据适配为 TreeNode[]
  */
 import * as vscode from 'vscode';
-import type { TreeNode, ToolbarAction } from '@ampify/shared';
+import type { TreeNode, ToolbarAction, CardItem } from '@ampify/shared';
 import { CommandConfigManager } from '../../commands/core/commandConfigManager';
 import { LoadedCommand, FilterState } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
@@ -54,6 +54,15 @@ export class CommandsBridge {
         }
 
         return nodes;
+    }
+
+    getCardData(): CardItem[] {
+        let commands = this.configManager.loadAllCommands();
+        if (this.hasActiveFilter()) {
+            commands = this.applyFilter(commands);
+        }
+
+        return commands.map(cmd => this.createCardItem(cmd));
     }
 
     getToolbar(): ToolbarAction[] {
@@ -137,34 +146,32 @@ export class CommandsBridge {
         await importer.importFromUris(vscodeUris);
     }
 
+    private createCardItem(cmd: LoadedCommand): CardItem {
+        return {
+            id: `cmd-${cmd.meta.command}`,
+            name: cmd.meta.command,
+            description: cmd.meta.description,
+            badges: cmd.meta.tags || [],
+            iconId: 'terminal',
+            primaryFilePath: cmd.path,
+            actions: [
+                { id: 'apply', label: 'Apply to Project', iconId: 'play' },
+                { id: 'preview', label: 'Preview', iconId: 'open-preview' },
+                { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
+            ]
+        };
+    }
+
     private createCommandNode(cmd: LoadedCommand): TreeNode {
-        const children: TreeNode[] = [];
-
-        // 描述
-        children.push({
-            id: `cmd-${cmd.meta.command}-desc`,
-            label: cmd.meta.description,
-            iconId: 'info',
-            nodeType: 'detail'
-        });
-
-        // 标签
-        if (cmd.meta.tags && cmd.meta.tags.length > 0) {
-            children.push({
-                id: `cmd-${cmd.meta.command}-tags`,
-                label: `${I18n.get('commands.tags')}: ${cmd.meta.tags.join(', ')}`,
-                iconId: 'symbol-keyword',
-                nodeType: 'detail'
-            });
-        }
-
         return {
             id: `cmd-${cmd.meta.command}`,
             label: cmd.meta.command,
-            description: cmd.meta.tags?.join(', ') || '',
+            subtitle: cmd.meta.description,
+            badges: cmd.meta.tags || [],
+            layout: 'twoLine',
+            pinnedActionId: 'apply',
             iconId: 'terminal',
-            collapsible: true,
-            children,
+            collapsible: false,
             nodeType: 'commandItem',
             command: 'ampify.commands.open',
             commandArgs: JSON.stringify({ command: cmd.meta.command }),

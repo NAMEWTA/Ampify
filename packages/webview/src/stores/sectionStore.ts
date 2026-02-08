@@ -4,11 +4,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { rpcClient } from '@/utils/rpcClient'
-import type { TreeNode, ToolbarAction, SectionId } from '@ampify/shared'
+import type { TreeNode, ToolbarAction, SectionId, CardItem } from '@ampify/shared'
 
 function createSectionStore(storeId: string, sectionId: SectionId) {
   return defineStore(storeId, () => {
     const tree = ref<TreeNode[]>([])
+    const cards = ref<CardItem[]>([])
     const toolbar = ref<ToolbarAction[]>([])
     const tags = ref<string[]>([])
     const activeTags = ref<string[]>([])
@@ -16,11 +17,18 @@ function createSectionStore(storeId: string, sectionId: SectionId) {
     const loading = ref(false)
     const expandedNodes = ref<Set<string>>(new Set())
 
-    function setData(newTree: TreeNode[], newToolbar: ToolbarAction[], newTags?: string[], newActiveTags?: string[]) {
+    function setData(
+      newTree: TreeNode[],
+      newToolbar: ToolbarAction[],
+      newTags?: string[],
+      newActiveTags?: string[],
+      newCards?: CardItem[]
+    ) {
       tree.value = newTree
       toolbar.value = newToolbar
       if (newTags !== undefined) tags.value = newTags
       if (newActiveTags !== undefined) activeTags.value = newActiveTags
+      if (newCards !== undefined) cards.value = newCards
       loading.value = false
     }
 
@@ -75,6 +83,7 @@ function createSectionStore(storeId: string, sectionId: SectionId) {
 
     return {
       tree,
+      cards,
       toolbar,
       tags,
       activeTags,

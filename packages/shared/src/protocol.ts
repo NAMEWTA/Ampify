@@ -12,6 +12,14 @@ export interface TreeNode {
     id: string;
     label: string;
     description?: string;
+    /** Second line text (used in twoLine layout) */
+    subtitle?: string;
+    /** Badge labels shown as small pills */
+    badges?: string[];
+    /** Layout mode: 'default' = single-line, 'twoLine' = name + subtitle */
+    layout?: 'default' | 'twoLine';
+    /** Mark an inline action as always visible (by action id) */
+    pinnedActionId?: string;
     iconId?: string;
     iconColor?: string;
     collapsible?: boolean;
@@ -37,6 +45,11 @@ export interface TreeAction {
 export interface DashboardData {
     stats: DashboardStat[];
     quickActions: QuickAction[];
+    moduleHealth: ModuleHealthItem[];
+    gitInfo: DashboardGitInfo;
+    proxyInfo: DashboardProxyInfo;
+    workspaceInfo: DashboardWorkspaceInfo;
+    labels: DashboardLabels;
 }
 
 export interface DashboardStat {
@@ -44,6 +57,8 @@ export interface DashboardStat {
     value: number | string;
     iconId: string;
     color?: string;
+    /** Click navigates to this section */
+    targetSection?: SectionId;
 }
 
 export interface QuickAction {
@@ -55,6 +70,57 @@ export interface QuickAction {
     action?: 'command' | 'toolbar';
     section?: SectionId;
     actionId?: string;
+}
+
+export type ModuleHealthStatus = 'active' | 'inactive' | 'warning' | 'error';
+
+export interface ModuleHealthItem {
+    moduleId: SectionId;
+    label: string;
+    status: ModuleHealthStatus;
+    detail: string;
+    iconId: string;
+    color: string;
+}
+
+export interface DashboardGitInfo {
+    initialized: boolean;
+    branch: string;
+    remoteUrl: string;
+    hasRemote: boolean;
+    unpushedCount: number;
+    hasChanges: boolean;
+    changedFileCount: number;
+}
+
+export interface DashboardProxyInfo {
+    running: boolean;
+    port: number;
+    baseUrl: string;
+    todayRequests: number;
+    todayTokens: number;
+    todayErrors: number;
+    avgLatencyMs: number;
+    bindingCount: number;
+}
+
+export interface DashboardWorkspaceInfo {
+    workspaceName: string;
+    injectedSkills: number;
+    injectedCommands: number;
+}
+
+export interface DashboardLabels {
+    moduleHealth: string;
+    gitInfo: string;
+    proxyPanel: string;
+    proxyRunning: string;
+    quickActions: string;
+    viewDetail: string;
+    copyBaseUrl: string;
+    gitSync: string;
+    gitPull: string;
+    gitPush: string;
 }
 
 // ==================== Toolbar ====================
@@ -249,6 +315,45 @@ export interface LogQueryResult {
     totalPages: number;
 }
 
+// ==================== Card Item (Skills / Commands grid view) ====================
+
+export interface CardFileNode {
+    /** Unique id (absolute path for files) */
+    id: string;
+    /** Display name */
+    name: string;
+    /** Is this a directory? */
+    isDirectory: boolean;
+    /** Children (for directories) */
+    children?: CardFileNode[];
+}
+
+export interface CardAction {
+    id: string;
+    label: string;
+    iconId?: string;
+    danger?: boolean;
+}
+
+export interface CardItem {
+    /** Unique id, e.g. "skill-my-skill" or "cmd-build-project" */
+    id: string;
+    /** Display name */
+    name: string;
+    /** Description text */
+    description: string;
+    /** Tag badges */
+    badges?: string[];
+    /** Icon codicon id */
+    iconId?: string;
+    /** Primary file to open on click (e.g. SKILL.md path) */
+    primaryFilePath?: string;
+    /** File tree for dialog (Skills only, Commands are single files) */
+    fileTree?: CardFileNode[];
+    /** Action buttons */
+    actions?: CardAction[];
+}
+
 // ==================== RPC Protocol ====================
 
 export interface RpcRequest {
@@ -299,14 +404,17 @@ export type WebviewMessage =
     | { type: 'removeProxyBinding'; bindingId: string }
     | { type: 'copyProxyBindingKey'; bindingId: string }
     | { type: 'requestLogFiles' }
-    | { type: 'queryLogs'; date: string; page: number; pageSize: number; statusFilter: 'all' | 'success' | 'error'; keyword?: string };
+    | { type: 'queryLogs'; date: string; page: number; pageSize: number; statusFilter: 'all' | 'success' | 'error'; keyword?: string }
+    | { type: 'cardClick'; section: SectionId; cardId: string }
+    | { type: 'cardAction'; section: SectionId; cardId: string; actionId: string }
+    | { type: 'cardFileClick'; section: SectionId; cardId: string; filePath: string };
 
 // ==================== Extension → Webview Messages ====================
 
 export type ExtensionMessage =
     | RpcResponse
     | RpcEvent
-    | { type: 'updateSection'; section: SectionId; tree: TreeNode[]; toolbar: ToolbarAction[]; tags?: string[]; activeTags?: string[] }
+    | { type: 'updateSection'; section: SectionId; tree: TreeNode[]; toolbar: ToolbarAction[]; tags?: string[]; activeTags?: string[]; cards?: CardItem[] }
     | { type: 'updateDashboard'; data: DashboardData }
     | { type: 'setActiveSection'; section: SectionId }
     | { type: 'showNotification'; message: string; level: 'info' | 'warn' | 'error' }

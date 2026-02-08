@@ -138,15 +138,71 @@ export class CommandImporter {
 
     /**
      * 从 URI 列表导入（用于拖拽）
+     * Supports both .md files and folders (scans folders for .md files)
      */
     public async importFromUris(uris: vscode.Uri[]): Promise<boolean> {
         let success = false;
+        const errors: string[] = [];
+        let successCount = 0;
+
         for (const uri of uris) {
-            if (uri.fsPath.endsWith('.md')) {
-                const result = await this.importFromFile(uri.fsPath);
-                success = success || result;
+            const fsPath = uri.fsPath;
+
+            if (!fs.existsSync(fsPath)) {
+                errors.push(`${path.basename(fsPath)}: File not found`);
+                continue;
+            }
+
+            const stat = fs.statSync(fsPath);
+
+            if (stat.isDirectory()) {
+                // Scan directory for .md files
+                const mdFiles = this.scanDirectoryForMd(fsPath);
+                if (mdFiles.length === 0) {
+                    errors.push(`${path.basename(fsPath)}: No .md command files found in folder`);
+                    continue;
+                }
+                for (const mdFile of mdFiles) {
+                    const result = await this.importFromFile(mdFile);
+                    if (result) {
+                        successCount++;
+                        success = true;
+                    }
+                }
+            } else if (fsPath.endsWith('.md')) {
+                const result = await this.importFromFile(fsPath);
+                if (result) {
+                    successCount++;
+                    success = true;
+                }
+            } else {
+                errors.push(`${path.basename(fsPath)}: Commands must be .md files`);
             }
         }
+
+        // Show summary if dropped multiple items
+        if (errors.length > 0 && successCount === 0) {
+            vscode.window.showErrorMessage(`Import failed: ${errors.join('; ')}`);
+        } else if (errors.length > 0 && successCount > 0) {
+            vscode.window.showWarningMessage(
+                `Imported ${successCount} command${successCount > 1 ? 's' : ''}, some failed: ${errors.join('; ')}`
+            );
+        }
+
         return success;
+    }
+
+    /**
+     * Scan a directory (non-recursive) for .md files
+     */
+    private scanDirectoryForMd(dirPath: string): string[] {
+        try {
+            const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+            return entries
+                .filter(e => e.isFile() && e.name.endsWith('.md'))
+                .map(e => path.join(dirPath, e.name));
+        } catch {
+            return [];
+        }
     }
 }

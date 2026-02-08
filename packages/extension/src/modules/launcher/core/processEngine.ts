@@ -70,14 +70,6 @@ export class ProcessEngine {
         const userDataDir = this.configManager.ensureInstanceDir(instance.dirName);
         const extensionsDir = this.configManager.getSharedExtensionsDir();
 
-        // 写入实例身份文件，供被启动的 Ampify 扩展读取
-        try {
-            const keyFile = path.join(userDataDir, '.ampify-instance-key');
-            fs.writeFileSync(keyFile, key, 'utf8');
-        } catch (err) {
-            console.error('Failed to write instance key file:', err);
-        }
-        
         const args = [
             '--user-data-dir',
             userDataDir,

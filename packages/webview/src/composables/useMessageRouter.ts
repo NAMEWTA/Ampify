@@ -39,7 +39,7 @@ export function useMessageRouter() {
         } else {
           const store = getSectionStore(message.section)
           if (store) {
-            store.setData(message.tree, message.toolbar, message.tags, message.activeTags)
+            store.setData(message.tree, message.toolbar, message.tags, message.activeTags, message.cards)
           }
         }
         break

@@ -17,10 +17,12 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
   function fetchData() {
     loading.value = true
-    // Legacy: extension pushes dashboard data via 'updateDashboard' message on 'ready' or 'switchSection'
-    // The data will arrive via the message handler and be set with setData()
     rpcClient.send({ type: 'ready' })
   }
 
-  return { data, loading, setData, fetchData }
+  function navigateToSection(section: string) {
+    rpcClient.send({ type: 'switchSection', section } as any)
+  }
+
+  return { data, loading, setData, fetchData, navigateToSection }
 })

@@ -11,7 +11,7 @@
       @action="(nodeId, actionId) => emit('action', nodeId, actionId)"
     />
   </div>
-  <EmptyState v-else :icon="emptyIcon ?? 'info'" :message="emptyMessage ?? 'No items'" />
+  <EmptyState v-else :icon="emptyIcon ?? 'info'" :message="emptyMessage ?? 'No items'" :hint="emptyHint" />
 </template>
 
 <script setup lang="ts">
@@ -24,6 +24,7 @@ defineProps<{
   expandedNodes: Set<string>
   emptyIcon?: string
   emptyMessage?: string
+  emptyHint?: string
 }>()
 
 const emit = defineEmits<{

@@ -277,6 +277,49 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 });
                 break;
             }
+
+            // --- Card interactions ---
+            case 'cardClick': {
+                // Open primary file in editor
+                const cards = msg.section === 'skills'
+                    ? this.skillsBridge.getCardData()
+                    : msg.section === 'commands'
+                        ? this.commandsBridge.getCardData()
+                        : [];
+                const card = cards.find(c => c.id === msg.cardId);
+                if (card?.primaryFilePath) {
+                    try {
+                        const uri = vscode.Uri.file(card.primaryFilePath);
+                        await vscode.window.showTextDocument(uri, { preview: true });
+                    } catch (error) {
+                        console.error('Failed to open file:', error);
+                    }
+                }
+                break;
+            }
+
+            case 'cardAction': {
+                if (msg.section === 'skills') {
+                    await this.skillsBridge.executeAction(msg.actionId, msg.cardId);
+                    await this.sendSectionData('skills');
+                } else if (msg.section === 'commands') {
+                    await this.commandsBridge.executeAction(msg.actionId, msg.cardId);
+                    await this.sendSectionData('commands');
+                }
+                break;
+            }
+
+            case 'cardFileClick': {
+                if (msg.filePath) {
+                    try {
+                        const uri = vscode.Uri.file(msg.filePath);
+                        await vscode.window.showTextDocument(uri, { preview: true });
+                    } catch (error) {
+                        console.error('Failed to open file:', error);
+                    }
+                }
+                break;
+            }
         }
     }
 
@@ -299,17 +342,19 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             case 'skills': {
                 tree = this.skillsBridge.getTreeData();
                 toolbar = this.skillsBridge.getToolbar();
+                const skillCards = this.skillsBridge.getCardData();
                 const skillTags = this.skillsBridge.getAllTags();
                 const skillActiveTags = this.skillsBridge.getActiveTags();
-                this.postMessage({ type: 'updateSection', section, tree, toolbar, tags: skillTags, activeTags: skillActiveTags });
+                this.postMessage({ type: 'updateSection', section, tree, toolbar, tags: skillTags, activeTags: skillActiveTags, cards: skillCards });
                 return;
             }
             case 'commands': {
                 tree = this.commandsBridge.getTreeData();
                 toolbar = this.commandsBridge.getToolbar();
+                const cmdCards = this.commandsBridge.getCardData();
                 const cmdTags = this.commandsBridge.getAllTags();
                 const cmdActiveTags = this.commandsBridge.getActiveTags();
-                this.postMessage({ type: 'updateSection', section, tree, toolbar, tags: cmdTags, activeTags: cmdActiveTags });
+                this.postMessage({ type: 'updateSection', section, tree, toolbar, tags: cmdTags, activeTags: cmdActiveTags, cards: cmdCards });
                 return;
             }
             case 'gitshare':
@@ -461,6 +506,12 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
      * Toolbar action handler — routes overlay triggers
      */
     private async handleToolbarAction(section: SectionId, actionId: string): Promise<void> {
+        // Generic refresh — applies to all sections
+        if (actionId === 'refresh') {
+            await this.sendSectionData(section);
+            return;
+        }
+
         switch (section) {
             case 'skills':
                 await this.handleSkillsToolbarAction(actionId);
@@ -517,11 +568,38 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async handleDrop(section: SectionId, uris: string[]): Promise<void> {
-        if (section === 'skills') {
-            const vscodeUris = uris.map(u => vscode.Uri.parse(u));
-            await vscode.commands.executeCommand('ampify.skills.importFromUris', vscodeUris);
-        } else if (section === 'commands') {
-            await this.commandsBridge.handleDrop(uris);
+        if (!uris || uris.length === 0) {
+            return;
+        }
+
+        // Filter to valid file:// URIs and deduplicate
+        const validUris: vscode.Uri[] = [];
+        for (const u of uris) {
+            try {
+                const parsed = vscode.Uri.parse(u);
+                // Accept file:// scheme or bare paths
+                if (parsed.scheme === 'file' || parsed.scheme === '' || parsed.scheme === 'untitled') {
+                    validUris.push(parsed);
+                }
+            } catch {
+                // Skip unparseable URIs
+            }
+        }
+
+        if (validUris.length === 0) {
+            vscode.window.showWarningMessage('No valid file paths found in the dropped items.');
+            return;
+        }
+
+        try {
+            if (section === 'skills') {
+                await vscode.commands.executeCommand('ampify.skills.importFromUris', validUris);
+            } else if (section === 'commands') {
+                await this.commandsBridge.handleDrop(validUris.map(u => u.toString()));
+            }
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            vscode.window.showErrorMessage(`Import failed: ${msg}`);
         }
         await this.refresh();
     }
@@ -600,6 +678,15 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             }
             case 'create':
                 await this.showSkillCreateOverlay();
+                break;
+            case 'import':
+                await vscode.commands.executeCommand('ampify.skills.import');
+                break;
+            case 'openFolder':
+                await vscode.commands.executeCommand('ampify.skills.openFolder');
+                break;
+            case 'syncAgentMd':
+                await vscode.commands.executeCommand('ampify.skills.syncToAgentMd');
                 break;
         }
     }
@@ -693,6 +780,12 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             }
             case 'create':
                 await this.showCommandCreateOverlay();
+                break;
+            case 'import':
+                await vscode.commands.executeCommand('ampify.commands.import');
+                break;
+            case 'openFolder':
+                await vscode.commands.executeCommand('ampify.commands.openFolder');
                 break;
         }
     }
