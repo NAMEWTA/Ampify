@@ -42,13 +42,13 @@ tags:
   - 涉及文件：`packages/extension/eslint.config.js`、`packages/extension/.vscodeignore`
 
 - **新增技能指南**：添加 command-creator（命令创建指南）、pnpm-guide（pnpm Monorepo 操作指南）、skill-creator（技能创建指南）三个新技能。
-  - 涉及文件：`.claude/skills/command-creator/`、`.claude/skills/pnpm-guide/`、`.claude/skills/skill-creator/`
+  - 涉及文件：`.agents/skills/command-creator/`、`.agents/skills/pnpm-guide/`、`.agents/skills/skill-creator/`
 
 - **开发规范文档同步更新**：更新 AGENTS.md、ampify-dev-guide SKILL.md 及其 references 文件中的路径引用和目录树，全部对齐至 `packages/` monorepo 结构。
-  - 涉及文件：`AGENTS.md`、`.claude/skills/ampify-dev-guide/SKILL.md`、`.claude/skills/ampify-dev-guide/references/coding-conventions.md`、`.claude/skills/ampify-dev-guide/references/module-mainview.md`
+  - 涉及文件：`AGENTS.md`、`.agents/skills/ampify-dev-guide/SKILL.md`、`.agents/skills/ampify-dev-guide/references/coding-conventions.md`、`.agents/skills/ampify-dev-guide/references/module-mainview.md`
 
 - **发布命令增强**：npm-git-commit-push 命令新增 `notes/` 知识库记录生成功能，更新 `package.json` 路径为 `packages/extension/package.json`，将 npm 标签改为 pnpm。
-  - 涉及文件：`.claude/commands/npm-git-commit-push.md`
+  - 涉及文件：`.agents/commands/npm-git-commit-push.md`
 
 - **Gitignore 完善**：新增 `.turbo/`、`*.tsbuildinfo`、`__pycache__` 忽略规则。
   - 涉及文件：`.gitignore`

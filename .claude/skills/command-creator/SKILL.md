@@ -15,7 +15,7 @@ tags:
 |------|----------|--------|
 | **定位** | 特定任务的执行指令 | 领域知识与能力扩展 |
 | **触发方式** | 用户显式调用（`/command-name`） | 语义自动匹配 |
-| **文件位置** | `.claude/commands/*.md` | `.claude/skills/<name>/SKILL.md` |
+| **文件位置** | `.agents/commands/*.md` | `.agents/skills/<name>/SKILL.md` |
 | **结构** | 单文件、线性步骤 | 可多层嵌套（含子资源） |
 
 ## Command 结构规范
@@ -50,14 +50,14 @@ tags:                          # 可选，分类标签
 ### 方式一：使用初始化脚本
 
 ```bash
-python3 .claude/skills/command-creator/scripts/init_command.py <command-name>
+python3 .agents/skills/command-creator/scripts/init_command.py <command-name>
 ```
 
-生成 `.claude/commands/<command-name>.md` 模板文件。
+生成 `.agents/commands/<command-name>.md` 模板文件。
 
 ### 方式二：手动创建
 
-直接在 `.claude/commands/` 下创建 `.md` 文件，参照 [command-template.md](references/command-template.md) 填充内容。
+直接在 `.agents/commands/` 下创建 `.md` 文件，参照 [command-template.md](references/command-template.md) 填充内容。
 
 ## 设计指南
 

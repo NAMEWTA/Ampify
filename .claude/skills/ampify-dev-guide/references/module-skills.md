@@ -21,7 +21,7 @@ Skills Manager 管理全局 Skills 库，解析 `SKILL.md` frontmatter，并支�
 - `SkillConfigManager`：单例，读取/保存配置，递归扫描 Skills 目录，解析 frontmatter
 - `SkillCreator`：交互式创建 Skill 目录与 SKILL.md
 - `SkillImporter`：导入已有 Skill 目录，验证名称与 frontmatter
-- `SkillApplier`：注入 Skill 到项目 `.claude/skills/`
+- `SkillApplier`：注入 Skill 到项目 `.agents/skills/`
 - `AgentMdManager`：扫描注入目录，生成 `.claude/SKILLS.md`，更新 `AGENTS.md`
 
 ## 解析与扫描逻辑

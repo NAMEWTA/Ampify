@@ -63,19 +63,19 @@ export class SettingsBridge {
                         key: 'skills.injectTarget',
                         label: I18n.get('settings.skillsInject.label'),
                         description: I18n.get('settings.skillsInject.desc'),
-                        value: config.get<string>('skills.injectTarget') || '.claude/skills/',
+                        value: config.get<string>('skills.injectTarget') || '.agents/skills/',
                         kind: 'text',
                         scope: 'vscode',
-                        placeholder: '.claude/skills/'
+                        placeholder: '.agents/skills/'
                     },
                     {
                         key: 'commands.injectTarget',
                         label: I18n.get('settings.commandsInject.label'),
                         description: I18n.get('settings.commandsInject.desc'),
-                        value: config.get<string>('commands.injectTarget') || '.claude/commands/',
+                        value: config.get<string>('commands.injectTarget') || '.agents/commands/',
                         kind: 'text',
                         scope: 'vscode',
-                        placeholder: '.claude/commands/'
+                        placeholder: '.agents/commands/'
                     }
                 ]
             },

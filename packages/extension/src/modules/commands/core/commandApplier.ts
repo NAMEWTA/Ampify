@@ -26,7 +26,7 @@ export class CommandApplier {
      */
     public getInjectTarget(workspaceRoot: string): string {
         const config = vscode.workspace.getConfiguration('ampify');
-        const target = config.get<string>('commands.injectTarget') || '.claude/commands/';
+        const target = config.get<string>('commands.injectTarget') || '.agents/commands/';
         return path.join(workspaceRoot, target);
     }
 

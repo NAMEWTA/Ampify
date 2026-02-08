@@ -151,10 +151,15 @@ export class SkillImporter {
      * 让用户选择目录导入
      */
     public async importFromDialog(): Promise<{ success: boolean; skillName?: string; error?: string }> {
+        const folders = vscode.workspace.workspaceFolders;
+        const activeDoc = vscode.window.activeTextEditor?.document.uri;
+        const activeFolder = activeDoc ? vscode.workspace.getWorkspaceFolder(activeDoc) : undefined;
+        const defaultUri = activeFolder?.uri || (folders && folders.length > 0 ? folders[0].uri : undefined);
         const uris = await vscode.window.showOpenDialog({
             canSelectFiles: false,
             canSelectFolders: true,
             canSelectMany: false,
+            defaultUri,
             openLabel: 'Import Skill',
             title: 'Select Skill Directory to Import'
         });

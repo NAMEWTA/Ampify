@@ -81,6 +81,10 @@ function createSectionStore(storeId: string, sectionId: SectionId) {
       rpcClient.send({ type: 'dropFiles', section: sectionId, uris })
     }
 
+    function handleDropEmpty() {
+      rpcClient.send({ type: 'dropEmpty', section: sectionId })
+    }
+
     return {
       tree,
       cards,
@@ -100,6 +104,7 @@ function createSectionStore(storeId: string, sectionId: SectionId) {
       toggleTag,
       clearFilter,
       handleDrop,
+      handleDropEmpty,
     }
   })
 }

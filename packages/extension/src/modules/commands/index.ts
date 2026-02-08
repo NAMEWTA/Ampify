@@ -78,6 +78,23 @@ export async function registerCommandManager(context: vscode.ExtensionContext): 
         })
     );
 
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ampify.commands.importFromUris', async (uris: vscode.Uri[]) => {
+            const success = await importer.importFromUris(uris);
+            if (success) {
+                vscode.commands.executeCommand('ampify.mainView.refresh');
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ampify.commands.importFromExplorer', async (uri: vscode.Uri, uris?: vscode.Uri[]) => {
+            const targets = uris && uris.length > 0 ? uris : (uri ? [uri] : []);
+            if (targets.length === 0) return;
+            await vscode.commands.executeCommand('ampify.commands.importFromUris', targets);
+        })
+    );
+
     // 应用到项目
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.commands.apply', async (item: CommandItemLike) => {

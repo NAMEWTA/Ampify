@@ -305,6 +305,16 @@
         "command": "ampify.modelProxy.refresh",
         "title": "Refresh Model Proxy",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "ampify.skills.importFromExplorer",
+        "title": "Import as Ampify Skill",
+        "icon": "$(folder-library)"
+      },
+      {
+        "command": "ampify.commands.importFromExplorer",
+        "title": "Import as Ampify Command",
+        "icon": "$(file-code)"
       }
     ],
     "keybindings": [
@@ -321,6 +331,12 @@
         "when": "editorTextFocus"
       }
     ],
+    "submenus": [
+      {
+        "id": "ampify.import",
+        "label": "Ampify"
+      }
+    ],
     "menus": {
       "editor/context": [
         {
@@ -328,6 +344,23 @@
         },
         {
           "command": "ampify.copy-absolute-path-line"
+        }
+      ],
+      "explorer/context": [
+        {
+          "submenu": "ampify.import",
+          "group": "2_workspace"
+        }
+      ],
+      "ampify.import": [
+        {
+          "command": "ampify.skills.importFromExplorer",
+          "when": "explorerResourceIsFolder",
+          "group": "1_skills"
+        },
+        {
+          "command": "ampify.commands.importFromExplorer",
+          "group": "2_commands"
         }
       ],
       "view/title": [],
@@ -352,12 +385,12 @@
         },
         "ampify.skills.injectTarget": {
           "type": "string",
-          "default": ".claude/skills/",
+          "default": ".agents/skills/",
           "description": "Default target directory to inject skills into projects (默认 Skill 注入目标目录)"
         },
         "ampify.commands.injectTarget": {
           "type": "string",
-          "default": ".claude/commands/",
+          "default": ".agents/commands/",
           "description": "Default target directory to inject commands into projects (默认 Command 注入目标目录)"
         },
         "ampify.modelProxy.port": {

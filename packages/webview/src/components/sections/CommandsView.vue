@@ -93,7 +93,13 @@ function onDrop(e: DragEvent) {
   dragDepth.value = 0
   isDragOver.value = false
   const uris = extractDropUris(e)
-  if (uris.length) store.handleDrop(uris)
+  if (uris.length) {
+    store.handleDrop(uris)
+  } else {
+    // Webview iframe sandbox blocks DataTransfer from Explorer;
+    // fall back to opening the import dialog on the extension side.
+    store.handleDropEmpty()
+  }
 }
 
 onMounted(() => {

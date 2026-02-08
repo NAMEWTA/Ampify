@@ -133,7 +133,7 @@ export class AgentMdManager {
      */
     private generateSkillsMd(workspaceRoot: string, injectTarget: string, skills: SkillMeta[]): string {
         // SKILLS.md 放在 injectTarget 的父目录
-        // 例如 injectTarget = '.claude/skills/' => SKILLS.md 在 '.claude/SKILLS.md'
+        // 例如 injectTarget = '.agents/skills/' => SKILLS.md 在 '.claude/SKILLS.md'
         const normalizedTarget = injectTarget.replace(/\/$/, '').replace(/\\$/, '');
         const targetParent = path.dirname(normalizedTarget);
         const skillsMdRelativePath = targetParent === '.'

@@ -133,13 +133,51 @@
         </div>
       </div>
 
+      <!-- Recent Logs -->
+      <div class="section-block">
+        <h3 class="section-title">{{ dashboardStore.data.labels.recentLogs }}</h3>
+        <div class="recent-logs-table" v-if="dashboardStore.data.recentLogs && dashboardStore.data.recentLogs.length > 0">
+          <div class="log-row log-header">
+            <span class="log-col log-col-time">{{ dashboardStore.data.labels.logTime }}</span>
+            <span class="log-col log-col-model">Model</span>
+            <span class="log-col log-col-status">Status</span>
+            <span class="log-col log-col-duration">ms</span>
+            <span class="log-col log-col-tokens">Tokens</span>
+          </div>
+          <div
+            v-for="(log, idx) in dashboardStore.data.recentLogs"
+            :key="idx"
+            class="log-row"
+          >
+            <span class="log-col log-col-time">{{ formatLogTime(log.timestamp) }}</span>
+            <span class="log-col log-col-model" :title="log.model">{{ truncateModel(log.model) }}</span>
+            <span class="log-col log-col-status">
+              <span class="log-status-dot" :class="isSuccessStatus(log.status) ? 'log-status-ok' : 'log-status-err'" />
+            </span>
+            <span class="log-col log-col-duration">{{ log.durationMs }}</span>
+            <span class="log-col log-col-tokens">{{ log.inputTokens + log.outputTokens }}</span>
+          </div>
+          <button class="text-link log-view-all" @click="goToModelProxyLogs">
+            {{ dashboardStore.data.labels.viewAllLogs }} →
+          </button>
+        </div>
+        <div v-else class="recent-logs-empty">
+          <EmptyState icon="output" :message="dashboardStore.data.labels.noLogs" />
+          <button class="text-link log-view-all" @click="goToModelProxyLogs">
+            {{ dashboardStore.data.labels.viewAllLogs }} →
+          </button>
+        </div>
+      </div>
+
     </div>
 
     <EmptyState v-else icon="dashboard" message="Loading..." />
+
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import SectionToolbar from '@/components/common/SectionToolbar.vue'
 import CodiconIcon from '@/components/common/CodiconIcon.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -148,6 +186,8 @@ import { rpcClient } from '@/utils/rpcClient'
 import type { QuickAction } from '@ampify/shared'
 
 const dashboardStore = useDashboardStore()
+
+
 
 function handleQuickAction(action: QuickAction) {
   if (action.action === 'command' && action.command) {
@@ -165,11 +205,34 @@ function goToModelProxy() {
   dashboardStore.navigateToSection('modelProxy')
 }
 
+function goToModelProxyLogs() {
+  dashboardStore.navigateToSection('modelProxy')
+}
+
 function truncateUrl(url: string): string {
   if (url.length <= 35) return url
   const parts = url.split('/')
   const repo = parts.slice(-2).join('/')
   return `.../${repo}`
+}
+
+function formatLogTime(timestamp: string): string {
+  try {
+    const d = new Date(timestamp)
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  } catch {
+    return timestamp
+  }
+}
+
+function truncateModel(model: string): string {
+  if (model.length <= 20) return model
+  return model.slice(0, 18) + '…'
+}
+
+function isSuccessStatus(status: string): boolean {
+  const normalized = status.toLowerCase()
+  return normalized === 'ok' || normalized === 'success' || normalized === '200'
 }
 </script>
 
@@ -472,6 +535,79 @@ function truncateUrl(url: string): string {
 .quick-action-btn .codicon {
   color: #d97757;
   font-size: 14px;
+}
+
+/* ===== Recent Logs ===== */
+.recent-logs-table {
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #2b2b2b);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.log-row {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 11px;
+  border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+}
+
+.log-row:last-of-type {
+  border-bottom: none;
+}
+
+.log-row.log-header {
+  font-weight: 600;
+  color: var(--vscode-descriptionForeground, #717171);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.3px;
+}
+
+.log-col {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.log-col-time { width: 70px; flex-shrink: 0; }
+.log-col-model { flex: 1; min-width: 0; }
+.log-col-status { width: 36px; flex-shrink: 0; text-align: center; }
+.log-col-duration { width: 48px; flex-shrink: 0; text-align: right; }
+.log-col-tokens { width: 56px; flex-shrink: 0; text-align: right; }
+
+.log-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.log-status-ok { background: #89d185; }
+.log-status-err { background: #f48771; }
+
+.log-view-all {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  text-align: center;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--vscode-panel-border, #2b2b2b);
+  color: var(--vscode-textLink-foreground, #3794ff);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.log-view-all:hover {
+  text-decoration: underline;
+}
+
+.recent-logs-empty {
+  border: 1px solid var(--vscode-panel-border, #2b2b2b);
+  border-radius: 6px;
+  background: var(--vscode-editor-background, #1e1e1e);
 }
 
 </style>

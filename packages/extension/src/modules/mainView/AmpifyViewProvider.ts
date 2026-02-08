@@ -154,6 +154,10 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             case 'dropFiles':
                 await this.handleDrop(msg.section, msg.uris);
                 break;
+
+            case 'dropEmpty':
+                await this.handleDropEmpty(msg.section);
+                break;
             case 'changeSetting':
                 await this.settingsBridge.updateSetting(msg.scope, msg.key, msg.value);
                 break;
@@ -320,6 +324,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 }
                 break;
             }
+
         }
     }
 
@@ -558,6 +563,12 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async handleQuickAction(actionId: string, section: SectionId): Promise<void> {
+        // For dashboard-scoped actions, handle inline without switching section
+        if (section === 'dashboard') {
+            await this.handleDashboardToolbarAction(actionId);
+            return;
+        }
+
         this._activeSection = section;
         this.postMessage({ type: 'setActiveSection', section });
         await this.sendSectionData(section);
@@ -595,13 +606,23 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             if (section === 'skills') {
                 await vscode.commands.executeCommand('ampify.skills.importFromUris', validUris);
             } else if (section === 'commands') {
-                await this.commandsBridge.handleDrop(validUris.map(u => u.toString()));
+                await vscode.commands.executeCommand('ampify.commands.importFromUris', validUris);
             }
         } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
             vscode.window.showErrorMessage(`Import failed: ${msg}`);
         }
         await this.refresh();
+    }
+
+    private async handleDropEmpty(section: SectionId): Promise<void> {
+        // When a drop event fires but no URIs could be extracted (iframe sandbox limitation),
+        // fall back to opening the import dialog so the user's intent isn't lost.
+        if (section === 'skills') {
+            await vscode.commands.executeCommand('ampify.skills.import');
+        } else if (section === 'commands') {
+            await vscode.commands.executeCommand('ampify.commands.import');
+        }
     }
 
     // ==================== Overlay / Confirm 管理 ====================

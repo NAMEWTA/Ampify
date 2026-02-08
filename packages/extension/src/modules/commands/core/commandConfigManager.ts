@@ -38,7 +38,7 @@ export class CommandConfigManager {
 
     protected getDefaultConfig(): CommandsManagerConfig {
         return {
-            injectTarget: '.claude/commands/'
+            injectTarget: '.agents/commands/'
         };
     }
 

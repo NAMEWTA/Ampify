@@ -3,29 +3,28 @@
  * 从各模块收集统计信息并组装仪表盘数据
  */
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
 import type {
     DashboardData, DashboardStat, QuickAction,
     ModuleHealthItem, DashboardGitInfo, DashboardProxyInfo,
     DashboardWorkspaceInfo, DashboardLabels,
-    ModuleHealthStatus
+    ModuleHealthStatus, ModelProxyLogInfo
 } from '@ampify/shared';
 import { I18n } from '../../../common/i18n';
 
 export class DashboardBridge {
     async getData(): Promise<DashboardData> {
-        const [stats, moduleHealth, gitInfo, proxyInfo, workspaceInfo] =
+        const [stats, moduleHealth, gitInfo, proxyInfo, workspaceInfo, recentLogs] =
             await Promise.all([
                 this.collectStats(),
                 this.collectModuleHealth(),
                 this.collectGitInfo(),
                 this.collectProxyInfo(),
-                this.collectWorkspaceInfo()
+                this.collectWorkspaceInfo(),
+                this.collectRecentLogs()
             ]);
         const quickActions = this.getQuickActions();
         const labels = this.getLabels();
-        return { stats, quickActions, moduleHealth, gitInfo, proxyInfo, workspaceInfo, labels };
+        return { stats, quickActions, moduleHealth, gitInfo, proxyInfo, workspaceInfo, recentLogs, labels };
     }
 
     private async collectStats(): Promise<DashboardStat[]> {
@@ -108,15 +107,6 @@ export class DashboardBridge {
             stats.push({ label: I18n.get('dashboard.proxyRequests'), value: 0, iconId: 'pulse', color: '#4fc1ff', targetSection: 'modelProxy' });
             stats.push({ label: I18n.get('dashboard.proxyTokens'), value: 0, iconId: 'symbol-key', color: '#dcdcaa', targetSection: 'modelProxy' });
         }
-
-        // 工作区已注入数量
-        try {
-            const wsInfo = await this.collectWorkspaceInfo();
-            if (wsInfo.injectedSkills > 0 || wsInfo.injectedCommands > 0) {
-                stats.push({ label: I18n.get('dashboard.injectedSkills'), value: wsInfo.injectedSkills, iconId: 'file-symlink-directory', color: '#788c5d', targetSection: 'skills' });
-                stats.push({ label: I18n.get('dashboard.injectedCommands'), value: wsInfo.injectedCommands, iconId: 'file-symlink-file', color: '#d97757', targetSection: 'commands' });
-            }
-        } catch { /* ignore */ }
 
         return stats;
     }
@@ -242,33 +232,33 @@ export class DashboardBridge {
     }
 
     private async collectWorkspaceInfo(): Promise<DashboardWorkspaceInfo> {
-        const defaultInfo: DashboardWorkspaceInfo = { workspaceName: I18n.get('dashboard.noWorkspace'), injectedSkills: 0, injectedCommands: 0 };
+        const defaultInfo: DashboardWorkspaceInfo = { workspaceName: I18n.get('dashboard.noWorkspace') };
         try {
             const folders = vscode.workspace.workspaceFolders;
             if (!folders || folders.length === 0) { return defaultInfo; }
-
-            const wsFolder = folders[0].uri.fsPath;
-            const wsName = folders[0].name;
-
-            const skillsTarget = vscode.workspace.getConfiguration('ampify').get<string>('skills.injectTarget') || '.claude/skills';
-            const commandsTarget = vscode.workspace.getConfiguration('ampify').get<string>('commands.injectTarget') || '.claude/commands';
-
-            let injectedSkills = 0;
-            let injectedCommands = 0;
-
-            const skillsDir = path.join(wsFolder, skillsTarget);
-            if (fs.existsSync(skillsDir)) {
-                try { injectedSkills = fs.readdirSync(skillsDir, { withFileTypes: true }).filter(e => e.isDirectory()).length; } catch { /* ignore */ }
-            }
-
-            const commandsDir = path.join(wsFolder, commandsTarget);
-            if (fs.existsSync(commandsDir)) {
-                try { injectedCommands = fs.readdirSync(commandsDir, { withFileTypes: true }).filter(e => e.isFile() && e.name.endsWith('.md')).length; } catch { /* ignore */ }
-            }
-
-            return { workspaceName: wsName, injectedSkills, injectedCommands };
+            return { workspaceName: folders[0].name };
         } catch {
             return defaultInfo;
+        }
+    }
+
+    private async collectRecentLogs(): Promise<ModelProxyLogInfo[]> {
+        try {
+            const { LogManager } = await import('../../modelProxy/core/logManager');
+            const logManager = new LogManager();
+            return logManager.getRecentLogs(10).map(log => ({
+                timestamp: log.timestamp,
+                requestId: log.requestId || '',
+                format: log.format,
+                model: log.model || '?',
+                durationMs: log.durationMs,
+                inputTokens: log.inputTokens,
+                outputTokens: log.outputTokens,
+                status: log.status,
+                error: log.error
+            }));
+        } catch {
+            return [];
         }
     }
 
@@ -284,6 +274,10 @@ export class DashboardBridge {
             gitSync: I18n.get('dashboard.gitSync'),
             gitPull: I18n.get('dashboard.gitPull'),
             gitPush: I18n.get('dashboard.gitPush'),
+            recentLogs: I18n.get('modelProxy.recentLogs'),
+            viewAllLogs: I18n.get('modelProxy.viewAllLogs'),
+            noLogs: I18n.get('modelProxy.noLogs'),
+            logTime: I18n.get('modelProxy.logTime'),
         };
     }
 
@@ -294,9 +288,6 @@ export class DashboardBridge {
             { id: 'createCommand', label: I18n.get('dashboard.quickCreateCommand'), iconId: 'add', action: 'toolbar', section: 'commands', actionId: 'create' },
             { id: 'gitSync', label: I18n.get('dashboard.quickGitSync'), iconId: 'sync', command: 'ampify.gitShare.sync', action: 'command' },
             { id: 'toggleProxy', label: I18n.get('dashboard.quickToggleProxy'), iconId: 'radio-tower', command: 'ampify.modelProxy.toggle', action: 'command' },
-            { id: 'importSkill', label: I18n.get('dashboard.quickImportSkill'), iconId: 'cloud-download', action: 'toolbar', section: 'skills', actionId: 'import' },
-            { id: 'importCommand', label: I18n.get('dashboard.quickImportCommand'), iconId: 'cloud-download', action: 'toolbar', section: 'commands', actionId: 'import' },
-            { id: 'viewLogs', label: I18n.get('dashboard.quickViewLogs'), iconId: 'output', command: 'ampify.modelProxy.viewLogs', action: 'command' },
         ];
     }
 }

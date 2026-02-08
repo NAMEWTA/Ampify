@@ -24,7 +24,7 @@ export class SkillApplier {
      */
     public getInjectTarget(workspaceRoot: string): string {
         const config = vscode.workspace.getConfiguration('ampify');
-        const customTarget = config.get<string>('skills.injectTarget') || '.claude/skills/';
+        const customTarget = config.get<string>('skills.injectTarget') || '.agents/skills/';
         return path.join(workspaceRoot, customTarget);
     }
 

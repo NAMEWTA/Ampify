@@ -20,7 +20,7 @@ Commands Manager 管理全局命令库，每个命令对应一个 `.md` 文件�
 - `CommandConfigManager`：单例，加载命令列表，验证命令名与文件名一致
 - `CommandCreator`：交互式创建 Command
 - `CommandImporter`：导入 `.md` 文件，校验 frontmatter
-- `CommandApplier`：注入到项目 `.claude/commands/`
+- `CommandApplier`：注入到项目 `.agents/commands/`
 
 ## 业务流程
 

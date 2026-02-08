@@ -103,6 +103,14 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         })
     );
 
+    context.subscriptions.push(
+        vscode.commands.registerCommand('ampify.skills.importFromExplorer', async (uri: vscode.Uri, uris?: vscode.Uri[]) => {
+            const targets = uris && uris.length > 0 ? uris : (uri ? [uri] : []);
+            if (targets.length === 0) return;
+            await vscode.commands.executeCommand('ampify.skills.importFromUris', targets);
+        })
+    );
+
     // 应用 Skill 到项�?
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.skills.apply', async (item: SkillItemLike) => {
@@ -142,7 +150,7 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
 
             try {
                 const config = configManager.getConfig();
-                const injectTarget = config.injectTarget || '.claude/skills/';
+                const injectTarget = config.injectTarget || '.agents/skills/';
                 agentMdManager.scanAndSync(workspaceRoot, injectTarget);
                 vscode.window.showInformationMessage(I18n.get('skills.agentMdSynced'));
             } catch (error) {

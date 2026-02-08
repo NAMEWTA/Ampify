@@ -119,10 +119,15 @@ export class CommandImporter {
      * 从对话框导入
      */
     public async importFromDialog(): Promise<boolean> {
+        const folders = vscode.workspace.workspaceFolders;
+        const activeDoc = vscode.window.activeTextEditor?.document.uri;
+        const activeFolder = activeDoc ? vscode.workspace.getWorkspaceFolder(activeDoc) : undefined;
+        const defaultUri = activeFolder?.uri || (folders && folders.length > 0 ? folders[0].uri : undefined);
         const uris = await vscode.window.showOpenDialog({
             canSelectFiles: true,
             canSelectFolders: false,
             canSelectMany: false,
+            defaultUri,
             filters: {
                 'Markdown': ['md']
             },

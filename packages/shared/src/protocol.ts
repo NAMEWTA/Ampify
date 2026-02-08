@@ -49,6 +49,7 @@ export interface DashboardData {
     gitInfo: DashboardGitInfo;
     proxyInfo: DashboardProxyInfo;
     workspaceInfo: DashboardWorkspaceInfo;
+    recentLogs: ModelProxyLogInfo[];
     labels: DashboardLabels;
 }
 
@@ -106,8 +107,6 @@ export interface DashboardProxyInfo {
 
 export interface DashboardWorkspaceInfo {
     workspaceName: string;
-    injectedSkills: number;
-    injectedCommands: number;
 }
 
 export interface DashboardLabels {
@@ -121,6 +120,10 @@ export interface DashboardLabels {
     gitSync: string;
     gitPull: string;
     gitPush: string;
+    recentLogs: string;
+    viewAllLogs: string;
+    noLogs: string;
+    logTime: string;
 }
 
 // ==================== Toolbar ====================
@@ -388,6 +391,7 @@ export type WebviewMessage =
     | { type: 'toggleNav' }
     | { type: 'ready' }
     | { type: 'dropFiles'; uris: string[]; section: SectionId }
+    | { type: 'dropEmpty'; section: SectionId }
     | { type: 'changeSetting'; key: string; value: string; scope: SettingsScope }
     | { type: 'settingsAction'; command: string }
     | { type: 'quickAction'; actionId: string; section: SectionId }
