@@ -563,12 +563,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async handleQuickAction(actionId: string, section: SectionId): Promise<void> {
-        // For dashboard-scoped actions, handle inline without switching section
-        if (section === 'dashboard') {
-            await this.handleDashboardToolbarAction(actionId);
-            return;
-        }
-
         this._activeSection = section;
         this.postMessage({ type: 'setActiveSection', section });
         await this.sendSectionData(section);
