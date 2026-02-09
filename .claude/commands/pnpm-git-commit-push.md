@@ -1,5 +1,5 @@
 ---
-command: npm-git-commit-push
+command: pnpm-git-commit-push
 description: 全自动版本发布：自动确定版本号、提交未提交变更、更新文档、生成 notes 知识库记录、推送并创建标签（零交互）
 tags:
   - frontend
@@ -291,3 +291,33 @@ git push <remote-name> v<新版本号>
 - `notes/` 目录首次使用时自动创建，后续持续追加，形成完整知识库
 - notes 文件命名中同一天有多次发布时，通过功能摘要部分区分（不会覆盖）
 - notes 文件内容应详实完整，适合后续回溯查阅，不得仅复制 commit message
+
+## 本次执行中的问题与注意事项
+
+### 发现的问题 / 错误
+
+1. **PowerShell 无 `head` 命令**
+  - 现象：运行 `git log ... | head -100` 报错 `CommandNotFoundException`。
+  - 原因：Windows PowerShell 默认无 `head`。
+  - 影响：提交日志截断失败，导致日志输出过长。
+  - 解决：改用 `Select-Object -First <N>`（例如 `git log ... | Select-Object -First 100`）。
+
+2. **日志编码显示异常**
+  - 现象：部分历史提交信息出现乱码（如中文字符被错误编码）。
+  - 原因：终端编码或旧提交消息编码不一致。
+  - 影响：日志可读性下降，但不影响发布流程。
+  - 解决：必要时在读取日志前设置编码（如 `chcp 65001`），或用 Git 配置强制 UTF-8。
+
+3. **步骤合规性偏差（需避免）**
+  - 现象：本次发布未更新 README.md、AGENTS.md。
+  - 原因：未判断为“功能性变更/架构变更”。
+  - 风险：若存在功能或架构变化，可能造成文档遗漏。
+  - 解决：如涉及 `feat:` 或架构变更，必须同步更新两份文档。
+
+### 后续注意事项
+
+- **版本号策略**：默认 minor +1；若用户指定（如本次指定 3.0.0），必须以用户指令为准。
+- **提交范围**：所有日志与 diff 必须限定 `HEAD` 可达范围，避免跨分支扫描。
+- **远程名称**：必须通过 `git remote -v` 动态获取，禁止硬编码 `origin`。
+- **发布文档完整性**：若存在 `feat:` 或架构变更，必须更新 README.md 与 AGENTS.md。
+- **PowerShell 兼容性**：在 Windows 上避免 `head`，统一使用 `Select-Object`。
