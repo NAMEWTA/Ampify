@@ -459,6 +459,26 @@ pnpm update "@types/*" -r
 pnpm run package
 ```
 
+### 6.2 本地完整构建 + Lint + 打包（推荐顺序）
+
+```bash
+# 1) 构建全部包（shared -> extension + webview）
+pnpm run build
+
+# 2) 代码检查（会自动依赖上游 build）
+pnpm run lint
+
+# 3) 打包生成 VSIX（含资产复制 + vscode:prepublish 构建）
+pnpm run package
+```
+
+**产物位置：** `packages/extension/ampify-{version}.vsix`
+
+**说明：**
+- `pnpm run package` 会先执行 `prepackage`（复制 README.md、CHANGELOG.md、LICENSE、icon.png），再调用 `vsce package`。
+- `vsce package` 会触发 `vscode:prepublish`，自动执行 `pnpm run build`，因此可重复运行且受 Turbo 缓存加速。
+- Webview 构建可能出现 chunk size 警告（> 500 kB），不影响 VSIX 生成。
+
 该命令等价于依次执行：
 
 ```
