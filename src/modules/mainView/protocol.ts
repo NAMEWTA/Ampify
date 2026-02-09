@@ -56,6 +56,69 @@ export interface TreeAction {
 export interface DashboardData {
     stats: DashboardStat[];
     quickActions: QuickAction[];
+    launcher?: DashboardLauncherInfo;
+    opencode?: DashboardOpenCodeInfo;
+    activity?: DashboardActivityItem[];
+    modelProxy?: DashboardModelProxyInfo;
+    labels?: DashboardLabels;
+}
+
+export interface DashboardLauncherInfo {
+    total: number;
+    lastKey?: string;
+    lastLabel?: string;
+    lastAt?: number;
+    nextKey?: string;
+    nextLabel?: string;
+}
+
+export interface DashboardOpenCodeInfo {
+    total: number;
+    lastId?: string;
+    lastLabel?: string;
+    lastAt?: number;
+    nextId?: string;
+    nextLabel?: string;
+}
+
+export type DashboardActivityType = 'skill' | 'command';
+
+export interface DashboardActivityItem {
+    id: string;
+    type: DashboardActivityType;
+    label: string;
+    description?: string;
+    timestamp: number;
+}
+
+export interface DashboardModelProxyInfo {
+    running: boolean;
+    baseUrl?: string;
+    lastError?: string;
+    lastErrorAt?: number;
+}
+
+export interface DashboardLabels {
+    nextUp: string;
+    launcher: string;
+    opencode: string;
+    switchNow: string;
+    lastSwitched: string;
+    nextAccount: string;
+    activeAccount: string;
+    recentUpdates: string;
+    noRecentUpdates: string;
+    statsTitle: string;
+    quickActionsTitle: string;
+    urlLabel: string;
+    statusOk: string;
+    modelProxy: string;
+    modelProxyRunning: string;
+    modelProxyStopped: string;
+    modelProxyLastError: string;
+    modelProxyHealthy: string;
+    viewLauncher: string;
+    viewOpenCode: string;
 }
 
 export interface DashboardStat {

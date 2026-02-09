@@ -17,6 +17,17 @@ export function registerOpenCodeCopilotAuth(context: vscode.ExtensionContext): v
     const configManager = new OpenCodeCopilotAuthConfigManager();
     const authSwitcher = new AuthSwitcher();
 
+    const getNextCredentialId = (): string | undefined => {
+        const credentials = configManager.getCredentials();
+        if (credentials.length === 0) {
+            return undefined;
+        }
+        const lastId = configManager.getLastSwitchedId() || configManager.getActiveId();
+        const lastIndex = lastId ? credentials.findIndex((cred) => cred.id === lastId) : -1;
+        const nextIndex = (lastIndex + 1) % credentials.length;
+        return credentials[nextIndex]?.id;
+    };
+
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.opencodeAuth.add', async (values?: AddCredentialInput) => {
             const input = values || {};
@@ -43,12 +54,22 @@ export function registerOpenCodeCopilotAuth(context: vscode.ExtensionContext): v
         }),
 
         vscode.commands.registerCommand('ampify.opencodeAuth.import', async () => {
-            const name = await vscode.window.showInputBox({ prompt: I18n.get('opencodeAuth.inputName') });
-            if (!name) {
-                return;
-            }
             try {
                 const entry = authSwitcher.importCurrentCredential();
+                if (!entry) {
+                    vscode.window.showWarningMessage(I18n.get('opencodeAuth.importNotFound'));
+                    return;
+                }
+                const credentials = configManager.getCredentials();
+                const exists = credentials.find((cred) => cred.access === entry.access);
+                if (exists) {
+                    vscode.window.showInformationMessage(I18n.get('opencodeAuth.importExists', exists.name));
+                    return;
+                }
+                const name = await vscode.window.showInputBox({ prompt: I18n.get('opencodeAuth.inputName') });
+                if (!name) {
+                    return;
+                }
                 configManager.addCredential(name, entry.type, entry.access, entry.refresh, entry.expires);
                 vscode.window.showInformationMessage(I18n.get('opencodeAuth.importSuccess', name));
                 await vscode.commands.executeCommand('ampify.mainView.refresh');
@@ -70,11 +91,33 @@ export function registerOpenCodeCopilotAuth(context: vscode.ExtensionContext): v
             try {
                 authSwitcher.switchCredential(credential);
                 configManager.setActiveId(credential.id);
+                configManager.setLastSwitched(credential.id);
                 await launchOpenCodeTerminal();
                 vscode.window.showInformationMessage(I18n.get('opencodeAuth.switchSuccess', credential.name));
             } catch (error) {
                 console.error('Switch opencode auth failed:', error);
                 vscode.window.showErrorMessage(I18n.get('opencodeAuth.switchFailed'));
+            }
+            await vscode.commands.executeCommand('ampify.mainView.refresh');
+        }),
+
+        vscode.commands.registerCommand('ampify.opencodeAuth.switchNext', async () => {
+            const nextId = getNextCredentialId();
+            if (!nextId) {
+                vscode.window.showInformationMessage(I18n.get('opencodeAuth.noCredentials'));
+                return;
+            }
+            await vscode.commands.executeCommand('ampify.opencodeAuth.switch', nextId);
+        }),
+
+        vscode.commands.registerCommand('ampify.opencodeAuth.clear', async () => {
+            try {
+                authSwitcher.clearCredential();
+                await launchOpenCodeTerminal();
+                vscode.window.showInformationMessage(I18n.get('opencodeAuth.cleared'));
+            } catch (error) {
+                console.error('Clear opencode auth failed:', error);
+                vscode.window.showErrorMessage(I18n.get('opencodeAuth.clearFailed'));
             }
             await vscode.commands.executeCommand('ampify.mainView.refresh');
         }),

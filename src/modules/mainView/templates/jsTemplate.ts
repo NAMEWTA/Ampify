@@ -30,14 +30,14 @@ export function getJs(): string {
         setupContextMenuDismiss();
         setupDragDrop();
         setupProxyActions();
-        
+
         // Apply persisted nav state
         const navRail = document.querySelector('.nav-rail');
         if (navExpanded) navRail.classList.add('expanded');
-        
+
         // Highlight current section
         setActiveNavItem(currentSection);
-        
+
         // Notify extension we're ready
         vscode.postMessage({ type: 'ready' });
     }
@@ -137,13 +137,54 @@ export function getJs(): string {
     function renderDashboard(data) {
         const body = document.querySelector('.content-body');
         const toolbar = document.querySelector('.toolbar');
+        const L = data.labels || {};
         
         // Update toolbar
         toolbar.innerHTML = '<span class="toolbar-title">DASHBOARD</span>';
         
         let html = '<div class="dashboard">';
-        
+
+        html += '<div class="dash-grid">';
+
+        // Next Up
+        const launcher = data.launcher || {};
+        const opencode = data.opencode || {};
+        html += '<section class="dash-panel dash-next">';
+        html += \`
+            <div class="dash-panel-header">
+                <div class="dash-panel-title">\${escapeHtml(L.nextUp || 'Next Up')}</div>
+            </div>
+            <div class="dash-next-cards">
+                \${renderNextCard({
+                    title: L.launcher || 'Launcher',
+                    nextLabel: launcher.nextLabel || launcher.nextKey,
+                    lastLabel: launcher.lastLabel || launcher.lastKey,
+                    lastAt: launcher.lastAt,
+                    actionLabel: L.switchNow || 'Switch Now',
+                    actionCommand: 'ampify.launcher.switchNext',
+                    nextLabelText: L.nextAccount || 'Next',
+                    lastLabelText: L.lastSwitched || 'Last',
+                    viewLabel: L.viewLauncher || 'View',
+                    viewSection: 'launcher'
+                })}
+                \${renderNextCard({
+                    title: L.opencode || 'OpenCode',
+                    nextLabel: opencode.nextLabel || opencode.nextId,
+                    lastLabel: opencode.lastLabel || opencode.lastId,
+                    lastAt: opencode.lastAt,
+                    actionLabel: L.switchNow || 'Switch Now',
+                    actionCommand: 'ampify.opencodeAuth.switchNext',
+                    nextLabelText: L.nextAccount || 'Next',
+                    lastLabelText: L.lastSwitched || 'Last',
+                    viewLabel: L.viewOpenCode || 'View',
+                    viewSection: 'opencodeAuth'
+                })}
+            </div>
+        </section>\`;
+
         // Stats
+        html += '<section class="dash-panel dash-stats">';
+        html += '<div class="dash-panel-header"><div class="dash-panel-title">' + escapeHtml(L.statsTitle || 'Stats') + '</div></div>';
         html += '<div class="stats-grid">';
         for (const stat of data.stats) {
             const color = stat.color || 'var(--vscode-foreground)';
@@ -160,10 +201,69 @@ export function getJs(): string {
             \`;
         }
         html += '</div>';
-        
+        html += '</section>';
+
+        // Activity
+        const activity = data.activity || [];
+        html += '<section class="dash-panel dash-activity">';
+        html += \`<div class="dash-panel-header"><div class="dash-panel-title">\${escapeHtml(L.recentUpdates || 'Recent Updates')}</div></div>\`;
+        if (activity.length === 0) {
+            html += \`<div class="dash-empty">\${escapeHtml(L.noRecentUpdates || 'No recent updates')}</div>\`;
+        } else {
+            html += '<div class="dash-activity-list">';
+            for (const item of activity) {
+                const icon = item.type === 'skill' ? 'library' : 'terminal';
+                html += \`
+                    <div class="dash-activity-row">
+                        <div class="dash-activity-icon"><i class="codicon codicon-\${icon}"></i></div>
+                        <div class="dash-activity-body">
+                            <div class="dash-activity-title">\${escapeHtml(item.label)}</div>
+                            <div class="dash-activity-meta">\${escapeHtml(item.description || '')}</div>
+                        </div>
+                        <div class="dash-activity-time">\${formatTimestamp(item.timestamp)}</div>
+                    </div>
+                \`;
+            }
+            html += '</div>';
+        }
+        html += '</section>';
+
+        // Model Proxy
+        const proxy = data.modelProxy || {};
+        const proxyStatus = proxy.running ? (L.modelProxyRunning || 'Running') : (L.modelProxyStopped || 'Stopped');
+        html += '<section class="dash-panel dash-health">';
+        html += \`<div class="dash-panel-header"><div class="dash-panel-title">\${escapeHtml(L.modelProxy || 'Model Proxy')}</div></div>\`;
+        html += \`
+            <div class="dash-health-status \${proxy.running ? 'ok' : 'off'}">
+                <span class="dash-health-dot"></span>
+                <span>\${escapeHtml(proxyStatus)}</span>
+            </div>
+            <div class="dash-health-row">
+                <span class="dash-health-label">\${escapeHtml(L.urlLabel || 'URL')}</span>
+                <span class="dash-health-value">\${escapeHtml(proxy.baseUrl || '—')}</span>
+            </div>
+        \`;
+        if (proxy.lastError) {
+            html += \`
+                <div class="dash-health-row dash-health-error">
+                    <span class="dash-health-label">\${escapeHtml(L.modelProxyLastError || 'Last Error')}</span>
+                    <span class="dash-health-value">\${escapeHtml(proxy.lastError)}</span>
+                </div>
+            \`;
+        } else {
+            html += \`
+                <div class="dash-health-row dash-health-ok">
+                    <span class="dash-health-label">\${escapeHtml(L.modelProxyHealthy || 'Healthy')}</span>
+                    <span class="dash-health-value">\${proxy.running ? (L.statusOk || 'OK') : '—'}</span>
+                </div>
+            \`;
+        }
+        html += '</section>';
+
         // Quick Actions
         if (data.quickActions && data.quickActions.length > 0) {
-            html += '<div class="quick-actions-title">QUICK ACTIONS</div>';
+            html += '<section class="dash-panel dash-quick">';
+            html += '<div class="dash-panel-header"><div class="dash-panel-title">' + escapeHtml(L.quickActionsTitle || 'Quick Actions') + '</div></div>';
             html += '<div class="quick-actions">';
             for (const action of data.quickActions) {
                 const actionType = action.action || 'command';
@@ -177,11 +277,13 @@ export function getJs(): string {
                 \`;
             }
             html += '</div>';
+            html += '</section>';
         }
-        
+
+        html += '</div>';
         html += '</div>';
         body.innerHTML = html;
-        
+
         // Bind quick actions
         body.querySelectorAll('.quick-action-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -197,6 +299,76 @@ export function getJs(): string {
                 }
             });
         });
+
+        body.querySelectorAll('[data-command]').forEach(btn => {
+            if (!btn.classList.contains('dash-action-btn')) {
+                return;
+            }
+            btn.addEventListener('click', () => {
+                const command = btn.dataset.command;
+                if (command) {
+                    vscode.postMessage({ type: 'executeCommand', command });
+                }
+            });
+        });
+
+        body.querySelectorAll('[data-section-switch]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const section = btn.dataset.sectionSwitch;
+                if (section) {
+                    vscode.postMessage({ type: 'switchSection', section });
+                }
+            });
+        });
+    }
+
+    function renderNextCard({
+        title,
+        nextLabel,
+        lastLabel,
+        lastAt,
+        actionLabel,
+        actionCommand,
+        nextLabelText,
+        lastLabelText,
+        viewLabel,
+        viewSection
+    }) {
+        const lastText = lastLabel ? lastLabel : '—';
+        const lastTime = lastAt ? formatTimestamp(lastAt) : '—';
+        const nextText = nextLabel ? nextLabel : '—';
+        return \`
+            <div class="dash-next-card">
+                <div class="dash-card-head">
+                    <div class="dash-card-title">\${escapeHtml(title)}</div>
+                    <button class="dash-link-btn" data-section-switch="\${viewSection}">\${escapeHtml(viewLabel)}</button>
+                </div>
+                <div class="dash-meta">
+                    <div class="dash-meta-row">
+                        <span class="dash-meta-label">\${escapeHtml(nextLabelText || 'Next')}</span>
+                        <span class="dash-meta-value">\${escapeHtml(nextText)}</span>
+                    </div>
+                    <div class="dash-meta-row">
+                        <span class="dash-meta-label">\${escapeHtml(lastLabelText || 'Last')}</span>
+                        <span class="dash-meta-value">\${escapeHtml(lastText)} · \${escapeHtml(lastTime)}</span>
+                    </div>
+                </div>
+                <button class="dash-action-btn" data-command="\${actionCommand}">
+                    <i class="codicon codicon-debug-start"></i>
+                    <span>\${escapeHtml(actionLabel)}</span>
+                </button>
+            </div>
+        \`;
+    }
+
+    function formatTimestamp(ts) {
+        if (!ts) return '—';
+        try {
+            const date = new Date(ts);
+            return date.toLocaleString();
+        } catch {
+            return '—';
+        }
     }
 
     // ==================== Settings Rendering ====================

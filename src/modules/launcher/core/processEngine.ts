@@ -77,6 +77,8 @@ export class ProcessEngine {
         } catch (err) {
             console.error('Failed to write instance key file:', err);
         }
+
+        this.configManager.setLastUsed(key);
         
         const args = [
             '--user-data-dir',

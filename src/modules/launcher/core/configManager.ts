@@ -38,4 +38,11 @@ export class ConfigManager extends BaseConfigManager<LauncherConfig> {
     public getSharedExtensionsDir(): string {
         return path.join(this.rootDir, 'shareExtensions');
     }
+
+    public setLastUsed(key: string): void {
+        const config = this.getConfig();
+        config.lastUsedKey = key;
+        config.lastUsedAt = Date.now();
+        this.saveConfig(config);
+    }
 }

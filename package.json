@@ -82,6 +82,11 @@
         "icon": "$(rocket)"
       },
       {
+        "command": "ampify.launcher.switchNext",
+        "title": "Switch to Next Instance",
+        "icon": "$(debug-start)"
+      },
+      {
         "command": "ampify.launcher.delete",
         "title": "Delete Instance",
         "icon": "$(trash)"
@@ -325,6 +330,16 @@
       {
         "command": "ampify.opencodeAuth.rename",
         "title": "Rename OpenCode Copilot Credential"
+      },
+      {
+        "command": "ampify.opencodeAuth.switchNext",
+        "title": "Switch to Next OpenCode Credential",
+        "icon": "$(debug-start)"
+      },
+      {
+        "command": "ampify.opencodeAuth.clear",
+        "title": "Clear github-copilot in auth.json",
+        "icon": "$(circle-slash)"
       }
     ],
     "keybindings": [

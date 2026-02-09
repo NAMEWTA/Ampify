@@ -19,6 +19,18 @@ export function registerLauncher(context: vscode.ExtensionContext) {
     const configManager = new ConfigManager();
     const processEngine = new ProcessEngine(configManager);
 
+    const getNextInstanceKey = (): string | undefined => {
+        const config = configManager.getConfig();
+        const keys = Object.keys(config.instances);
+        if (keys.length === 0) {
+            return undefined;
+        }
+        const lastKey = config.lastUsedKey;
+        const lastIndex = lastKey ? keys.indexOf(lastKey) : -1;
+        const nextIndex = (lastIndex + 1) % keys.length;
+        return keys[nextIndex];
+    };
+
     // TreeView 已由 mainView 模块统一管理
 
     // Launch
@@ -26,6 +38,20 @@ export function registerLauncher(context: vscode.ExtensionContext) {
         if (item && item.instanceConfig) {
             processEngine.launch(item.instanceConfig, item.key);
         }
+    }));
+
+    context.subscriptions.push(vscode.commands.registerCommand('ampify.launcher.switchNext', () => {
+        const nextKey = getNextInstanceKey();
+        if (!nextKey) {
+            vscode.window.showInformationMessage(I18n.get('launcher.noInstances'));
+            return;
+        }
+        const config = configManager.getConfig();
+        const instance = config.instances[nextKey];
+        if (!instance) {
+            return;
+        }
+        processEngine.launch(instance, nextKey);
     }));
 
     // Refresh (由 mainView 统一刷新)

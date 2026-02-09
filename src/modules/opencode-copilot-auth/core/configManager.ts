@@ -75,4 +75,21 @@ export class OpenCodeCopilotAuthConfigManager extends BaseConfigManager<OpenCode
         const config = this.getConfig();
         return config.activeId;
     }
+
+    getLastSwitchedId(): string | undefined {
+        const config = this.getConfig();
+        return config.lastSwitchedId;
+    }
+
+    getLastSwitchedAt(): number | undefined {
+        const config = this.getConfig();
+        return config.lastSwitchedAt;
+    }
+
+    setLastSwitched(id: string): void {
+        const config = this.getConfig();
+        config.lastSwitchedId = id;
+        config.lastSwitchedAt = Date.now();
+        this.saveConfig(config);
+    }
 }

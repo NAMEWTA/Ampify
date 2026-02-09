@@ -30,10 +30,18 @@ export class AuthSwitcher {
         return parsed;
     }
 
-    importCurrentCredential(): CopilotAuthEntry {
-        const data = this.readAuthJson();
+    importCurrentCredential(): CopilotAuthEntry | null {
+        let data: Record<string, unknown>;
+        try {
+            data = this.readAuthJson();
+        } catch (error) {
+            if (error instanceof Error && error.message === 'auth.json not found') {
+                return null;
+            }
+            throw error;
+        }
         if (!Object.prototype.hasOwnProperty.call(data, GITHUB_COPILOT_KEY)) {
-            throw new Error('github-copilot entry not found');
+            return null;
         }
         const entry = data[GITHUB_COPILOT_KEY];
         if (!entry || typeof entry !== 'object') {
@@ -54,16 +62,22 @@ export class AuthSwitcher {
 
     switchCredential(credential: CopilotCredential): void {
         const data = this.readAuthJson();
-        if (!Object.prototype.hasOwnProperty.call(data, GITHUB_COPILOT_KEY)) {
-            throw new Error('github-copilot entry not found');
-        }
-
         data[GITHUB_COPILOT_KEY] = {
             type: credential.type,
             access: credential.access,
             refresh: credential.refresh,
             expires: credential.expires
         };
+
+        const authPath = this.getAuthJsonPath();
+        fs.writeFileSync(authPath, JSON.stringify(data, null, 2), 'utf8');
+    }
+
+    clearCredential(): void {
+        const data = this.readAuthJson();
+        if (Object.prototype.hasOwnProperty.call(data, GITHUB_COPILOT_KEY)) {
+            delete data[GITHUB_COPILOT_KEY];
+        }
 
         const authPath = this.getAuthJsonPath();
         fs.writeFileSync(authPath, JSON.stringify(data, null, 2), 'utf8');

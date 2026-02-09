@@ -53,7 +53,8 @@ export class OpenCodeAuthBridge {
     getToolbar(): ToolbarAction[] {
         return [
             { id: 'add', label: I18n.get('opencodeAuth.addCredential'), iconId: 'add', command: '', action: 'overlay' },
-            { id: 'import', label: I18n.get('opencodeAuth.importCurrent'), iconId: 'cloud-download', command: 'ampify.opencodeAuth.import' }
+            { id: 'import', label: I18n.get('opencodeAuth.importCurrent'), iconId: 'cloud-download', command: 'ampify.opencodeAuth.import' },
+            { id: 'clear', label: I18n.get('opencodeAuth.clear'), iconId: 'circle-slash', command: 'ampify.opencodeAuth.clear' }
         ];
     }
 

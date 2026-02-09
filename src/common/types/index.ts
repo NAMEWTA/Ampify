@@ -7,6 +7,8 @@ export interface InstanceConfig {
 
 export interface LauncherConfig {
     instances: Record<string, InstanceConfig>;
+    lastUsedKey?: string;
+    lastUsedAt?: number;
 }
 
 // ==================== Skills Manager Types ====================
@@ -292,4 +294,6 @@ export interface CopilotCredential {
 export interface OpenCodeCopilotAuthConfig {
     credentials: CopilotCredential[];
     activeId?: string;
+    lastSwitchedId?: string;
+    lastSwitchedAt?: number;
 }
