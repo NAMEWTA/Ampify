@@ -2,6 +2,8 @@
 
 Ampify is a practical, all-in-one VS Code extension that helps you move faster. It unifies **path + line copying**, a **multi-account launcher**, **Skills/Commands management**, **Git Share sync**, and a **Model Proxy** in one MainView.
 
+**v3.0.0 major update**: a full monorepo refactor with **pnpm workspaces + Turborepo**, plus **OpenCode Copilot Auth** integration, stronger instance management, and a streamlined release pipeline.
+
 ## Features
 
 - Copy relative or absolute file paths with line ranges
@@ -9,9 +11,18 @@ Ampify is a practical, all-in-one VS Code extension that helps you move faster. 
 - Skills Manager with SKILL.md metadata, search, tag filter, preview, and inject
 - Commands Manager with single-file command definitions and project injection
 - Git Share sync and diff preview for skills and commands repositories
+- OpenCode Copilot Auth integration with account management and quick switching
 - Model Proxy: local HTTP reverse proxy (OpenAI + Anthropic compatible) with API key, model routing, instance management, and logs
 - Enhanced Anthropic handler with tool integration, SSE support, and improved request serialization
 - Unified MainView with sections for all modules
+
+## What is new in v3.0.0
+
+- **Monorepo architecture**: split into `packages/extension`, `packages/webview`, `packages/shared` for cleaner boundaries and faster builds.
+- **Turborepo pipeline**: consistent build order, caching, and a single `pnpm run package` entrypoint.
+- **OpenCode Auth**: manage multiple OpenCode Copilot accounts and switch per instance.
+- **Improved instance keys**: safer instance isolation and clearer active account display.
+- **Release stability**: branch-scoped tag queries and simplified CI pipeline.
 
 ## Screenshots
 
@@ -46,12 +57,19 @@ Settings panel with root directory and language.
 - Create or import Skills (must include **SKILL.md** frontmatter)
 - Search, filter by tag, preview, and apply skills to a workspace
 - Auto-generate a hierarchical **SKILLS.md** index and reference it from **AGENTS.md**
+- Skills/Commands are stored under `.agents/` by default
 
 ### Commands Manager
 
 - Switch to **Commands** in MainView
 - Create or import commands, then preview and apply to the project
 - Inject target can be customized via `ampify.commands.injectTarget`
+
+### OpenCode Copilot Auth
+
+- Switch to **OpenCode Auth** in MainView
+- Add multiple OpenCode accounts and switch the active one
+- Combine with Launcher to run instances with different credentials
 
 ### Git Share
 
@@ -77,6 +95,8 @@ Settings panel with root directory and language.
 
 Ampify 是一个实用型 VS Code 扩展，将**路径行号复制**、**多账户启动器**、**技能与命令管理**、**Git Share 同步**与**模型反代**统一在一个 MainView 中。
 
+**v3.0.0 重大更新**：完成 monorepo 重构（pnpm workspaces + Turborepo），并新增 **OpenCode Copilot Auth** 账户管理、强化实例隔离与发布流程。
+
 ## 功能
 
 - 复制相对/绝对路径与行号范围
@@ -84,9 +104,18 @@ Ampify 是一个实用型 VS Code 扩展，将**路径行号复制**、**多账�
 - Skills Manager：SKILL.md 元数据、搜索、标签过滤、预览与注入
 - Commands Manager：单文件命令管理与项目注入
 - Git Share：统一同步与差异预览
+- OpenCode Copilot Auth：多账号管理与快速切换
 - Model Proxy：本地 HTTP 反代（兼容 OpenAI/Anthropic），支持实例管理、API Key、模型路由与日志
 - 增强的 Anthropic 处理器：工具集成、SSE 支持与改进的请求序列化
 - MainView 统一入口
+
+## v3.0.0 重大变更亮点
+
+- **Monorepo 架构**：拆分为 `packages/extension`、`packages/webview`、`packages/shared`，边界清晰、构建更快。
+- **Turborepo 管线**：统一构建顺序与缓存，`pnpm run package` 一键完成打包。
+- **OpenCode Auth**：多账户管理，支持与 Launcher 组合进行实例级切换。
+- **实例隔离增强**：实例 key 管理更安全，活跃账号显示更清晰。
+- **发布稳定性**：分支限定标签查询与精简 CI 流程。
 
 ## 截图
 
@@ -121,12 +150,19 @@ Settings：根目录与语言配置。
 - 创建/导入 Skills（必须包含 **SKILL.md** frontmatter）
 - 搜索、标签过滤、预览并注入项目
 - 自动生成层级化 **SKILLS.md** 清单，并在 **AGENTS.md** 中引用
+- Skills/Commands 默认存放在 `.agents/` 目录
 
 ### Commands Manager
 
 - 切换到 **Commands**
 - 创建/导入命令并预览与注入
 - 注入目标可通过 `ampify.commands.injectTarget` 自定义
+
+### OpenCode Copilot Auth
+
+- 切换到 **OpenCode Auth**
+- 添加多个 OpenCode 账户并设置当前活跃账号
+- 与 Launcher 配合，为不同实例绑定不同凭证
 
 ### Git Share
 
@@ -168,7 +204,19 @@ pnpm install
 pnpm run build
 ```
 
-### Package VSIX
+### Lint
+
+```
+pnpm run lint
+```
+
+### Package VSIX (recommended)
+
+```
+pnpm run package
+```
+
+### Package VSIX (manual)
 
 ```
 pnpm run prepackage
@@ -198,7 +246,19 @@ pnpm install
 pnpm run build
 ```
 
-### 打包 VSIX
+### 代码检查
+
+```
+pnpm run lint
+```
+
+### 打包 VSIX（推荐）
+
+```
+pnpm run package
+```
+
+### 打包 VSIX（手动）
 
 ```
 pnpm run prepackage
