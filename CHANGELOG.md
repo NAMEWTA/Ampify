@@ -1,5 +1,31 @@
 # Change Log
 
+## 3.0.0 - 2026-02-09
+### Added
+- Migrate to pnpm monorepo architecture with Turborepo for efficient package management and task orchestration
+- Enforce branch scope for tag and commit queries in automated release process
+- OpenCode Copilot Auth integration for user credential management
+- Launcher and OpenCode credential switching functionality
+- OpenCode Copilot authentication management and UI integration
+- Add support for git-worktree-create and git-worktree-finish commands
+
+### Changed
+- Restructure packages with shared types and webview separation for better modularity
+- Enhance instance key management and improve port handling in Model Proxy
+- Update .gitignore and enhance i18n translations across Launcher and OpenCodeAuth modules
+- Simplify quick action handling by removing dashboard-specific inline logic
+- Migrate command and skill directories from `.claude` to `.agents` for better organization
+- Enhance version tagging by stripping branch suffix in release workflow
+- Remove unused imports and improve code organization
+- Update pnpm guide documentation with comprehensive build and packaging instructions
+- Simplify CI/CD workflow by consolidating build steps
+
+### Fixed
+- Update package script to include --no-dependencies flag for correct dependency handling
+- Adjust active account label display in DashboardView
+- Update instance key reference in LauncherBridge for correct active instance identification
+- Update default output directory path in init_command.py help message
+
 ## 2.3.0 - 2026-02-07
 ### Added
 - Update API key binding management and enhance UI for bindings

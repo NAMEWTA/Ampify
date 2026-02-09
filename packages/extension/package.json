@@ -2,7 +2,7 @@
   "name": "ampify",
   "displayName": "Ampify",
   "description": "Ampify: A practical, multi-feature VS Code extension combining path+line copying and a multi-instance launcher (多功能实用扩展，集文件路径行号复制与多实例启动器于一体，持续发展中)。",
-  "version": "2.4.0",
+  "version": "3.0.0",
   "publisher": "NAMEWTA",
   "repository": {
     "type": "git",
