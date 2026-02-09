@@ -23,6 +23,7 @@ tags:
 - **自动版本**：基于最新 tag 自动计算新版本号（minor +1，如 v1.5.0 → v1.6.0）
 - **自动提交**：如有未提交的代码变更，先用 Conventional Commits 格式自动提交
 - **自动检测远程**：通过 `git remote -v` 获取实际远程名称，不硬编码 `origin`
+- **分支限定**：所有 tag/commit 查询必须限定为当前分支 `HEAD` 可达范围，禁止跨分支扫描
 
 ## 任务（按顺序自动执行，不得中断）
 
@@ -61,6 +62,8 @@ git commit -m "<自动生成的 commit message>"
 
 ### 2. 获取最近标签并计算新版本
 
+注意：最近标签必须来自当前分支 `HEAD` 可达范围（可用 `git tag --merged HEAD` 验证），不得使用全局 tag 结果。
+
 ```bash
 git describe --tags --abbrev=0
 ```
@@ -75,6 +78,8 @@ git describe --tags --abbrev=0
 - 例：`v0.0.0`（无标签）→ `v0.1.0`
 
 ### 3. 读取 Commit 日志
+
+注意：日志范围必须限定在当前分支 `HEAD` 的提交历史中，不得跨分支聚合。
 
 ```bash
 git log <last-tag>..HEAD --pretty=format:"%h %s" --date=short
@@ -177,6 +182,7 @@ git push <remote-name> "v<新版本号>(<branch>)"
 - 保持 README.md 中英双语结构一致
 - 仅更新指定的四个文件：CHANGELOG.md、README.md、AGENTS.md、package.json
 - 远程名称必须通过 `git remote -v` 动态获取，不得硬编码
+- 最近标签与提交日志必须基于当前分支 `HEAD` 可达范围
 
 ## 输出格式
 
