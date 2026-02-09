@@ -41,6 +41,7 @@ declare module 'vue' {
     LogViewer: typeof import('./components/sections/proxy/LogViewer.vue')['default']
     ModelProxyView: typeof import('./components/sections/ModelProxyView.vue')['default']
     NavRail: typeof import('./components/layout/NavRail.vue')['default']
+    OpenCodeAuthView: typeof import('./components/sections/OpenCodeAuthView.vue')['default']
     OverlayPanel: typeof import('./components/common/OverlayPanel.vue')['default']
     ProxyStatCard: typeof import('./components/sections/proxy/ProxyStatCard.vue')['default']
     SectionToolbar: typeof import('./components/common/SectionToolbar.vue')['default']

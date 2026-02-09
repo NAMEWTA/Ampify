@@ -72,6 +72,24 @@ export function registerLauncher(context: vscode.ExtensionContext) {
             vscode.commands.executeCommand('ampify.mainView.refresh');
         }
     }));
+
+    // Switch to Next Instance (round-robin)
+    context.subscriptions.push(vscode.commands.registerCommand('ampify.launcher.switchNext', async () => {
+        const config = configManager.getConfig();
+        const keys = Object.keys(config.instances);
+        if (keys.length === 0) {
+            vscode.window.showInformationMessage(I18n.get('launcher.noInstances'));
+            return;
+        }
+        const lastKey = configManager.getLastUsedKey();
+        const lastIndex = lastKey ? keys.indexOf(lastKey) : -1;
+        const nextIndex = (lastIndex + 1) % keys.length;
+        const nextKey = keys[nextIndex];
+        const instance = config.instances[nextKey];
+        if (instance) {
+            processEngine.launch(instance, nextKey);
+        }
+    }));
     
     console.log('Module "Launcher" loaded');
 }

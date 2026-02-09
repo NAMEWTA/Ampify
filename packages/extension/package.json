@@ -315,6 +315,46 @@
         "command": "ampify.commands.importFromExplorer",
         "title": "Import as Ampify Command",
         "icon": "$(file-code)"
+      },
+      {
+        "command": "ampify.launcher.switchNext",
+        "title": "Ampify: Switch to Next Launcher Instance",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "ampify.opencodeAuth.add",
+        "title": "Ampify: Add OpenCode Credential",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ampify.opencodeAuth.import",
+        "title": "Ampify: Import Current OpenCode Credential",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "ampify.opencodeAuth.switch",
+        "title": "Ampify: Switch OpenCode Credential",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "ampify.opencodeAuth.switchNext",
+        "title": "Ampify: Switch to Next OpenCode Credential",
+        "icon": "$(arrow-swap)"
+      },
+      {
+        "command": "ampify.opencodeAuth.clear",
+        "title": "Ampify: Clear OpenCode Credential",
+        "icon": "$(close-all)"
+      },
+      {
+        "command": "ampify.opencodeAuth.delete",
+        "title": "Ampify: Delete OpenCode Credential",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ampify.opencodeAuth.rename",
+        "title": "Ampify: Rename OpenCode Credential",
+        "icon": "$(edit)"
       }
     ],
     "keybindings": [

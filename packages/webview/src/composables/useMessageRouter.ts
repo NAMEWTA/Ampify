@@ -5,7 +5,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { rpcClient } from '@/utils/rpcClient'
 import { useDashboardStore } from '@/stores/dashboardStore'
-import { useLauncherStore, useSkillsStore, useCommandsStore, useGitShareStore } from '@/stores/sectionStore'
+import { useLauncherStore, useSkillsStore, useCommandsStore, useGitShareStore, useOpenCodeAuthStore } from '@/stores/sectionStore'
 import { useModelProxyStore } from '@/stores/modelProxyStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useOverlayStore } from '@/stores/overlayStore'
@@ -21,6 +21,7 @@ export function useMessageRouter() {
       case 'skills': return useSkillsStore()
       case 'commands': return useCommandsStore()
       case 'gitshare': return useGitShareStore()
+      case 'opencodeAuth': return useOpenCodeAuthStore()
       default: return null
     }
   }

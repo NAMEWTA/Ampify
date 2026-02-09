@@ -7,6 +7,8 @@ export interface InstanceConfig {
 
 export interface LauncherConfig {
     instances: Record<string, InstanceConfig>;
+    lastUsedKey?: string;
+    lastUsedAt?: number;
 }
 
 // ==================== Skills Manager Types ====================
@@ -276,4 +278,28 @@ export interface AvailableModel {
     version: string;
     /** 最大输入 tokens */
     maxInputTokens: number;
+}
+
+// ==================== OpenCode Copilot Auth Types ====================
+
+/**
+ * Copilot 凭据信息
+ */
+export interface CopilotCredential {
+    id: string;
+    name: string;
+    type: string;
+    access: string;
+    refresh: string;
+    expires: number;
+}
+
+/**
+ * OpenCode Copilot Auth 配置
+ */
+export interface OpenCodeCopilotAuthConfig {
+    credentials: CopilotCredential[];
+    activeId?: string;
+    lastSwitchedId?: string;
+    lastSwitchedAt?: number;
 }

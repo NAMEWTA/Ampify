@@ -180,6 +180,7 @@ export class ProcessEngine {
 
             child.unref();
             vscode.window.setStatusBarMessage(I18n.get('launcher.launchSuccess', instance.description), 5000);
+            this.configManager.setLastUsed(key);
         } catch (err) {
             const error = err as NodeJS.ErrnoException;
             const msg = error instanceof Error ? error.message : String(error);

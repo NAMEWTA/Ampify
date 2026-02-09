@@ -181,4 +181,17 @@ export class SettingsBridge {
             await this.gitManager.setRemotes(gitConfig.remoteUrls);
         }
     }
+
+    private getOpenCodeConfigDir(): string {
+        try {
+            const { AuthSwitcher } = require('../../opencode-copilot-auth/core/authSwitcher');
+            const switcher = new AuthSwitcher();
+            const authPath = switcher.getAuthJsonPath();
+            // Return the directory containing auth.json
+            const path = require('path');
+            return path.dirname(authPath);
+        } catch {
+            return '~/.local/share/opencode/';
+        }
+    }
 }

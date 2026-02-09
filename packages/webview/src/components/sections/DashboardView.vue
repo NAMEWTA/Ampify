@@ -42,6 +42,70 @@
         </div>
       </div>
 
+      <!-- Next Up Panel -->
+      <div class="section-block" v-if="hasNextUp">
+        <h3 class="section-title">{{ dashboardStore.data.labels.nextUp }}</h3>
+        <div class="next-up-grid">
+          <!-- Launcher Next Up -->
+          <div class="next-up-card" v-if="dashboardStore.data.launcher">
+            <div class="next-up-header">
+              <CodiconIcon name="rocket" />
+              <span class="next-up-module">{{ dashboardStore.data.labels.launcher }}</span>
+            </div>
+            <div class="next-up-body">
+              <div class="next-up-info">
+                <span class="next-up-label">{{ dashboardStore.data.labels.nextAccount }}</span>
+                <span class="next-up-value">{{ dashboardStore.data.launcher.nextLabel }}</span>
+              </div>
+              <div class="next-up-info" v-if="dashboardStore.data.launcher.lastAt">
+                <span class="next-up-label">{{ dashboardStore.data.labels.lastSwitched }}</span>
+                <span class="next-up-value">{{ formatRelativeTime(dashboardStore.data.launcher.lastAt) }}</span>
+              </div>
+            </div>
+            <div class="next-up-actions">
+              <button class="next-up-btn" @click="executeCommand('ampify.launcher.switchNext')">
+                <CodiconIcon name="arrow-swap" />
+                {{ dashboardStore.data.labels.switchNow }}
+              </button>
+              <button class="text-link" @click="dashboardStore.navigateToSection('launcher')">
+                {{ dashboardStore.data.labels.viewLauncher }} →
+              </button>
+            </div>
+          </div>
+
+          <!-- OpenCode Next Up -->
+          <div class="next-up-card" v-if="dashboardStore.data.opencode">
+            <div class="next-up-header">
+              <CodiconIcon name="key" />
+              <span class="next-up-module">{{ dashboardStore.data.labels.opencode }}</span>
+            </div>
+            <div class="next-up-body">
+              <div class="next-up-info" v-if="dashboardStore.data.opencode.lastLabel">
+                <span class="next-up-label">{{ dashboardStore.data.labels.activeAccount }}</span>
+                <span class="next-up-value">{{ dashboardStore.data.opencode.lastLabel }}</span>
+              </div>
+              <div class="next-up-info">
+                <span class="next-up-label">{{ dashboardStore.data.labels.nextAccount }}</span>
+                <span class="next-up-value">{{ dashboardStore.data.opencode.nextLabel }}</span>
+              </div>
+              <div class="next-up-info" v-if="dashboardStore.data.opencode.lastAt">
+                <span class="next-up-label">{{ dashboardStore.data.labels.lastSwitched }}</span>
+                <span class="next-up-value">{{ formatRelativeTime(dashboardStore.data.opencode.lastAt) }}</span>
+              </div>
+            </div>
+            <div class="next-up-actions">
+              <button class="next-up-btn" @click="executeCommand('ampify.opencodeAuth.switchNext')">
+                <CodiconIcon name="arrow-swap" />
+                {{ dashboardStore.data.labels.switchNow }}
+              </button>
+              <button class="text-link" @click="dashboardStore.navigateToSection('opencodeAuth')">
+                {{ dashboardStore.data.labels.viewOpenCode }} →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Git Info Bar -->
       <div class="section-block" v-if="dashboardStore.data.gitInfo.initialized">
         <h3 class="section-title">{{ dashboardStore.data.labels.gitInfo }}</h3>
@@ -180,12 +244,16 @@
 import SectionToolbar from '@/components/common/SectionToolbar.vue'
 import CodiconIcon from '@/components/common/CodiconIcon.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import { computed } from 'vue'
 import { useDashboardStore } from '@/stores/dashboardStore'
 import { rpcClient } from '@/utils/rpcClient'
 import type { QuickAction } from '@ampify/shared'
 
 const dashboardStore = useDashboardStore()
 
+const hasNextUp = computed(() => {
+  return !!dashboardStore.data?.launcher || !!dashboardStore.data?.opencode
+})
 
 
 function handleQuickAction(action: QuickAction) {
@@ -232,6 +300,17 @@ function truncateModel(model: string): string {
 function isSuccessStatus(status: string): boolean {
   const normalized = status.toLowerCase()
   return normalized === 'ok' || normalized === 'success' || normalized === '200'
+}
+
+function formatRelativeTime(timestamp: number): string {
+  const diff = Date.now() - timestamp
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  return `${days}d ago`
 }
 </script>
 
@@ -607,6 +686,96 @@ function isSuccessStatus(status: string): boolean {
   border: 1px solid var(--vscode-panel-border, #2b2b2b);
   border-radius: 6px;
   background: var(--vscode-editor-background, #1e1e1e);
+}
+
+/* ===== Next Up ===== */
+.next-up-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+
+.next-up-card {
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #2b2b2b);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.next-up-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.next-up-header .codicon {
+  color: #d97757;
+  font-size: 14px;
+}
+
+.next-up-module {
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground, #717171);
+}
+
+.next-up-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.next-up-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.next-up-label {
+  color: var(--vscode-descriptionForeground, #717171);
+}
+
+.next-up-value {
+  color: var(--vscode-foreground, #cccccc);
+  font-weight: 500;
+}
+
+.next-up-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.next-up-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border: 1px solid #d97757;
+  background: transparent;
+  color: #d97757;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 11px;
+  transition: background 0.1s, color 0.1s;
+}
+
+.next-up-btn:hover {
+  background: #d97757;
+  color: #fff;
+}
+
+.next-up-btn .codicon {
+  font-size: 12px;
 }
 
 </style>

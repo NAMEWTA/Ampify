@@ -4,7 +4,7 @@
 
 // ==================== Navigation Section ====================
 
-export type SectionId = 'dashboard' | 'launcher' | 'skills' | 'commands' | 'gitshare' | 'modelProxy' | 'settings';
+export type SectionId = 'dashboard' | 'launcher' | 'skills' | 'commands' | 'gitshare' | 'modelProxy' | 'settings' | 'opencodeAuth';
 
 // ==================== Generic Tree Node ====================
 
@@ -50,7 +50,27 @@ export interface DashboardData {
     proxyInfo: DashboardProxyInfo;
     workspaceInfo: DashboardWorkspaceInfo;
     recentLogs: ModelProxyLogInfo[];
+    launcher?: DashboardLauncherInfo;
+    opencode?: DashboardOpenCodeInfo;
     labels: DashboardLabels;
+}
+
+export interface DashboardLauncherInfo {
+    total: number;
+    lastKey?: string;
+    lastLabel?: string;
+    lastAt?: number;
+    nextKey?: string;
+    nextLabel?: string;
+}
+
+export interface DashboardOpenCodeInfo {
+    total: number;
+    lastId?: string;
+    lastLabel?: string;
+    lastAt?: number;
+    nextId?: string;
+    nextLabel?: string;
 }
 
 export interface DashboardStat {
@@ -124,6 +144,15 @@ export interface DashboardLabels {
     viewAllLogs: string;
     noLogs: string;
     logTime: string;
+    nextUp: string;
+    launcher: string;
+    opencode: string;
+    switchNow: string;
+    lastSwitched: string;
+    nextAccount: string;
+    activeAccount: string;
+    viewLauncher: string;
+    viewOpenCode: string;
 }
 
 // ==================== Toolbar ====================
@@ -196,6 +225,8 @@ export interface SettingsField {
     options?: SettingsOption[];
     /** Input right-side action button */
     action?: SettingsFieldAction;
+    /** If true, field is displayed as read-only */
+    readOnly?: boolean;
 }
 
 export interface SettingsSection {

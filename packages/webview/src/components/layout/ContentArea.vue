@@ -13,6 +13,7 @@ import SkillsView from '@/components/sections/SkillsView.vue'
 import CommandsView from '@/components/sections/CommandsView.vue'
 import GitShareView from '@/components/sections/GitShareView.vue'
 import ModelProxyView from '@/components/sections/ModelProxyView.vue'
+import OpenCodeAuthView from '@/components/sections/OpenCodeAuthView.vue'
 import SettingsView from '@/components/sections/SettingsView.vue'
 
 const appStore = useAppStore()
@@ -24,6 +25,7 @@ const viewMap: Record<string, Component> = {
   commands: CommandsView,
   gitshare: GitShareView,
   modelProxy: ModelProxyView,
+  opencodeAuth: OpenCodeAuthView,
   settings: SettingsView,
 }
 

@@ -7,24 +7,27 @@ import type {
     DashboardData, DashboardStat, QuickAction,
     ModuleHealthItem, DashboardGitInfo, DashboardProxyInfo,
     DashboardWorkspaceInfo, DashboardLabels,
-    ModuleHealthStatus, ModelProxyLogInfo
+    ModuleHealthStatus, ModelProxyLogInfo,
+    DashboardLauncherInfo, DashboardOpenCodeInfo
 } from '@ampify/shared';
 import { I18n } from '../../../common/i18n';
 
 export class DashboardBridge {
     async getData(): Promise<DashboardData> {
-        const [stats, moduleHealth, gitInfo, proxyInfo, workspaceInfo, recentLogs] =
+        const [stats, moduleHealth, gitInfo, proxyInfo, workspaceInfo, recentLogs, launcher, opencode] =
             await Promise.all([
                 this.collectStats(),
                 this.collectModuleHealth(),
                 this.collectGitInfo(),
                 this.collectProxyInfo(),
                 this.collectWorkspaceInfo(),
-                this.collectRecentLogs()
+                this.collectRecentLogs(),
+                this.getLauncherInfo(),
+                this.getOpenCodeInfo()
             ]);
         const quickActions = this.getQuickActions();
         const labels = this.getLabels();
-        return { stats, quickActions, moduleHealth, gitInfo, proxyInfo, workspaceInfo, recentLogs, labels };
+        return { stats, quickActions, moduleHealth, gitInfo, proxyInfo, workspaceInfo, recentLogs, labels, launcher, opencode };
     }
 
     private async collectStats(): Promise<DashboardStat[]> {
@@ -60,7 +63,15 @@ export class DashboardBridge {
         } catch {
             stats.push({ label: I18n.get('dashboard.commandsCount'), value: 0, iconId: 'terminal', color: '#d97757', targetSection: 'commands' });
         }
-
+        // OpenCode Auth 凭据数
+        try {
+            const { OpenCodeCopilotAuthConfigManager } = await import('../../opencode-copilot-auth/core/configManager');
+            const cm = new OpenCodeCopilotAuthConfigManager();
+            const count = cm.getCredentials().length;
+            stats.push({ label: I18n.get('dashboard.opencode'), value: count, iconId: 'key', color: '#c586c0', targetSection: 'opencodeAuth' });
+        } catch {
+            stats.push({ label: I18n.get('dashboard.opencode'), value: 0, iconId: 'key', color: '#c586c0', targetSection: 'opencodeAuth' });
+        }
         // Git 状态
         try {
             const { GitManager } = await import('../../../common/git');
@@ -173,6 +184,20 @@ export class DashboardBridge {
             items.push({ moduleId: 'modelProxy', label: I18n.get('dashboard.modelProxy'), status: 'error', detail: I18n.get('dashboard.error'), iconId: 'radio-tower', color: '#f48771' });
         }
 
+        // OpenCode Auth
+        try {
+            const { OpenCodeCopilotAuthConfigManager } = await import('../../opencode-copilot-auth/core/configManager');
+            const cm = new OpenCodeCopilotAuthConfigManager();
+            const count = cm.getCredentials().length;
+            const activeId = cm.getActiveId();
+            const detail = activeId
+                ? `${count} credentials, active: ${cm.getCredentialById(activeId)?.name || activeId}`
+                : `${count} credentials`;
+            items.push({ moduleId: 'opencodeAuth', label: I18n.get('dashboard.opencode'), status: count > 0 ? 'active' : 'inactive', detail, iconId: 'key', color: '#c586c0' });
+        } catch {
+            items.push({ moduleId: 'opencodeAuth', label: I18n.get('dashboard.opencode'), status: 'inactive', detail: '0 credentials', iconId: 'key', color: '#717171' });
+        }
+
         return items;
     }
 
@@ -262,6 +287,65 @@ export class DashboardBridge {
         }
     }
 
+    private async getLauncherInfo(): Promise<DashboardLauncherInfo | undefined> {
+        try {
+            const { ConfigManager } = await import('../../launcher/core/configManager');
+            const configManager = new ConfigManager();
+            const config = configManager.getConfig();
+            const keys = Object.keys(config.instances);
+            if (keys.length === 0) return undefined;
+
+            const lastKey = configManager.getLastUsedKey();
+            const lastAt = configManager.getLastUsedAt();
+            const lastIndex = lastKey ? keys.indexOf(lastKey) : -1;
+            const nextIndex = (lastIndex + 1) % keys.length;
+            const nextKey = keys[nextIndex];
+            const nextInstance = config.instances[nextKey];
+
+            return {
+                total: keys.length,
+                lastKey,
+                lastLabel: lastKey ? (config.instances[lastKey]?.description || lastKey) : undefined,
+                lastAt: lastAt,
+                nextKey,
+                nextLabel: nextInstance?.description || nextKey
+            };
+        } catch {
+            return undefined;
+        }
+    }
+
+    private async getOpenCodeInfo(): Promise<DashboardOpenCodeInfo | undefined> {
+        try {
+            const { OpenCodeCopilotAuthConfigManager } = await import('../../opencode-copilot-auth/core/configManager');
+            const cm = new OpenCodeCopilotAuthConfigManager();
+            const credentials = cm.getCredentials();
+            if (credentials.length === 0) return undefined;
+
+            const activeId = cm.getActiveId();
+            const activeCred = activeId ? cm.getCredentialById(activeId) : undefined;
+            const lastSwitchedAt = cm.getLastSwitchedAt();
+
+            // Compute next credential (round-robin)
+            const ids = credentials.map(c => c.id);
+            const lastSwitchedId = cm.getLastSwitchedId();
+            const lastIdx = lastSwitchedId ? ids.indexOf(lastSwitchedId) : -1;
+            const nextIdx = (lastIdx + 1) % ids.length;
+            const nextCred = credentials[nextIdx];
+
+            return {
+                total: credentials.length,
+                lastId: activeId || undefined,
+                lastLabel: activeCred?.name,
+                lastAt: lastSwitchedAt || undefined,
+                nextId: nextCred?.id,
+                nextLabel: nextCred?.name
+            };
+        } catch {
+            return undefined;
+        }
+    }
+
     private getLabels(): DashboardLabels {
         return {
             moduleHealth: I18n.get('dashboard.moduleHealth'),
@@ -278,6 +362,15 @@ export class DashboardBridge {
             viewAllLogs: I18n.get('modelProxy.viewAllLogs'),
             noLogs: I18n.get('modelProxy.noLogs'),
             logTime: I18n.get('modelProxy.logTime'),
+            nextUp: I18n.get('dashboard.nextUp'),
+            launcher: I18n.get('dashboard.launcher'),
+            opencode: I18n.get('dashboard.opencode'),
+            switchNow: I18n.get('dashboard.switchNow'),
+            lastSwitched: I18n.get('dashboard.lastSwitched'),
+            nextAccount: I18n.get('dashboard.nextAccount'),
+            activeAccount: I18n.get('dashboard.activeAccount'),
+            viewLauncher: I18n.get('dashboard.viewLauncher'),
+            viewOpenCode: I18n.get('dashboard.viewOpenCode'),
         };
     }
 
