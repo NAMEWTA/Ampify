@@ -277,3 +277,19 @@ export interface AvailableModel {
     /** 最大输入 tokens */
     maxInputTokens: number;
 }
+
+// ==================== OpenCode Copilot Auth Types ====================
+
+export interface CopilotCredential {
+    id: string;
+    name: string;
+    type: string;
+    access: string;
+    refresh: string;
+    expires: number;
+}
+
+export interface OpenCodeCopilotAuthConfig {
+    credentials: CopilotCredential[];
+    activeId?: string;
+}

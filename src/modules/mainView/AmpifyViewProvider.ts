@@ -21,6 +21,7 @@ import { CommandsBridge } from './bridges/commandsBridge';
 import { GitShareBridge } from './bridges/gitShareBridge';
 import { ModelProxyBridge } from './bridges/modelProxyBridge';
 import { SettingsBridge } from './bridges/settingsBridge';
+import { OpenCodeAuthBridge } from './bridges/opencodeAuthBridge';
 import { GitManager } from '../../common/git';
 import { I18n } from '../../common/i18n';
 import { SkillConfigManager } from '../skills/core/skillConfigManager';
@@ -40,6 +41,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     private gitShareBridge: GitShareBridge;
     private modelProxyBridge: ModelProxyBridge;
     private settingsBridge: SettingsBridge;
+    private opencodeAuthBridge: OpenCodeAuthBridge;
     private gitManager: GitManager;
     private lastAutoSyncAt = 0;
     private autoSyncInFlight?: Promise<void>;
@@ -55,6 +57,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         this.gitShareBridge = new GitShareBridge();
         this.modelProxyBridge = new ModelProxyBridge();
         this.settingsBridge = new SettingsBridge();
+        this.opencodeAuthBridge = new OpenCodeAuthBridge();
         this.gitManager = new GitManager();
     }
 
@@ -312,6 +315,10 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 tree = await this.gitShareBridge.getTreeData();
                 toolbar = this.gitShareBridge.getToolbar();
                 break;
+            case 'opencodeAuth':
+                tree = this.opencodeAuthBridge.getTreeData();
+                toolbar = this.opencodeAuthBridge.getToolbar();
+                break;
             case 'modelProxy':
                 await this.sendModelProxyData();
                 return;
@@ -382,6 +389,14 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 // Custom rendering handles clicks via proxyAction messages
                 break;
             }
+            case 'opencodeAuth': {
+                if (node?.nodeType === 'credential') {
+                    await this.opencodeAuthBridge.executeAction('switch', nodeId);
+                } else if (node?.nodeType === 'empty') {
+                    await this.showOpenCodeAuthAddOverlay();
+                }
+                break;
+            }
         }
     }
 
@@ -394,6 +409,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             case 'skills': tree = this.skillsBridge.getTreeData(); break;
             case 'commands': tree = this.commandsBridge.getTreeData(); break;
             case 'launcher': tree = this.launcherBridge.getTreeData(); break;
+            case 'opencodeAuth': tree = this.opencodeAuthBridge.getTreeData(); break;
         }
         return this.findNodeRecursive(tree, nodeId);
     }
@@ -448,6 +464,9 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             case 'modelProxy':
                 await this.modelProxyBridge.executeAction(actionId, nodeId);
                 break;
+            case 'opencodeAuth':
+                await this.opencodeAuthBridge.executeAction(actionId, nodeId);
+                break;
         }
         // 操作后刷新
         await this.refresh();
@@ -472,6 +491,9 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 break;
             case 'modelProxy':
                 await this.handleModelProxyToolbarAction(actionId);
+                break;
+            case 'opencodeAuth':
+                await this.handleOpenCodeAuthToolbarAction(actionId);
                 break;
         }
     }
@@ -753,6 +775,37 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
+    // ==================== OpenCode Auth Toolbar Actions ====================
+
+    private async handleOpenCodeAuthToolbarAction(actionId: string): Promise<void> {
+        switch (actionId) {
+            case 'add':
+                await this.showOpenCodeAuthAddOverlay();
+                break;
+        }
+    }
+
+    private async showOpenCodeAuthAddOverlay(): Promise<void> {
+        const fields: OverlayField[] = [
+            { key: 'name', label: I18n.get('opencodeAuth.inputName'), kind: 'text', required: true, placeholder: 'Work Account' },
+            { key: 'access', label: I18n.get('opencodeAuth.inputAccess'), kind: 'text', required: true, placeholder: 'gho_xxx' },
+            { key: 'refresh', label: I18n.get('opencodeAuth.inputRefresh'), kind: 'text', required: true, placeholder: 'gho_xxx' },
+            { key: 'type', label: I18n.get('opencodeAuth.inputType'), kind: 'text', value: 'oauth', placeholder: 'oauth' },
+            { key: 'expires', label: I18n.get('opencodeAuth.inputExpires'), kind: 'text', value: '0', placeholder: '0' }
+        ];
+
+        this.showOverlay({
+            overlayId: 'opencode-auth-add',
+            title: I18n.get('opencodeAuth.addCredential'),
+            fields,
+            submitLabel: 'Add',
+            cancelLabel: I18n.get('skills.cancel')
+        }, async (values) => {
+            if (!values) { return; }
+            await vscode.commands.executeCommand('ampify.opencodeAuth.add', values);
+        });
+    }
+
     private async showLauncherAddOverlay(): Promise<void> {
         const fields: OverlayField[] = [
             { key: 'name', label: I18n.get('launcher.inputKey'), kind: 'text', required: true, placeholder: 'work' },
@@ -987,6 +1040,25 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 }, async () => {
                     CommandConfigManager.getInstance().deleteCommand(cmdName);
                     vscode.window.showInformationMessage(I18n.get('commands.deleted', cmdName));
+                });
+                break;
+            }
+            case 'opencodeAuth': {
+                const { OpenCodeCopilotAuthConfigManager } = await import('../opencode-copilot-auth/core/configManager');
+                const configManager = new OpenCodeCopilotAuthConfigManager();
+                const credential = configManager.getCredentialById(nodeId);
+                if (!credential) { return; }
+
+                this.showConfirm({
+                    confirmId: `delete-opencode-auth-${credential.id}`,
+                    title: I18n.get('opencodeAuth.deleteConfirm', credential.name),
+                    message: I18n.get('opencodeAuth.deleteConfirm', credential.name),
+                    confirmLabel: I18n.get('skills.yes'),
+                    cancelLabel: I18n.get('skills.no'),
+                    danger: true
+                }, async () => {
+                    configManager.removeCredential(credential.id);
+                    vscode.window.showInformationMessage(I18n.get('opencodeAuth.deleted', credential.name));
                 });
                 break;
             }

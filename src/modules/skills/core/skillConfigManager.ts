@@ -44,7 +44,7 @@ export class SkillConfigManager {
      */
     protected getDefaultConfig(): SkillsManagerConfig {
         return {
-            injectTarget: '.claude/skills/'
+            injectTarget: '.agents/skills/'
         };
     }
 

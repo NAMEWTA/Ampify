@@ -5,7 +5,7 @@
 
 // ==================== 导航 Section ====================
 
-export type SectionId = 'dashboard' | 'launcher' | 'skills' | 'commands' | 'gitshare' | 'modelProxy' | 'settings';
+export type SectionId = 'dashboard' | 'launcher' | 'skills' | 'commands' | 'gitshare' | 'modelProxy' | 'settings' | 'opencodeAuth';
 
 // ==================== 通用树节点 ====================
 

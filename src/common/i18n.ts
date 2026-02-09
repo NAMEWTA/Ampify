@@ -172,6 +172,8 @@ const translations = {
         'settings.skillsInject.desc': 'Default target directory to inject skills into projects',
         'settings.commandsInject.label': 'Commands Inject Target',
         'settings.commandsInject.desc': 'Default target directory to inject commands into projects',
+        'settings.opencodeAuth.configDir.label': 'OpenCode Auth Config Dir',
+        'settings.opencodeAuth.configDir.desc': 'Storage directory for OpenCode Copilot auth credentials',
         'settings.gitUserName.label': 'Git User Name',
         'settings.gitUserName.desc': 'User name used for git commits in gitshare',
         'settings.gitUserEmail.label': 'Git User Email',
@@ -243,7 +245,24 @@ const translations = {
         'commands.fileNameMismatch': 'File name must match command field: {0}.md',
         'commands.openFolder': 'Open Folder',
         'commands.noWorkspace': 'No workspace folder open',
-        'commands.initialized': 'Commands Manager initialized'
+        'commands.initialized': 'Commands Manager initialized',
+        // OpenCode Copilot Auth translations
+        'opencodeAuth.noCredentials': 'No credentials configured',
+        'opencodeAuth.addCredential': 'Add Credential',
+        'opencodeAuth.importCurrent': 'Import from auth.json',
+        'opencodeAuth.switchSuccess': 'Switched to "{0}" and launched opencode',
+        'opencodeAuth.switchFailed': 'Failed to switch credential',
+        'opencodeAuth.deleteConfirm': 'Delete credential "{0}"?',
+        'opencodeAuth.deleted': 'Credential "{0}" deleted',
+        'opencodeAuth.importSuccess': 'Imported current credential as "{0}"',
+        'opencodeAuth.importFailed': 'Failed to import: auth.json not found or no github-copilot entry',
+        'opencodeAuth.inputName': 'Credential name',
+        'opencodeAuth.inputAccess': 'Access token',
+        'opencodeAuth.inputRefresh': 'Refresh token',
+        'opencodeAuth.inputType': 'Auth type',
+        'opencodeAuth.inputExpires': 'Expires',
+        'opencodeAuth.active': 'Active',
+        'opencodeAuth.renamed': 'Credential renamed to "{0}"'
     },
     'zh-cn': {
         'copier.noFilePath': '无法获取文件路径',
@@ -414,6 +433,8 @@ const translations = {
         'settings.skillsInject.desc': '默认 Skill 注入目标目录',
         'settings.commandsInject.label': 'Commands 注入目录',
         'settings.commandsInject.desc': '默认 Command 注入目标目录',
+        'settings.opencodeAuth.configDir.label': 'OpenCode Auth 配置目录',
+        'settings.opencodeAuth.configDir.desc': 'OpenCode Copilot 认证凭据的存储目录',
         'settings.gitUserName.label': 'Git 用户名',
         'settings.gitUserName.desc': 'gitshare 提交使用的用户名',
         'settings.gitUserEmail.label': 'Git 用户邮箱',
@@ -485,7 +506,24 @@ const translations = {
         'commands.fileNameMismatch': '文件名必须与 command 字段一致：{0}.md',
         'commands.openFolder': '打开文件夹',
         'commands.noWorkspace': '未打开工作区文件夹',
-        'commands.initialized': 'Commands Manager 已初始化'
+        'commands.initialized': 'Commands Manager 已初始化',
+        // OpenCode Copilot Auth 翻译
+        'opencodeAuth.noCredentials': '暂无凭据',
+        'opencodeAuth.addCredential': '添加凭据',
+        'opencodeAuth.importCurrent': '从 auth.json 导入',
+        'opencodeAuth.switchSuccess': '已切换到 "{0}" 并启动 opencode',
+        'opencodeAuth.switchFailed': '凭据切换失败',
+        'opencodeAuth.deleteConfirm': '确认删除凭据 "{0}"？',
+        'opencodeAuth.deleted': '凭据 "{0}" 已删除',
+        'opencodeAuth.importSuccess': '已导入当前凭据为 "{0}"',
+        'opencodeAuth.importFailed': '导入失败：auth.json 不存在或无 github-copilot 条目',
+        'opencodeAuth.inputName': '凭据名称',
+        'opencodeAuth.inputAccess': 'Access Token',
+        'opencodeAuth.inputRefresh': 'Refresh Token',
+        'opencodeAuth.inputType': '认证类型',
+        'opencodeAuth.inputExpires': '过期时间',
+        'opencodeAuth.active': '当前激活',
+        'opencodeAuth.renamed': '凭据已重命名为 "{0}"'
     }
 };
 

@@ -856,6 +856,7 @@ export function getJs(): string {
             commands: 'COMMANDS',
             gitshare: 'GIT SYNC',
             modelProxy: 'MODEL PROXY',
+            opencodeAuth: 'OPENCODE AUTH',
             settings: 'SETTINGS'
         };
         

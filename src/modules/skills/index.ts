@@ -142,7 +142,7 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
 
             try {
                 const config = configManager.getConfig();
-                const injectTarget = config.injectTarget || '.claude/skills/';
+                const injectTarget = config.injectTarget || '.agents/skills/';
                 agentMdManager.scanAndSync(workspaceRoot, injectTarget);
                 vscode.window.showInformationMessage(I18n.get('skills.agentMdSynced'));
             } catch (error) {
