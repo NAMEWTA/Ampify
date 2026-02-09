@@ -63,7 +63,7 @@
               </div>
               <div class="next-up-info" v-if="dashboardStore.data.launcher.lastAt">
                 <span class="next-up-label">{{ dashboardStore.data.labels.lastSwitched }}</span>
-                <span class="next-up-value">{{ formatRelativeTime(dashboardStore.data.launcher.lastAt) }}</span>
+                <span class="next-up-value">{{ formatLastSwitched(dashboardStore.data.launcher.lastLabel, dashboardStore.data.launcher.lastAt) }}</span>
               </div>
             </div>
             <div class="next-up-actions">
@@ -91,7 +91,7 @@
               </div>
               <div class="next-up-info" v-if="dashboardStore.data.opencode.lastAt">
                 <span class="next-up-label">{{ dashboardStore.data.labels.lastSwitched }}</span>
-                <span class="next-up-value">{{ formatRelativeTime(dashboardStore.data.opencode.lastAt) }}</span>
+                <span class="next-up-value">{{ formatLastSwitched(dashboardStore.data.opencode.lastLabel, dashboardStore.data.opencode.lastAt) }}</span>
               </div>
             </div>
             <div class="next-up-actions">
@@ -309,6 +309,12 @@ function formatRelativeTime(timestamp: number): string {
   if (hours < 24) return `${hours}h ago`
   const days = Math.floor(hours / 24)
   return `${days}d ago`
+}
+
+function formatLastSwitched(label: string | undefined, timestamp: number): string {
+  const timeText = formatRelativeTime(timestamp)
+  if (!label) return timeText
+  return `${label} · ${timeText}`
 }
 </script>
 
