@@ -295,17 +295,20 @@ export class DashboardBridge {
             const keys = Object.keys(config.instances);
             if (keys.length === 0) return undefined;
 
+            const { instanceKey } = await import('../../../extension');
             const lastKey = configManager.getLastUsedKey();
             const lastAt = configManager.getLastUsedAt();
             const lastIndex = lastKey ? keys.indexOf(lastKey) : -1;
             const nextIndex = (lastIndex + 1) % keys.length;
             const nextKey = keys[nextIndex];
             const nextInstance = config.instances[nextKey];
+            const activeKey = instanceKey || lastKey;
+            const activeInstance = activeKey ? config.instances[activeKey] : undefined;
 
             return {
                 total: keys.length,
                 lastKey,
-                lastLabel: lastKey ? (config.instances[lastKey]?.description || lastKey) : undefined,
+                lastLabel: activeKey ? (activeInstance?.description || activeKey) : undefined,
                 lastAt: lastAt,
                 nextKey,
                 nextLabel: nextInstance?.description || nextKey

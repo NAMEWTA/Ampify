@@ -7,7 +7,7 @@
     "watch": "turbo run watch",
     "clean": "turbo run clean",
     "prepackage": "node scripts/copy-assets.js",
-    "package": "pnpm run prepackage && cd packages/extension && pnpm exec vsce package"
+    "package": "pnpm run prepackage && cd packages/extension && pnpm exec vsce package --no-dependencies"
   },
   "devDependencies": {
     "@vscode/vsce": "3.0.0",

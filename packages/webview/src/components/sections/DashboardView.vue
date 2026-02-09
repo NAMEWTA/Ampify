@@ -54,7 +54,7 @@
             </div>
             <div class="next-up-body">
               <div class="next-up-info" v-if="dashboardStore.data.launcher.lastLabel">
-                <span class="next-up-label">{{ dashboardStore.data.labels.lastSwitched }}</span>
+                <span class="next-up-label">{{ dashboardStore.data.labels.activeAccount }}</span>
                 <span class="next-up-value">{{ dashboardStore.data.launcher.lastLabel }}</span>
               </div>
               <div class="next-up-info" v-if="dashboardStore.data.launcher.nextLabel">
