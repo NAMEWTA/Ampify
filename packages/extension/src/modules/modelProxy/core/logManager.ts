@@ -8,6 +8,7 @@ import * as crypto from 'crypto';
 import { ProxyLogEntry } from '../../../common/types';
 import { ensureDir } from '../../../common/paths';
 import { ProxyConfigManager } from './proxyConfigManager';
+import { getInstanceKey as getCurrentInstanceKey } from '../../../common/instanceContext';
 
 export class LogManager {
     private configManager: ProxyConfigManager;
@@ -25,8 +26,7 @@ export class LogManager {
     private getInstanceKey(): string {
         if (!this._instanceKey) {
             try {
-                const { instanceKey } = require('../../../extension');
-                this._instanceKey = instanceKey || 'main';
+                this._instanceKey = getCurrentInstanceKey() || 'main';
             } catch {
                 this._instanceKey = 'main';
             }

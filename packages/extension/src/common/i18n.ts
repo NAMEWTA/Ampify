@@ -17,6 +17,8 @@ const translations = {
         'launcher.launchFail': 'Launch failed: {0}',
         'launcher.codeNotFound': 'Executable not found or launch failed. Please ensure VS Code is installed correctly.',
         'launcher.spawnError': 'Process launch error: {0}',
+        'launcher.nameLabel': 'Name',
+        'launcher.lastSwitched': 'Last switched',
         // Skills Manager translations
         'skills.noSkills': 'No skills available',
         'skills.addSkillPlaceholder': 'Click + above to create a new skill',
@@ -322,8 +324,6 @@ const translations = {
         'dashboard.lastSwitched': 'Last Switched',
         'dashboard.nextAccount': 'Next',
         'dashboard.activeAccount': 'Active',
-        'dashboard.viewLauncher': 'View',
-        'dashboard.viewOpenCode': 'View',
         'dashboard.opencodeSection': 'OpenCode',
         'dashboard.opencodeCredentials': 'Credentials',
         // Settings - OpenCode Auth
@@ -345,6 +345,8 @@ const translations = {
         'launcher.launchFail': '启动失败: {0}',
         'launcher.codeNotFound': '未找到可执行文件或启动失败。请确保 VS Code 安装正确。',
         'launcher.spawnError': '进程启动错误: {0}',
+        'launcher.nameLabel': '名称',
+        'launcher.lastSwitched': '上次切换',
         // Skills Manager 翻译
         'skills.noSkills': '暂无可用技能',
         'skills.addSkillPlaceholder': '点击上方 + 号创建新技能',
@@ -650,8 +652,6 @@ const translations = {
         'dashboard.lastSwitched': '上次切换',
         'dashboard.nextAccount': '下一个',
         'dashboard.activeAccount': '当前激活',
-        'dashboard.viewLauncher': '查看',
-        'dashboard.viewOpenCode': '查看',
         'dashboard.opencodeSection': 'OpenCode 认证',
         'dashboard.opencodeCredentials': '凭据',
         // Settings - OpenCode Auth

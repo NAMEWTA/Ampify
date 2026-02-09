@@ -16,8 +16,10 @@ export interface TreeNode {
     subtitle?: string;
     /** Badge labels shown as small pills */
     badges?: string[];
+    /** Third line text (used in threeLine layout) */
+    tertiary?: string;
     /** Layout mode: 'default' = single-line, 'twoLine' = name + subtitle */
-    layout?: 'default' | 'twoLine';
+    layout?: 'default' | 'twoLine' | 'threeLine';
     /** Mark an inline action as always visible (by action id) */
     pinnedActionId?: string;
     iconId?: string;
@@ -151,8 +153,6 @@ export interface DashboardLabels {
     lastSwitched: string;
     nextAccount: string;
     activeAccount: string;
-    viewLauncher: string;
-    viewOpenCode: string;
 }
 
 // ==================== Toolbar ====================

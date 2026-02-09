@@ -20,7 +20,7 @@ export class ModelProxyBridge {
     /**
      * 获取 Model Proxy 仪表板数据（用于自定义渲染）
      */
-    getDashboardData(): ModelProxyDashboardData {
+    async getDashboardData(): Promise<ModelProxyDashboardData> {
         const config = this.configManager.getConfig();
         const port = this.configManager.getPort();
         const bindAddress = this.configManager.getBindAddress();
@@ -28,7 +28,7 @@ export class ModelProxyBridge {
         // 获取运行状态
         let running = false;
         try {
-            const { getProxyServer } = require('../../modelProxy/index');
+            const { getProxyServer } = await import('../../modelProxy');
             const server = getProxyServer();
             running = server?.running ?? false;
         } catch {
@@ -38,7 +38,7 @@ export class ModelProxyBridge {
         // 模型列表
         let models: ModelProxyModelInfo[] = [];
         try {
-            const { getModelBridge } = require('../../modelProxy/index');
+            const { getModelBridge } = await import('../../modelProxy');
             const bridge = getModelBridge();
             if (bridge) {
                 models = bridge.getAvailableModels().map((m: ModelProxyModelInfo) => ({
@@ -155,10 +155,10 @@ export class ModelProxyBridge {
         return [];
     }
 
-    getToolbar(): ToolbarAction[] {
+    async getToolbar(): Promise<ToolbarAction[]> {
         let running = false;
         try {
-            const { getProxyServer } = require('../../modelProxy/index');
+            const { getProxyServer } = await import('../../modelProxy');
             const server = getProxyServer();
             running = server?.running ?? false;
         } catch {

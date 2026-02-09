@@ -986,8 +986,8 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     // ==================== Model Proxy Data ====================
 
     private async sendModelProxyData(): Promise<void> {
-        const data = this.modelProxyBridge.getDashboardData();
-        const toolbar = this.modelProxyBridge.getToolbar();
+        const data = await this.modelProxyBridge.getDashboardData();
+        const toolbar = await this.modelProxyBridge.getToolbar();
         // Send toolbar via standard updateSection (for toolbar buttons)
         this.postMessage({ type: 'updateSection', section: 'modelProxy', tree: [], toolbar });
         // Then send custom dashboard data

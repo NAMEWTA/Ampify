@@ -92,7 +92,7 @@ export class DashboardBridge {
             const port = configManager.getPort();
             let running = false;
             try {
-                const { getProxyServer } = require('../../modelProxy/index');
+                const { getProxyServer } = await import('../../modelProxy');
                 const server = getProxyServer();
                 running = server?.running ?? false;
             } catch { /* ignore */ }
@@ -175,7 +175,7 @@ export class DashboardBridge {
         try {
             let running = false;
             try {
-                const { getProxyServer } = require('../../modelProxy/index');
+                const { getProxyServer } = await import('../../modelProxy');
                 const server = getProxyServer();
                 running = server?.running ?? false;
             } catch { /* ignore */ }
@@ -232,7 +232,7 @@ export class DashboardBridge {
 
             let running = false;
             try {
-                const { getProxyServer } = require('../../modelProxy/index');
+                const { getProxyServer } = await import('../../modelProxy');
                 const server = getProxyServer();
                 running = server?.running ?? false;
             } catch { /* ignore */ }
@@ -372,8 +372,6 @@ export class DashboardBridge {
             lastSwitched: I18n.get('dashboard.lastSwitched'),
             nextAccount: I18n.get('dashboard.nextAccount'),
             activeAccount: I18n.get('dashboard.activeAccount'),
-            viewLauncher: I18n.get('dashboard.viewLauncher'),
-            viewOpenCode: I18n.get('dashboard.viewOpenCode'),
         };
     }
 

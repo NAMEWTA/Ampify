@@ -38,8 +38,6 @@ export function getVueHtml(
     // 将相对路径的 asset 引用转换为 webview URI
     // Vite 输出形如: /assets/index-xxx.js, /assets/index-xxx.css
     // 或相对形如: ./assets/..., assets/...
-    const webviewBaseUri = webview.asWebviewUri(webviewOutDir);
-
     // 替换 src 和 href 中的 asset 引用为 webview URI
     // Vite 输出形如: /assets/index.js, /assets/style.css
     html = html.replace(/(src|href)="[./]*(assets\/[^"]+)"/g, (_match, attr, assetPath) => {
@@ -69,7 +67,7 @@ export function getVueHtml(
     // 注入初始状态数据（activeSection, instanceKey）供 Vue app 读取
     const initScript = `<script nonce="${nonce}">window.__AMPIFY_INIT__=${JSON.stringify({
         activeSection,
-        instanceKey // eslint-disable-line @typescript-eslint/naming-convention
+        instanceKey
     })};</script>`;
     html = html.replace('<body>', `<body>\n    ${initScript}`);
 

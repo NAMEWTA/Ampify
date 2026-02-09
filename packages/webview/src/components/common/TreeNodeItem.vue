@@ -2,8 +2,9 @@
   <div class="tree-node">
     <!-- Two-line layout (Skills / Commands) -->
     <div
-      v-if="node.layout === 'twoLine'"
+      v-if="node.layout === 'twoLine' || node.layout === 'threeLine'"
       class="tree-row tree-row--two-line"
+      :class="{ 'tree-row--three-line': node.layout === 'threeLine' }"
       :style="{ paddingLeft: `${depth * 16 + 4}px` }"
       @click="handleClick"
       @contextmenu.prevent="showContextMenu"
@@ -34,6 +35,9 @@
             >{{ badge }}</span>
             <span class="tree-badge tree-badge--more" v-if="overflowBadgeCount > 0">+{{ overflowBadgeCount }}</span>
           </span>
+        </div>
+        <div class="tree-content-row3" v-if="node.tertiary">
+          <span class="tree-tertiary" :title="node.tertiary">{{ node.tertiary }}</span>
         </div>
       </div>
 
@@ -214,6 +218,12 @@ function handleContextAction(actionId: string) {
   visibility: visible;
 }
 
+.tree-row--three-line {
+  align-items: flex-start;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
 .tree-chevron {
   display: flex;
   align-items: center;
@@ -238,6 +248,18 @@ function handleContextAction(actionId: string) {
 
 .tree-label {
   font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-content-row3 {
+  margin-top: 2px;
+}
+
+.tree-tertiary {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground, #717171);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

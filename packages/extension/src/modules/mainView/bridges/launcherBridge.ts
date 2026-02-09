@@ -19,6 +19,8 @@ export class LauncherBridge {
         const config = this.configManager.getConfig();
         const entries = Object.entries(config.instances);
         const currentKey = instanceKey; // 当前 VS Code 窗口对应的实例 key
+        const lastUsedKey = config.lastUsedKey;
+        const lastUsedAt = config.lastUsedAt;
 
         if (entries.length === 0) {
             return [{
@@ -33,13 +35,18 @@ export class LauncherBridge {
 
         return entries.map(([key, instance]) => {
             const isActive = key === currentKey;
+            const lastSwitched = key === lastUsedKey && lastUsedAt
+                ? new Date(lastUsedAt).toLocaleString()
+                : '-';
+            const tertiary = `${I18n.get('launcher.nameLabel')}: ${key} | ${I18n.get('launcher.lastSwitched')}: ${lastSwitched}`;
             return {
                 id: `launcher-${key}`,
                 label: instance.description || key,
                 subtitle: instance.dirName,
+                tertiary,
                 badges: isActive ? [I18n.get('launcher.active')] : [],
                 iconId: isActive ? 'pass-filled' : 'rocket',
-                layout: 'twoLine',
+                layout: 'threeLine',
                 nodeType: 'instance',
                 pinnedActionId: 'launch',
                 command: 'ampify.launcher.launch',

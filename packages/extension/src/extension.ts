@@ -9,6 +9,7 @@ import { registerMainView } from './modules/mainView';
 import { registerGitShare } from './modules/gitShare';
 import { registerModelProxy } from './modules/modelProxy';
 import { registerOpenCodeCopilotAuth } from './modules/opencode-copilot-auth';
+import { setInstanceKey } from './common/instanceContext';
 
 /**
  * 当前实例的 Launcher key。
@@ -67,6 +68,7 @@ export async function activate(context: vscode.ExtensionContext) {
     // 检测实例身份（从 config.json 反查）
     detectInstanceKey(context);
     console.log(`Ampify instance key: ${instanceKey || '(main instance)'}`);
+    setInstanceKey(instanceKey);
     
     // Register Main View (unified webview, must be first)
     registerMainView(context);

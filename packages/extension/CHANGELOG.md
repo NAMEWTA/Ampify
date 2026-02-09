@@ -1,18 +1,5 @@
 # Change Log
 
-## 2.4.0 - 2026-02-07
-### Changed
-- Migrate project to pnpm monorepo with Turborepo build orchestration
-- Restructure into `packages/extension`, `packages/webview`, `packages/shared`
-- Extract shared protocol types into dedicated `packages/shared` package
-- Replace npm with pnpm workspaces for dependency management
-- Update CI/CD workflow for monorepo build pipeline (pnpm + turbo)
-- Update debug/launch config for new monorepo paths
-- Add new skills: command-creator, pnpm-guide, skill-creator
-- Update AGENTS.md and development guide for monorepo structure
-- Add notes/ knowledge base generation to release command
-- Add .gitignore entries for turbo cache and tsbuildinfo
-
 ## 2.3.0 - 2026-02-07
 ### Added
 - Update API key binding management and enhance UI for bindings

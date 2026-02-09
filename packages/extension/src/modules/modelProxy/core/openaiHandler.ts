@@ -4,7 +4,6 @@
  */
 import * as http from 'http';
 import * as vscode from 'vscode';
-import * as crypto from 'crypto';
 import { ModelBridge, OpenAIChatRequest, OpenAITool, OpenAIToolChoice } from './modelBridge';
 import { LogManager } from './logManager';
 import { ProxyLogEntry, ApiKeyBinding } from '../../../common/types';

@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { I18n } from '../../../common/i18n';
 import { GitManager } from '../../../common/git';
+import { AuthSwitcher } from '../../opencode-copilot-auth/core/authSwitcher';
 import type {
     SettingsData,
     SettingsSection,
@@ -184,11 +186,9 @@ export class SettingsBridge {
 
     private getOpenCodeConfigDir(): string {
         try {
-            const { AuthSwitcher } = require('../../opencode-copilot-auth/core/authSwitcher');
             const switcher = new AuthSwitcher();
             const authPath = switcher.getAuthJsonPath();
             // Return the directory containing auth.json
-            const path = require('path');
             return path.dirname(authPath);
         } catch {
             return '~/.local/share/opencode/';
