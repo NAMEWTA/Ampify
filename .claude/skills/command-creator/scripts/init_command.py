@@ -135,7 +135,7 @@ def main():
         '--path',
         type=Path,
         default=None,
-        help='输出目录路径（默认：.claude/commands）'
+        help='输出目录路径（默认：.agents/commands）'
     )
     
     args = parser.parse_args()
