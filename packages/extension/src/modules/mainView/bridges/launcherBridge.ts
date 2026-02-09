@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import type { TreeNode, ToolbarAction } from '@ampify/shared';
 import { ConfigManager } from '../../launcher/core/configManager';
 import { I18n } from '../../../common/i18n';
+import { instanceKey } from '../../../extension';
 
 export class LauncherBridge {
     private configManager: ConfigManager;
@@ -17,7 +18,7 @@ export class LauncherBridge {
     getTreeData(): TreeNode[] {
         const config = this.configManager.getConfig();
         const entries = Object.entries(config.instances);
-        const lastUsedKey = this.configManager.getLastUsedKey();
+        const currentKey = instanceKey; // 当前 VS Code 窗口对应的实例 key
 
         if (entries.length === 0) {
             return [{
@@ -31,7 +32,7 @@ export class LauncherBridge {
         }
 
         return entries.map(([key, instance]) => {
-            const isActive = key === lastUsedKey;
+            const isActive = key === currentKey;
             return {
                 id: `launcher-${key}`,
                 label: instance.description || key,
