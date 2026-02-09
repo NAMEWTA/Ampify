@@ -6,6 +6,7 @@ Ampify is a practical, all-in-one VS Code extension that helps you move faster. 
 
 - Copy relative or absolute file paths with line ranges
 - Multi-account launcher with isolated user data per instance
+- OpenCode Copilot credential manager with quick switching
 - Skills Manager with SKILL.md metadata, search, tag filter, preview, and inject
 - Commands Manager with single-file command definitions and project injection
 - Git Share sync and diff preview for skills and commands repositories
@@ -39,6 +40,12 @@ Settings panel with root directory and language.
 
 - Open **Ampify** in the Activity Bar and switch to **Launcher**
 - Add or edit instances, then launch with a dedicated user data directory
+
+### OpenCode Copilot Auth
+
+- Switch to **OpenCode Auth** in MainView
+- Add, import, rename, delete, or switch credentials
+- Use **Switch Next** for fast cycling
 
 ### Skills Manager
 
@@ -81,6 +88,7 @@ Ampify 是一个实用型 VS Code 扩展，将**路径行号复制**、**多账�
 
 - 复制相对/绝对路径与行号范围
 - 多账户启动器（独立用户数据目录）
+- OpenCode Copilot 凭证管理与快速切换
 - Skills Manager：SKILL.md 元数据、搜索、标签过滤、预览与注入
 - Commands Manager：单文件命令管理与项目注入
 - Git Share：统一同步与差异预览
@@ -114,6 +122,12 @@ Settings：根目录与语言配置。
 
 - 在 Activity Bar 打开 **Ampify** 并切换到 **Launcher**
 - 新增或编辑实例，并以独立用户目录启动
+
+### OpenCode Copilot 认证
+
+- 在 MainView 切换到 **OpenCode Auth**
+- 新增、导入、重命名、删除或切换凭证
+- 使用 **Switch Next** 快速轮换
 
 ### Skills Manager
 

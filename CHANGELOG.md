@@ -1,5 +1,14 @@
 # Change Log
 
+## 2.3.0 - 2026-02-09
+### Added
+- Add launcher and OpenCode credential switching functionality
+- Implement OpenCode Copilot authentication management and UI integration
+- Enhance version tagging by stripping branch suffix in release workflow
+
+### Changed
+- Add .turbo to .gitignore and ensure .DS_Store is properly listed
+
 ## 2.2.0 - 2026-02-07
 ### Added
 - Enhance model proxy functionality with instance key management and improved port handling

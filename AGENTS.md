@@ -8,7 +8,8 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 4. Commands Manager：全局 Commands 库管理、单文件命令管理与项目注入。
 5. Git Share：Skills/Commands 共享仓库同步与差异预览。
 6. Model Proxy：本地 HTTP 反代理，提供 OpenAI/Anthropic 兼容接口与日志。
-7. MainView：统一 Webview 视图，集中呈现各模块数据与操作。
+7. OpenCode Copilot Auth：多凭证管理与快速切换。
+8. MainView：统一 Webview 视图，集中呈现各模块数据与操作。
 
 扩展在启动完成后激活（`onStartupFinished`），统一注册各模块命令，并在 Activity Bar 提供主入口视图。
 
@@ -36,6 +37,8 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
       - [src/modules/commands/core/](src/modules/commands/core/)：配置、导入、应用、创建
       - [src/modules/commands/templates/](src/modules/commands/templates/)：Command MD 模板
     - [src/modules/gitShare/](src/modules/gitShare/)：Git Share
+    - [src/modules/opencode-copilot-auth/](src/modules/opencode-copilot-auth/)：OpenCode Copilot Auth
+      - [src/modules/opencode-copilot-auth/core/](src/modules/opencode-copilot-auth/core/)：凭证配置与切换
     - [src/modules/modelProxy/](src/modules/modelProxy/)：Model Proxy
       - [src/modules/modelProxy/core/](src/modules/modelProxy/core/)：代理配置、鉴权、模型桥接、日志与 HTTP 服务
     - [src/modules/mainView/](src/modules/mainView/)：统一主视图（Webview）
@@ -62,7 +65,7 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 - 依赖：simple-git、yaml、@vscode/codicons
 
 ## 入口与核心逻辑
-入口函数 `activate()` 在启动完成后触发，按顺序注册：MainView → Copier → Launcher → GitShare → Skills → Commands → Model Proxy。
+入口函数 `activate()` 在启动完成后触发，按顺序注册：MainView → Copier → Launcher → GitShare → Skills → Commands → OpenCode Copilot Auth → Model Proxy。
 
 ### 复制路径逻辑（Copier）
 核心在 `buildReference()`：
@@ -100,6 +103,11 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 3. `ModelBridge` 对接 `vscode.lm` 模型并处理请求/响应格式转换
 4. `AuthManager` 负责 API Key 生成、提取与校验
 5. `LogManager` 写入 JSONL 请求日志并输出统计
+
+### OpenCode Copilot Auth 逻辑
+1. `ConfigManager` 管理 OpenCode Copilot 凭证配置与索引
+2. `AuthSwitcher` 负责凭证切换、清理与写入
+3. MainView 通过 Bridge 展示凭证列表与操作入口
 
 ### MainView 逻辑
 1. `AmpifyViewProvider` 统一渲染 7 个 section
@@ -142,6 +150,7 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 - Commands：`ampify.commands.refresh`、`ampify.commands.search`、`ampify.commands.filterByTag`、`ampify.commands.clearFilter`、`ampify.commands.create`、`ampify.commands.import`、`ampify.commands.apply`、`ampify.commands.preview`、`ampify.commands.open`、`ampify.commands.openFolder`、`ampify.commands.delete`、`ampify.commands.remove`
 - Git Share：`ampify.gitShare.refresh`、`ampify.gitShare.sync`、`ampify.gitShare.pull`、`ampify.gitShare.push`、`ampify.gitShare.commit`、`ampify.gitShare.showDiff`、`ampify.gitShare.editConfig`、`ampify.gitShare.openConfigWizard`、`ampify.gitShare.openFolder`
 - Model Proxy：`ampify.modelProxy.toggle`、`ampify.modelProxy.start`、`ampify.modelProxy.stop`、`ampify.modelProxy.copyKey`、`ampify.modelProxy.regenerateKey`、`ampify.modelProxy.copyBaseUrl`、`ampify.modelProxy.selectModel`、`ampify.modelProxy.viewLogs`、`ampify.modelProxy.refresh`
+- OpenCode Copilot Auth：`ampify.opencodeAuth.add`、`ampify.opencodeAuth.import`、`ampify.opencodeAuth.switch`、`ampify.opencodeAuth.delete`、`ampify.opencodeAuth.rename`、`ampify.opencodeAuth.switchNext`、`ampify.opencodeAuth.clear`
 
 复制命令已注册到编辑器右键菜单，模块命令在 MainView 内提供入口。
 
