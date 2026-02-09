@@ -342,6 +342,23 @@ function formatTime(ts: string): string {
 .model-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .model-tokens { font-size: 11px; color: var(--vscode-descriptionForeground, #717171); }
 
+/* Tone down el-tag in model list to match VS Code dark theme */
+.model-row :deep(.el-tag),
+.binding-row :deep(.el-tag) {
+  background: var(--vscode-badge-background, #4d4d4d);
+  color: var(--vscode-badge-foreground, #ffffff);
+  border: none;
+  font-size: 10px;
+  line-height: 16px;
+  height: 18px;
+  padding: 0 6px;
+}
+.model-row :deep(.el-tag--info),
+.binding-row :deep(.el-tag--info) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--vscode-descriptionForeground, #717171);
+}
+
 .empty-hint {
   font-size: 12px;
   color: var(--vscode-descriptionForeground, #717171);
