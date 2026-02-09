@@ -43,6 +43,8 @@ jobs:
 
       - name: Package VSIX
         run: pnpm run package
+        env:
+          VSCE_USE_PNPM: "true"
 
       - name: Create Release and Upload VSIX
         uses: softprops/action-gh-release@v2
