@@ -17,6 +17,7 @@ export class LauncherBridge {
     getTreeData(): TreeNode[] {
         const config = this.configManager.getConfig();
         const entries = Object.entries(config.instances);
+        const lastUsedKey = this.configManager.getLastUsedKey();
 
         if (entries.length === 0) {
             return [{
@@ -29,20 +30,26 @@ export class LauncherBridge {
             }];
         }
 
-        return entries.map(([key, instance]) => ({
-            id: `launcher-${key}`,
-            label: instance.description || key,
-            description: instance.dirName,
-            iconId: 'account',
-            nodeType: 'instance',
-            command: 'ampify.launcher.launch',
-            commandArgs: JSON.stringify({ key, instance }),
-            tooltip: `${instance.description || key} (${instance.dirName})`,
-            inlineActions: [
-                { id: 'launch', label: 'Launch', iconId: 'rocket' },
-                { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
-            ]
-        }));
+        return entries.map(([key, instance]) => {
+            const isActive = key === lastUsedKey;
+            return {
+                id: `launcher-${key}`,
+                label: instance.description || key,
+                subtitle: instance.dirName,
+                badges: isActive ? [I18n.get('launcher.active')] : [],
+                iconId: isActive ? 'pass-filled' : 'rocket',
+                layout: 'twoLine',
+                nodeType: 'instance',
+                pinnedActionId: 'launch',
+                command: 'ampify.launcher.launch',
+                commandArgs: JSON.stringify({ key, instance }),
+                tooltip: `${instance.description || key} (${instance.dirName})`,
+                inlineActions: [
+                    { id: 'launch', label: 'Launch', iconId: 'rocket' },
+                    { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
+                ]
+            };
+        });
     }
 
     getToolbar(): ToolbarAction[] {

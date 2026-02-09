@@ -1201,7 +1201,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                     cancelLabel: I18n.get('skills.no'),
                     danger: true
                 }, async () => {
-                    await vscode.commands.executeCommand('ampify.opencodeAuth.delete', { credentialId: credId });
+                    await vscode.commands.executeCommand('ampify.opencodeAuth.delete', credId);
                 });
                 break;
             }

@@ -53,7 +53,11 @@
               <span class="next-up-module">{{ dashboardStore.data.labels.launcher }}</span>
             </div>
             <div class="next-up-body">
-              <div class="next-up-info">
+              <div class="next-up-info" v-if="dashboardStore.data.launcher.lastLabel">
+                <span class="next-up-label">{{ dashboardStore.data.labels.lastSwitched }}</span>
+                <span class="next-up-value">{{ dashboardStore.data.launcher.lastLabel }}</span>
+              </div>
+              <div class="next-up-info" v-if="dashboardStore.data.launcher.nextLabel">
                 <span class="next-up-label">{{ dashboardStore.data.labels.nextAccount }}</span>
                 <span class="next-up-value">{{ dashboardStore.data.launcher.nextLabel }}</span>
               </div>
@@ -66,9 +70,6 @@
               <button class="next-up-btn" @click="executeCommand('ampify.launcher.switchNext')">
                 <CodiconIcon name="arrow-swap" />
                 {{ dashboardStore.data.labels.switchNow }}
-              </button>
-              <button class="text-link" @click="dashboardStore.navigateToSection('launcher')">
-                {{ dashboardStore.data.labels.viewLauncher }} →
               </button>
             </div>
           </div>
@@ -84,7 +85,7 @@
                 <span class="next-up-label">{{ dashboardStore.data.labels.activeAccount }}</span>
                 <span class="next-up-value">{{ dashboardStore.data.opencode.lastLabel }}</span>
               </div>
-              <div class="next-up-info">
+              <div class="next-up-info" v-if="dashboardStore.data.opencode.nextLabel">
                 <span class="next-up-label">{{ dashboardStore.data.labels.nextAccount }}</span>
                 <span class="next-up-value">{{ dashboardStore.data.opencode.nextLabel }}</span>
               </div>
@@ -97,9 +98,6 @@
               <button class="next-up-btn" @click="executeCommand('ampify.opencodeAuth.switchNext')">
                 <CodiconIcon name="arrow-swap" />
                 {{ dashboardStore.data.labels.switchNow }}
-              </button>
-              <button class="text-link" @click="dashboardStore.navigateToSection('opencodeAuth')">
-                {{ dashboardStore.data.labels.viewOpenCode }} →
               </button>
             </div>
           </div>
@@ -776,6 +774,17 @@ function formatRelativeTime(timestamp: number): string {
 
 .next-up-btn .codicon {
   font-size: 12px;
+}
+
+.next-up-btn--secondary {
+  border-color: var(--vscode-panel-border, #2b2b2b);
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.next-up-btn--secondary:hover {
+  background: var(--vscode-list-hoverBackground, #2a2d2e);
+  color: var(--vscode-foreground, #ffffff);
+  border-color: var(--vscode-foreground, #cccccc);
 }
 
 </style>

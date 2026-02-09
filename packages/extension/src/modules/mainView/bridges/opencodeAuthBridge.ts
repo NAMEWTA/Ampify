@@ -33,11 +33,12 @@ export class OpenCodeAuthBridge {
                 nodes.push({
                     id: `opencode-${cred.id}`,
                     label: cred.name,
-                    subtitle: isActive ? I18n.get('opencodeAuth.active') : '',
+                    subtitle: cred.access,
+                    badges: isActive ? [I18n.get('opencodeAuth.active')] : [],
                     iconId: isActive ? 'pass-filled' : 'key',
                     layout: 'twoLine',
                     nodeType: 'credentialItem',
-                    pinnedActionId: 'switch',
+                    pinnedActionId: 'rename',
                     collapsible: false,
                     tooltip: `${cred.name} (${cred.type || 'github-copilot'})`,
                     inlineActions: [
@@ -90,13 +91,13 @@ export class OpenCodeAuthBridge {
 
         switch (actionId) {
             case 'switch':
-                await vscode.commands.executeCommand('ampify.opencodeAuth.switch', { credentialId: credId });
+                await vscode.commands.executeCommand('ampify.opencodeAuth.switch', credId);
                 break;
             case 'rename':
-                await vscode.commands.executeCommand('ampify.opencodeAuth.rename', { credentialId: credId });
+                await vscode.commands.executeCommand('ampify.opencodeAuth.rename', credId);
                 break;
             case 'delete':
-                await vscode.commands.executeCommand('ampify.opencodeAuth.delete', { credentialId: credId });
+                await vscode.commands.executeCommand('ampify.opencodeAuth.delete', credId);
                 break;
         }
     }
