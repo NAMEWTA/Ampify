@@ -244,6 +244,7 @@ git push <remote-name> v<新版本号>
 - 更新指定文件：CHANGELOG.md、README.md、AGENTS.md、packages/extension/package.json，以及 `notes/` 目录下的知识库记录
 - `notes/` 知识库文件内容必须详实，不得仅复制 commit message，需结合 diff 生成有意义的描述
 - 远程名称必须通过 `git remote -v` 动态获取，不得硬编码
+- **分支限定**：所有 tag/commit 查询必须限定为当前分支 `HEAD` 可达范围，禁止跨分支扫描
 
 ## 输出格式
 

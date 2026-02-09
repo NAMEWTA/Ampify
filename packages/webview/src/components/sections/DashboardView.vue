@@ -177,7 +177,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import SectionToolbar from '@/components/common/SectionToolbar.vue'
 import CodiconIcon from '@/components/common/CodiconIcon.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
