@@ -1,5 +1,9 @@
 # Change Log
 
+## 3.1.0 - 2026-02-09
+### Added
+- update next-up info to display last switched label with timestamp
+
 ## 3.0.0 - 2026-02-09
 ### Added
 - Migrate to pnpm monorepo architecture with Turborepo for efficient package management and task orchestration

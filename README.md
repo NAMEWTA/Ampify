@@ -7,7 +7,7 @@ Ampify is a practical, all-in-one VS Code extension that helps you move faster. 
 ## Features
 
 - Copy relative or absolute file paths with line ranges
-- Multi-account launcher with isolated user data per instance
+- Multi-account launcher with isolated user data per instance and last switched label timestamp display
 - Skills Manager with SKILL.md metadata, search, tag filter, preview, and inject
 - Commands Manager with single-file command definitions and project injection
 - Git Share sync and diff preview for skills and commands repositories
