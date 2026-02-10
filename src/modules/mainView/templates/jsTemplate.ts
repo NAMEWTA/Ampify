@@ -23,6 +23,7 @@ export function getJs(): string {
     let dropOverlay = null;
     let dragDepth = 0;
     let viewModes = { skills: 'cards', commands: 'cards' };
+    let compactListMode = false;
 
     // Restore persisted state
     const persistedState = vscode.getState();
@@ -1122,17 +1123,27 @@ export function getJs(): string {
 
     // ==================== Section Rendering ====================
     function renderSection(section, tree, toolbarActions, tags, activeTags, cards) {
+        currentSection = section;
         currentTreeData = tree || [];
         currentCards = cards || [];
         currentTags = tags || [];
         currentActiveTags = activeTags || [];
-        renderToolbar(section, toolbarActions);
+        currentToolbarActions = toolbarActions || [];
+        renderToolbar(section, currentToolbarActions);
 
         if (section === 'skills' || section === 'commands') {
-            renderCardsSection(section, currentCards, currentTags, currentActiveTags);
+            const mode = getViewMode(section);
+            if (mode === 'cards') {
+                compactListMode = false;
+                renderCardsSection(section, currentCards, currentTags, currentActiveTags);
+            } else {
+                compactListMode = true;
+                renderTree(currentTreeData, currentTags, currentActiveTags);
+            }
             return;
         }
 
+        compactListMode = false;
         renderTree(currentTreeData, currentTags, currentActiveTags);
     }
 
@@ -1151,15 +1162,31 @@ export function getJs(): string {
         
         let html = \`<span class="toolbar-title">\${titles[section] || section.toUpperCase()}</span>\`;
 
+        const actionButtons = [];
         if (actions && actions.length > 0) {
-            html += '<div class="toolbar-actions">';
             for (const action of actions) {
-                html += \`
+                actionButtons.push(\`
                     <button class="toolbar-btn" title="\${action.label}" data-command="\${action.command}" data-action-type="\${action.action || 'command'}" data-action-id="\${action.id}">
                         <i class="codicon codicon-\${action.iconId}"></i>
                     </button>
-                \`;
+                \`);
             }
+        }
+
+        if (section === 'skills' || section === 'commands') {
+            const mode = getViewMode(section);
+            const icon = mode === 'cards' ? 'list-tree' : 'dashboard';
+            const title = mode === 'cards' ? 'List View' : 'Card View';
+            actionButtons.push(\`
+                <button class="toolbar-btn toolbar-btn--view-toggle" title="\${title}" data-action-type="local" data-action-id="toggleView">
+                    <i class="codicon codicon-\${icon}"></i>
+                </button>
+            \`);
+        }
+
+        if (actionButtons.length > 0) {
+            html += '<div class="toolbar-actions">';
+            html += actionButtons.join('');
             html += '</div>';
         }
 
@@ -1168,7 +1195,9 @@ export function getJs(): string {
         toolbar.querySelectorAll('.toolbar-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const actionType = btn.dataset.actionType;
-                if (actionType === 'overlay') {
+                if (actionType === 'local') {
+                    handleLocalToolbarAction(btn.dataset.actionId);
+                } else if (actionType === 'overlay') {
                     vscode.postMessage({
                         type: 'toolbarAction',
                         actionId: btn.dataset.actionId,
@@ -1179,6 +1208,31 @@ export function getJs(): string {
                 }
             });
         });
+    }
+
+    function handleLocalToolbarAction(actionId) {
+        if (actionId === 'toggleView') {
+            toggleViewMode(currentSection);
+        }
+    }
+
+    function getViewMode(section) {
+        return viewModes[section] || 'cards';
+    }
+
+    function setViewMode(section, mode) {
+        viewModes[section] = mode;
+        saveState();
+    }
+
+    function toggleViewMode(section) {
+        if (section !== 'skills' && section !== 'commands') {
+            return;
+        }
+        const current = getViewMode(section);
+        const next = current === 'cards' ? 'list' : 'cards';
+        setViewMode(section, next);
+        renderSection(section, currentTreeData, currentToolbarActions, currentTags, currentActiveTags, currentCards);
     }
 
     // ==================== Cards Rendering ====================
@@ -1480,7 +1534,8 @@ export function getJs(): string {
 
         const row = document.createElement('div');
         row.className = 'tree-row';
-        if (node.layout === 'twoLine' || node.layout === 'threeLine') {
+        const useMultiLine = !compactListMode && (node.layout === 'twoLine' || node.layout === 'threeLine');
+        if (useMultiLine) {
             row.classList.add('tree-row--two-line');
             if (node.layout === 'threeLine') row.classList.add('tree-row--three-line');
         }
@@ -1507,7 +1562,7 @@ export function getJs(): string {
             row.appendChild(icon);
         }
 
-        if (node.layout === 'twoLine' || node.layout === 'threeLine') {
+        if (useMultiLine) {
             const content = document.createElement('div');
             content.className = 'tree-content';
 
@@ -1571,10 +1626,23 @@ export function getJs(): string {
             if (node.tooltip) label.title = node.tooltip;
             row.appendChild(label);
 
-            if (node.description) {
+            let descriptionText = node.description;
+            if (compactListMode) {
+                const parts = [];
+                if (node.subtitle) parts.push(node.subtitle);
+                if (node.badges && node.badges.length > 0) {
+                    parts.push(node.badges.join(', '));
+                }
+                if (parts.length > 0) {
+                    descriptionText = parts.join(' · ');
+                }
+            }
+
+            if (descriptionText) {
                 const desc = document.createElement('span');
                 desc.className = 'tree-description';
-                desc.textContent = node.description;
+                desc.textContent = descriptionText;
+                desc.title = descriptionText;
                 row.appendChild(desc);
             }
         }
@@ -2142,7 +2210,8 @@ export function getJs(): string {
         vscode.setState({
             navExpanded,
             currentSection,
-            expandedNodes: Array.from(expandedNodes)
+            expandedNodes: Array.from(expandedNodes),
+            viewModes
         });
     }
 
