@@ -1,5 +1,14 @@
 # Change Log
 
+## 2.4.0 - 2026-02-10
+### Added
+- Add cards/list view toggle for Skills and Commands
+- Improve MainView compact list layout with badges and descriptions
+- Track last used timestamp for launcher entries
+
+### Changed
+- Restrict automated release tag and log queries to current branch
+
 ## 2.3.0 - 2026-02-09
 ### Added
 - Add launcher and OpenCode credential switching functionality

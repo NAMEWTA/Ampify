@@ -9,6 +9,7 @@ Ampify is a practical, all-in-one VS Code extension that helps you move faster. 
 - OpenCode Copilot credential manager with quick switching
 - Skills Manager with SKILL.md metadata, search, tag filter, preview, and inject
 - Commands Manager with single-file command definitions and project injection
+- Skills/Commands cards and list view toggle with compact list layout
 - Git Share sync and diff preview for skills and commands repositories
 - Model Proxy: local HTTP reverse proxy (OpenAI + Anthropic compatible) with API key, model routing, instance management, and logs
 - Enhanced Anthropic handler with tool integration, SSE support, and improved request serialization
@@ -52,12 +53,14 @@ Settings panel with root directory and language.
 - Switch to **Skills** in MainView
 - Create or import Skills (must include **SKILL.md** frontmatter)
 - Search, filter by tag, preview, and apply skills to a workspace
+- Use the cards/list toggle to switch view modes
 - Auto-generate a hierarchical **SKILLS.md** index and reference it from **AGENTS.md**
 
 ### Commands Manager
 
 - Switch to **Commands** in MainView
 - Create or import commands, then preview and apply to the project
+- Use the cards/list toggle to switch view modes
 - Inject target can be customized via `ampify.commands.injectTarget`
 
 ### Git Share
@@ -91,6 +94,7 @@ Ampify 是一个实用型 VS Code 扩展，将**路径行号复制**、**多账�
 - OpenCode Copilot 凭证管理与快速切换
 - Skills Manager：SKILL.md 元数据、搜索、标签过滤、预览与注入
 - Commands Manager：单文件命令管理与项目注入
+- Skills/Commands 卡片与列表视图切换（紧凑列表布局）
 - Git Share：统一同步与差异预览
 - Model Proxy：本地 HTTP 反代（兼容 OpenAI/Anthropic），支持实例管理、API Key、模型路由与日志
 - 增强的 Anthropic 处理器：工具集成、SSE 支持与改进的请求序列化
@@ -134,12 +138,14 @@ Settings：根目录与语言配置。
 - 切换到 **Skills**
 - 创建/导入 Skills（必须包含 **SKILL.md** frontmatter）
 - 搜索、标签过滤、预览并注入项目
+- 使用卡片/列表切换按钮选择视图模式
 - 自动生成层级化 **SKILLS.md** 清单，并在 **AGENTS.md** 中引用
 
 ### Commands Manager
 
 - 切换到 **Commands**
 - 创建/导入命令并预览与注入
+- 使用卡片/列表切换按钮选择视图模式
 - 注入目标可通过 `ampify.commands.injectTarget` 自定义
 
 ### Git Share
