@@ -2228,6 +2228,19 @@ html, body {
     opacity: 0.8;
 }
 
+.toolbar-btn--view-toggle {
+    width: auto;
+    padding: 0 6px;
+    gap: 4px;
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.25));
+}
+
+.toolbar-btn-text {
+    font-size: 10px;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
 .toolbar-btn:hover {
     background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
     opacity: 1;
@@ -2469,6 +2482,54 @@ html, body {
     padding-bottom: 4px;
 }
 
+.tree-row--compact .tree-label--compact {
+    min-width: 0;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+}
+
+.tree-compact-content {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.tree-row--compact .tree-badges--compact {
+    justify-self: end;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.tree-row--compact .tree-description--compact {
+    min-width: 0;
+    margin-left: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+
+.tree-row--compact {
+    align-items: flex-start;
+}
+
+.tree-row--compact .tree-compact-content {
+    align-items: flex-start;
+}
+
+.tree-row--compact.compact-hide-desc .tree-description--compact {
+    display: none;
+}
+
+.tree-row--compact.compact-hide-tags .tree-badges--compact {
+    display: none;
+}
+
 .tree-chevron,
 .tree-chevron-placeholder {
     width: 16px;
@@ -2545,6 +2606,15 @@ html, body {
     margin-left: auto;
     color: var(--vscode-descriptionForeground, #717171);
     font-size: 11px;
+    white-space: nowrap;
+}
+
+.tree-row--compact .tree-description--compact {
+    margin-left: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
     white-space: nowrap;
 }
 

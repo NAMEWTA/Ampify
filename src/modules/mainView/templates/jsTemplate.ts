@@ -43,6 +43,13 @@ export function getJs(): string {
         setupContextMenuDismiss();
         setupDragDrop();
         setupProxyActions();
+        window.addEventListener('resize', () => {
+            if (!compactListMode) { return; }
+            const container = document.querySelector('.tree-container');
+            if (container) {
+                applyCompactLayout(container);
+            }
+        });
 
         // Apply persisted nav state
         const navRail = document.querySelector('.nav-rail');
@@ -1175,11 +1182,13 @@ export function getJs(): string {
 
         if (section === 'skills' || section === 'commands') {
             const mode = getViewMode(section);
-            const icon = mode === 'cards' ? 'list-tree' : 'dashboard';
+            const icon = mode === 'cards' ? 'list-unordered' : 'dashboard';
             const title = mode === 'cards' ? 'List View' : 'Card View';
+            const label = mode === 'cards' ? 'List' : 'Cards';
             actionButtons.push(\`
                 <button class="toolbar-btn toolbar-btn--view-toggle" title="\${title}" data-action-type="local" data-action-id="toggleView">
                     <i class="codicon codicon-\${icon}"></i>
+                    <span class="toolbar-btn-text">\${label}</span>
                 </button>
             \`);
         }
@@ -1498,6 +1507,14 @@ export function getJs(): string {
         }
         
         body.appendChild(container);
+
+        if (compactListMode) {
+            requestAnimationFrame(() => applyCompactLayout(container));
+        }
+    }
+
+    function applyCompactLayout(container) {
+        return;
     }
 
     function renderTagChips(tags, activeTags) {
@@ -1535,6 +1552,9 @@ export function getJs(): string {
         const row = document.createElement('div');
         row.className = 'tree-row';
         const useMultiLine = !compactListMode && (node.layout === 'twoLine' || node.layout === 'threeLine');
+        if (compactListMode) {
+            row.classList.add('tree-row--compact');
+        }
         if (useMultiLine) {
             row.classList.add('tree-row--two-line');
             if (node.layout === 'threeLine') row.classList.add('tree-row--three-line');
@@ -1620,30 +1640,59 @@ export function getJs(): string {
 
             row.appendChild(content);
         } else {
-            const label = document.createElement('span');
-            label.className = 'tree-label';
-            label.textContent = node.label;
-            if (node.tooltip) label.title = node.tooltip;
-            row.appendChild(label);
-
-            let descriptionText = node.description;
             if (compactListMode) {
-                const parts = [];
-                if (node.subtitle) parts.push(node.subtitle);
-                if (node.badges && node.badges.length > 0) {
-                    parts.push(node.badges.join(', '));
-                }
-                if (parts.length > 0) {
-                    descriptionText = parts.join(' · ');
-                }
-            }
+                const compactContent = document.createElement('div');
+                compactContent.className = 'tree-compact-content';
 
-            if (descriptionText) {
-                const desc = document.createElement('span');
-                desc.className = 'tree-description';
-                desc.textContent = descriptionText;
-                desc.title = descriptionText;
-                row.appendChild(desc);
+                const label = document.createElement('span');
+                label.className = 'tree-label tree-label--compact';
+                label.textContent = node.label;
+                if (node.tooltip) label.title = node.tooltip;
+                compactContent.appendChild(label);
+
+                const descriptionText = node.description || node.subtitle || node.tertiary || '';
+                if (descriptionText) {
+                    const desc = document.createElement('span');
+                    desc.className = 'tree-description tree-description--compact';
+                    desc.textContent = descriptionText;
+                    desc.title = descriptionText;
+                    compactContent.appendChild(desc);
+                }
+
+                if (node.badges && node.badges.length > 0) {
+                    const badgeWrap = document.createElement('span');
+                    badgeWrap.className = 'tree-badges tree-badges--compact';
+                    const maxBadges = 3;
+                    const display = node.badges.slice(0, maxBadges);
+                    for (const badge of display) {
+                        const badgeEl = document.createElement('span');
+                        badgeEl.className = 'tree-badge';
+                        badgeEl.textContent = badge;
+                        badgeWrap.appendChild(badgeEl);
+                    }
+                    if (node.badges.length > maxBadges) {
+                        const more = document.createElement('span');
+                        more.className = 'tree-badge tree-badge--more';
+                        more.textContent = '…';
+                        badgeWrap.appendChild(more);
+                    }
+                    compactContent.appendChild(badgeWrap);
+                }
+
+                row.appendChild(compactContent);
+            } else {
+                const label = document.createElement('span');
+                label.className = 'tree-label';
+                label.textContent = node.label;
+                if (node.tooltip) label.title = node.tooltip;
+                row.appendChild(label);
+
+                if (node.description) {
+                    const desc = document.createElement('span');
+                    desc.className = 'tree-description';
+                    desc.textContent = node.description;
+                    row.appendChild(desc);
+                }
             }
         }
 
