@@ -1,6 +1,6 @@
 # Change Log
 
-## 2.4.0 - 2026-02-10
+## 3.1.0 - 2026-02-10
 ### Added
 - Add cards/list view toggle for Skills and Commands
 - Improve MainView compact list layout with badges and descriptions
