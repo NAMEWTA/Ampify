@@ -26,7 +26,8 @@ export class CommandApplier {
      */
     public getInjectTarget(workspaceRoot: string): string {
         const config = vscode.workspace.getConfiguration('ampify');
-        const target = config.get<string>('commands.injectTarget') || '.claude/commands/';
+        let target = config.get<string>('commands.injectTarget') || '.agents/commands/';
+        target = this.normalizeInjectTarget(target);
         return path.join(workspaceRoot, target);
     }
 
@@ -39,9 +40,13 @@ export class CommandApplier {
             ensureDir(targetDir);
 
             const targetPath = path.join(targetDir, `${command.meta.command}.md`);
-            
-            // 复制文件
-            fs.copyFileSync(command.path, targetPath);
+
+            if (fs.existsSync(targetPath)) {
+                fs.rmSync(targetPath, { force: true });
+            }
+
+            // 使用软链注入命令文件（Windows 需要开启开发者模式或管理员权限）
+            fs.symlinkSync(command.path, targetPath, 'file');
 
             vscode.window.showInformationMessage(
                 I18n.get('commands.applied', command.meta.command)
@@ -65,7 +70,7 @@ export class CommandApplier {
             const targetPath = path.join(targetDir, `${commandName}.md`);
 
             if (fs.existsSync(targetPath)) {
-                fs.unlinkSync(targetPath);
+                fs.rmSync(targetPath, { force: true });
                 vscode.window.showInformationMessage(
                     I18n.get('commands.removed', commandName)
                 );
@@ -103,5 +108,12 @@ export class CommandApplier {
         return files
             .filter(f => f.endsWith('.md'))
             .map(f => path.basename(f, '.md'));
+    }
+
+    private normalizeInjectTarget(target: string): string {
+        if (/^\.claude([\\/]|$)/.test(target)) {
+            return target.replace(/^\.claude(?=[\\/]|$)/, '.agents');
+        }
+        return target;
     }
 }

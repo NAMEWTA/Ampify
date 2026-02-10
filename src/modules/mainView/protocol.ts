@@ -16,6 +16,16 @@ export interface TreeNode {
     label: string;
     /** 描述文本（显示在标签右侧） */
     description?: string;
+    /** 第二行文本（twoLine 布局） */
+    subtitle?: string;
+    /** 徽标（标签） */
+    badges?: string[];
+    /** 第三行文本（threeLine 布局） */
+    tertiary?: string;
+    /** 布局模式 */
+    layout?: 'default' | 'twoLine' | 'threeLine';
+    /** 固定显示的行内操作 */
+    pinnedActionId?: string;
     /** Codicon 图标 ID，如 'account', 'extensions' */
     iconId?: string;
     /** 图标颜色 CSS（通过 ThemeColor name 或 hex） */
@@ -56,11 +66,16 @@ export interface TreeAction {
 export interface DashboardData {
     stats: DashboardStat[];
     quickActions: QuickAction[];
+    moduleHealth?: ModuleHealthItem[];
+    gitInfo?: DashboardGitInfo;
+    proxyInfo?: DashboardProxyInfo;
+    workspaceInfo?: DashboardWorkspaceInfo;
+    recentLogs?: ModelProxyLogInfo[];
     launcher?: DashboardLauncherInfo;
     opencode?: DashboardOpenCodeInfo;
     activity?: DashboardActivityItem[];
     modelProxy?: DashboardModelProxyInfo;
-    labels?: DashboardLabels;
+    labels: DashboardLabels;
 }
 
 export interface DashboardLauncherInfo {
@@ -99,6 +114,20 @@ export interface DashboardModelProxyInfo {
 }
 
 export interface DashboardLabels {
+    moduleHealth: string;
+    gitInfo: string;
+    proxyPanel: string;
+    proxyRunning: string;
+    quickActions: string;
+    viewDetail: string;
+    copyBaseUrl: string;
+    gitSync: string;
+    gitPull: string;
+    gitPush: string;
+    recentLogs: string;
+    viewAllLogs: string;
+    noLogs: string;
+    logTime: string;
     nextUp: string;
     launcher: string;
     opencode: string;
@@ -106,19 +135,6 @@ export interface DashboardLabels {
     lastSwitched: string;
     nextAccount: string;
     activeAccount: string;
-    recentUpdates: string;
-    noRecentUpdates: string;
-    statsTitle: string;
-    quickActionsTitle: string;
-    urlLabel: string;
-    statusOk: string;
-    modelProxy: string;
-    modelProxyRunning: string;
-    modelProxyStopped: string;
-    modelProxyLastError: string;
-    modelProxyHealthy: string;
-    viewLauncher: string;
-    viewOpenCode: string;
 }
 
 export interface DashboardStat {
@@ -126,6 +142,8 @@ export interface DashboardStat {
     value: number | string;
     iconId: string;
     color?: string;
+    /** 点击跳转到的 Section */
+    targetSection?: SectionId;
 }
 
 export interface QuickAction {
@@ -137,6 +155,42 @@ export interface QuickAction {
     action?: 'command' | 'toolbar';
     section?: SectionId;
     actionId?: string;
+}
+
+export type ModuleHealthStatus = 'active' | 'inactive' | 'warning' | 'error';
+
+export interface ModuleHealthItem {
+    moduleId: SectionId;
+    label: string;
+    status: ModuleHealthStatus;
+    detail: string;
+    iconId: string;
+    color: string;
+}
+
+export interface DashboardGitInfo {
+    initialized: boolean;
+    branch: string;
+    remoteUrl: string;
+    hasRemote: boolean;
+    unpushedCount: number;
+    hasChanges: boolean;
+    changedFileCount: number;
+}
+
+export interface DashboardProxyInfo {
+    running: boolean;
+    port: number;
+    baseUrl: string;
+    todayRequests: number;
+    todayTokens: number;
+    todayErrors: number;
+    avgLatencyMs: number;
+    bindingCount: number;
+}
+
+export interface DashboardWorkspaceInfo {
+    workspaceName: string;
 }
 
 // ==================== 工具栏操作 ====================
@@ -240,8 +294,12 @@ export interface ModelProxyLabels {
     apiKey: string;
     copy: string;
     regenerate: string;
+    bindings?: string;
     availableModels: string;
     noModels: string;
+    addBinding: string;
+    removeBinding: string;
+    noBindings: string;
     recentLogs: string;
     tokensMax: string;
     openLogsFolder: string;
@@ -310,6 +368,45 @@ export interface LogQueryResult {
     totalPages: number;
 }
 
+// ==================== Card Item (Skills / Commands grid view) ====================
+
+export interface CardFileNode {
+    /** Unique id (absolute path for files) */
+    id: string;
+    /** Display name */
+    name: string;
+    /** Is this a directory? */
+    isDirectory: boolean;
+    /** Children (for directories) */
+    children?: CardFileNode[];
+}
+
+export interface CardAction {
+    id: string;
+    label: string;
+    iconId?: string;
+    danger?: boolean;
+}
+
+export interface CardItem {
+    /** Unique id, e.g. "skill-my-skill" or "cmd-build-project" */
+    id: string;
+    /** Display name */
+    name: string;
+    /** Description text */
+    description: string;
+    /** Tag badges */
+    badges?: string[];
+    /** Icon codicon id */
+    iconId?: string;
+    /** Primary file to open on click (e.g. SKILL.md path) */
+    primaryFilePath?: string;
+    /** File tree for dialog (Skills only, Commands are single files) */
+    fileTree?: CardFileNode[];
+    /** Action buttons */
+    actions?: CardAction[];
+}
+
 export interface SettingsOption {
     label: string;
     value: string;
@@ -332,6 +429,8 @@ export interface SettingsField {
     options?: SettingsOption[];
     /** 输入框右侧的操作按钮 */
     action?: SettingsFieldAction;
+    /** 只读显示 */
+    readOnly?: boolean;
 }
 
 export interface SettingsSection {
@@ -347,6 +446,7 @@ export interface SettingsData {
 // ==================== Webview → Extension 消息 ====================
 
 export type WebviewMessage =
+    | { type: 'request'; id: string; method: string; params?: unknown }
     | { type: 'switchSection'; section: SectionId }
     | { type: 'executeCommand'; command: string; args?: string }
     | { type: 'treeItemClick'; nodeId: string; section: SectionId }
@@ -355,6 +455,7 @@ export type WebviewMessage =
     | { type: 'toggleNav' }
     | { type: 'ready' }
     | { type: 'dropFiles'; uris: string[]; section: SectionId }
+    | { type: 'dropEmpty'; section: SectionId }
     | { type: 'changeSetting'; key: string; value: string; scope: SettingsScope }
     | { type: 'settingsAction'; command: string }
     | { type: 'quickAction'; actionId: string; section: SectionId }
@@ -371,12 +472,17 @@ export type WebviewMessage =
     | { type: 'removeProxyBinding'; bindingId: string }
     | { type: 'copyProxyBindingKey'; bindingId: string }
     | { type: 'requestLogFiles' }
-    | { type: 'queryLogs'; date: string; page: number; pageSize: number; statusFilter: 'all' | 'success' | 'error'; keyword?: string };
+    | { type: 'queryLogs'; date: string; page: number; pageSize: number; statusFilter: 'all' | 'success' | 'error'; keyword?: string }
+    | { type: 'cardClick'; section: SectionId; cardId: string }
+    | { type: 'cardAction'; section: SectionId; cardId: string; actionId: string }
+    | { type: 'cardFileClick'; section: SectionId; cardId: string; filePath: string };
 
 // ==================== Extension → Webview 消息 ====================
 
 export type ExtensionMessage =
-    | { type: 'updateSection'; section: SectionId; tree: TreeNode[]; toolbar: ToolbarAction[]; tags?: string[]; activeTags?: string[] }
+    | { type: 'response'; id: string; result?: unknown; error?: string }
+    | { type: 'event'; event: string; data?: unknown }
+    | { type: 'updateSection'; section: SectionId; tree: TreeNode[]; toolbar: ToolbarAction[]; tags?: string[]; activeTags?: string[]; cards?: CardItem[] }
     | { type: 'updateDashboard'; data: DashboardData }
     | { type: 'setActiveSection'; section: SectionId }
     | { type: 'showNotification'; message: string; level: 'info' | 'warn' | 'error' }

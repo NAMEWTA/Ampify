@@ -3,6 +3,7 @@ export interface InstanceConfig {
     description: string;
     vscodeArgs: string[];
     defaultProject?: string;
+    lastUsedAt?: number;
 }
 
 export interface LauncherConfig {
@@ -289,6 +290,7 @@ export interface CopilotCredential {
     access: string;
     refresh: string;
     expires: number;
+    lastUsedAt?: number;
 }
 
 export interface OpenCodeCopilotAuthConfig {

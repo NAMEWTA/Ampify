@@ -54,7 +54,8 @@ export class SettingsBridge {
                         value: opencodeAuthRelative,
                         kind: 'text',
                         scope: 'vscode',
-                        placeholder: opencodeAuthRelative
+                        placeholder: opencodeAuthRelative,
+                        readOnly: true
                     },
                     {
                         key: 'language',

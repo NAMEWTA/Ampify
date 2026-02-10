@@ -90,6 +90,10 @@ export class OpenCodeCopilotAuthConfigManager extends BaseConfigManager<OpenCode
         const config = this.getConfig();
         config.lastSwitchedId = id;
         config.lastSwitchedAt = Date.now();
+        const target = (config.credentials || []).find((cred) => cred.id === id);
+        if (target) {
+            target.lastUsedAt = config.lastSwitchedAt;
+        }
         this.saveConfig(config);
     }
 }

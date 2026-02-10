@@ -71,7 +71,12 @@ export class SkillConfigManager {
             }
             const content = fs.readFileSync(this.configPath, 'utf8');
             const config = JSON.parse(content) as SkillsManagerConfig;
-
+            const fallback = this.getDefaultConfig().injectTarget ?? '.agents/skills/';
+            const normalized = this.normalizeInjectTarget(config.injectTarget ?? fallback);
+            if (normalized !== config.injectTarget) {
+                config.injectTarget = normalized;
+                this.saveConfig(config);
+            }
             return config;
         } catch (error) {
             console.error('Failed to read skills config', error);
@@ -84,6 +89,13 @@ export class SkillConfigManager {
      */
     public saveConfig(config: SkillsManagerConfig): void {
         fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf8');
+    }
+
+    private normalizeInjectTarget(target: string): string {
+        if (/^\.claude([\\/]|$)/.test(target)) {
+            return target.replace(/^\.claude(?=[\\/]|$)/, '.agents');
+        }
+        return target;
     }
 
     /**

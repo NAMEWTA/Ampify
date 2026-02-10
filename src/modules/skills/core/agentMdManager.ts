@@ -25,6 +25,7 @@ export class AgentMdManager {
      * 扫描并同步：生成 SKILLS.md 和更新 AGENTS.md 引用
      */
     public scanAndSync(workspaceRoot: string, injectTarget: string): void {
+        injectTarget = this.normalizeInjectTarget(injectTarget);
         const targetDir = path.isAbsolute(injectTarget)
             ? injectTarget
             : path.join(workspaceRoot, injectTarget);
@@ -133,7 +134,7 @@ export class AgentMdManager {
      */
     private generateSkillsMd(workspaceRoot: string, injectTarget: string, skills: SkillMeta[]): string {
         // SKILLS.md 放在 injectTarget 的父目录
-        // 例如 injectTarget = '.agents/skills/' => SKILLS.md 在 '.claude/SKILLS.md'
+        // 例如 injectTarget = '.agents/skills/' => SKILLS.md 在 '.agents/SKILLS.md'
         const normalizedTarget = injectTarget.replace(/\/$/, '').replace(/\\$/, '');
         const targetParent = path.dirname(normalizedTarget);
         const skillsMdRelativePath = targetParent === '.'
@@ -155,6 +156,13 @@ export class AgentMdManager {
         fs.writeFileSync(skillsMdAbsPath, content, 'utf8');
 
         return skillsMdRelativePath;
+    }
+
+    private normalizeInjectTarget(target: string): string {
+        if (/^\.claude([\\/]|$)/.test(target)) {
+            return target.replace(/^\.claude(?=[\\/]|$)/, '.agents');
+        }
+        return target;
     }
 
     /**

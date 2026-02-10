@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { TreeNode, ToolbarAction } from '../protocol';
 import { ConfigManager } from '../../launcher/core/configManager';
 import { I18n } from '../../../common/i18n';
+import { instanceKey } from '../../../extension';
 
 export class LauncherBridge {
     private configManager: ConfigManager;
@@ -29,20 +30,43 @@ export class LauncherBridge {
             }];
         }
 
-        return entries.map(([key, instance]) => ({
-            id: `launcher-${key}`,
-            label: instance.description || key,
-            description: instance.dirName,
-            iconId: 'account',
-            nodeType: 'instance',
-            command: 'ampify.launcher.launch',
-            commandArgs: JSON.stringify({ key, instance }),
-            tooltip: `${instance.description || key} (${instance.dirName})`,
-            inlineActions: [
-                { id: 'launch', label: 'Launch', iconId: 'rocket' },
-                { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
-            ]
-        }));
+        const activeKey = instanceKey || config.lastUsedKey;
+
+        return entries.map(([key, instance]) => {
+            const isActive = activeKey === key;
+            const label = instance.description || key;
+            const parts: string[] = [];
+
+            if (isActive) {
+                parts.push(I18n.get('launcher.active'));
+            }
+
+            if (instance.dirName && instance.dirName !== label) {
+                parts.push(instance.dirName);
+            }
+
+            const lastUsedAt = instance.lastUsedAt ?? (config.lastUsedKey === key ? config.lastUsedAt : undefined);
+            if (lastUsedAt) {
+                parts.push(`${I18n.get('launcher.lastActive')}${formatTime(lastUsedAt)}`);
+            } else {
+                parts.push(`${I18n.get('launcher.lastActive')}—`);
+            }
+
+            return {
+                id: `launcher-${key}`,
+                label,
+                description: parts.join(' · '),
+                iconId: isActive ? 'pass-filled' : 'account',
+                nodeType: 'instance',
+                command: 'ampify.launcher.launch',
+                commandArgs: JSON.stringify({ key, instance }),
+                tooltip: `${label} (${instance.dirName})${isActive ? ` · ${I18n.get('launcher.active')}` : ''}`,
+                inlineActions: [
+                    { id: 'switch', label: I18n.get('launcher.switch'), iconId: 'arrow-swap' },
+                    { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
+                ]
+            };
+        });
     }
 
     getToolbar(): ToolbarAction[] {
@@ -59,6 +83,7 @@ export class LauncherBridge {
         const instance = config.instances[key];
 
         switch (actionId) {
+            case 'switch':
             case 'launch':
                 if (instance) {
                     // 构造与原 InstanceItem 兼容的对象
@@ -81,5 +106,14 @@ export class LauncherBridge {
                 }
                 break;
         }
+    }
+}
+
+function formatTime(value?: number): string {
+    if (!value) { return '—'; }
+    try {
+        return new Date(value).toLocaleString();
+    } catch {
+        return '—';
     }
 }

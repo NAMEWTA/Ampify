@@ -6,7 +6,6 @@ import { promisify } from 'util';
 import { SkillConfigManager } from './skillConfigManager';
 import { LoadedSkill, Prerequisite } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
-import { copyDir } from '../../../common/paths';
 
 const execAsync = promisify(exec);
 
@@ -24,7 +23,8 @@ export class SkillApplier {
      */
     public getInjectTarget(workspaceRoot: string): string {
         const config = vscode.workspace.getConfiguration('ampify');
-        const customTarget = config.get<string>('skills.injectTarget') || '.agents/skills/';
+        let customTarget = config.get<string>('skills.injectTarget') || '.agents/skills/';
+        customTarget = this.normalizeInjectTarget(customTarget);
         return path.join(workspaceRoot, customTarget);
     }
 
@@ -140,8 +140,9 @@ export class SkillApplier {
                 fs.rmSync(skillTargetPath, { recursive: true, force: true });
             }
 
-            // 复制 Skill 目录
-            copyDir(skill.path, skillTargetPath);
+            // 使用软链注入 Skill（Windows 使用 junction）
+            const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+            fs.symlinkSync(skill.path, skillTargetPath, linkType);
 
             return { success: true };
         } catch (error: unknown) {
@@ -167,5 +168,12 @@ export class SkillApplier {
             console.error(`Failed to remove skill ${skillName}:`, error);
             return false;
         }
+    }
+
+    private normalizeInjectTarget(target: string): string {
+        if (/^\.claude([\\/]|$)/.test(target)) {
+            return target.replace(/^\.claude(?=[\\/]|$)/, '.agents');
+        }
+        return target;
     }
 }

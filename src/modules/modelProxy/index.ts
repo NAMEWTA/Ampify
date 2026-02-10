@@ -42,9 +42,6 @@ export async function registerModelProxy(context: vscode.ExtensionContext): Prom
     updateStatusBar(false);
     context.subscriptions.push(statusBarItem);
 
-    // 初始化模型列表
-    await modelBridge.refreshModels();
-
     // 注册命令
     context.subscriptions.push(
         vscode.commands.registerCommand('ampify.modelProxy.toggle', async () => {
@@ -133,6 +130,8 @@ export async function registerModelProxy(context: vscode.ExtensionContext): Prom
 
         vscode.commands.registerCommand('ampify.modelProxy.addBinding', async () => {
             if (!modelBridge) { return; }
+            modelBridge.enableAutoRefresh();
+            await modelBridge.refreshModels();
             const models = modelBridge.getAvailableModels();
             if (models.length === 0) {
                 vscode.window.showWarningMessage(I18n.get('modelProxy.noModels'));
@@ -209,6 +208,7 @@ export async function registerModelProxy(context: vscode.ExtensionContext): Prom
         }),
 
         vscode.commands.registerCommand('ampify.modelProxy.refresh', async () => {
+            modelBridge?.enableAutoRefresh();
             await modelBridge?.refreshModels();
         })
     );
@@ -235,6 +235,7 @@ async function startProxy(): Promise<void> {
     const configManager = ProxyConfigManager.getInstance();
 
     // 确保模型列表已刷新
+    modelBridge.enableAutoRefresh();
     await modelBridge.refreshModels();
 
     if (modelBridge.getAvailableModels().length === 0) {

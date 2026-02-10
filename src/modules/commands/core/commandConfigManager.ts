@@ -58,7 +58,14 @@ export class CommandConfigManager {
                 return this.getDefaultConfig();
             }
             const content = fs.readFileSync(this.configPath, 'utf8');
-            return JSON.parse(content) as CommandsManagerConfig;
+            const config = JSON.parse(content) as CommandsManagerConfig;
+            const fallback = this.getDefaultConfig().injectTarget ?? '.agents/commands/';
+            const normalized = this.normalizeInjectTarget(config.injectTarget ?? fallback);
+            if (normalized !== config.injectTarget) {
+                config.injectTarget = normalized;
+                this.saveConfig(config);
+            }
+            return config;
         } catch (error) {
             console.error('Failed to read commands config', error);
             return this.getDefaultConfig();
@@ -67,6 +74,13 @@ export class CommandConfigManager {
 
     public saveConfig(config: CommandsManagerConfig): void {
         fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf8');
+    }
+
+    private normalizeInjectTarget(target: string): string {
+        if (/^\.claude([\\/]|$)/.test(target)) {
+            return target.replace(/^\.claude(?=[\\/]|$)/, '.agents');
+        }
+        return target;
     }
 
     /**

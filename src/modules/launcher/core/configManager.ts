@@ -43,6 +43,10 @@ export class ConfigManager extends BaseConfigManager<LauncherConfig> {
         const config = this.getConfig();
         config.lastUsedKey = key;
         config.lastUsedAt = Date.now();
+        const instance = config.instances[key];
+        if (instance) {
+            instance.lastUsedAt = config.lastUsedAt;
+        }
         this.saveConfig(config);
     }
 }

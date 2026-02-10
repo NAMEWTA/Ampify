@@ -9,8 +9,17 @@ export class ModelBridge {
     private models = new Map<string, vscode.LanguageModelChat>();
     private modelInfos: AvailableModel[] = [];
     private disposables: vscode.Disposable[] = [];
+    private autoRefreshEnabled = false;
 
     constructor() {
+    }
+
+    /**
+     * 启用模型自动刷新（避免在扩展激活时触发 VS Code 模型选择）
+     */
+    enableAutoRefresh(): void {
+        if (this.autoRefreshEnabled) { return; }
+        this.autoRefreshEnabled = true;
         // 监听模型变化
         this.disposables.push(
             vscode.lm.onDidChangeChatModels(() => {

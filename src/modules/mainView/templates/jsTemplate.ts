@@ -13,7 +13,16 @@ export function getJs(): string {
     let selectedNodeId = null;
     let expandedNodes = new Set();
     let currentTreeData = [];
+    let currentCards = [];
+    let currentTags = [];
+    let currentActiveTags = [];
+    let currentToolbarActions = [];
     let contextMenuTarget = null;
+    let activeCardId = '';
+    let fileTreeDialog = null;
+    let dropOverlay = null;
+    let dragDepth = 0;
+    let viewModes = { skills: 'cards', commands: 'cards' };
 
     // Restore persisted state
     const persistedState = vscode.getState();
@@ -21,6 +30,9 @@ export function getJs(): string {
         navExpanded = persistedState.navExpanded || false;
         currentSection = persistedState.currentSection || 'dashboard';
         expandedNodes = new Set(persistedState.expandedNodes || []);
+        if (persistedState.viewModes) {
+            viewModes = Object.assign(viewModes, persistedState.viewModes);
+        }
     }
 
     // ==================== Init ====================
@@ -99,7 +111,7 @@ export function getJs(): string {
         const msg = event.data;
         switch (msg.type) {
             case 'updateSection':
-                renderSection(msg.section, msg.tree, msg.toolbar, msg.tags, msg.activeTags);
+                renderSection(msg.section, msg.tree, msg.toolbar, msg.tags, msg.activeTags, msg.cards);
                 break;
             case 'updateDashboard':
                 renderDashboard(msg.data);
@@ -138,153 +150,279 @@ export function getJs(): string {
         const body = document.querySelector('.content-body');
         const toolbar = document.querySelector('.toolbar');
         const L = data.labels || {};
-        
-        // Update toolbar
-        toolbar.innerHTML = '<span class="toolbar-title">DASHBOARD</span>';
-        
-        let html = '<div class="dashboard">';
 
-        html += '<div class="dash-grid">';
+        hideDropOverlay();
+        toolbar.innerHTML = '<span class="toolbar-title">DASHBOARD</span>';
+
+        let html = '<div class="dashboard-view"><div class="dashboard-content">';
+
+        // Module Health
+        if (data.moduleHealth && data.moduleHealth.length > 0) {
+            html += '<div class="section-block">';
+            html += \`<h3 class="section-title">\${escapeHtml(L.moduleHealth || 'Module Status')}</h3>\`;
+            html += '<div class="health-bar">';
+            for (const mod of data.moduleHealth) {
+                html += \`
+                    <button class="health-pill" data-module-id="\${mod.moduleId}" title="\${escapeHtml(mod.detail || '')}">
+                        <span class="health-dot health-\${mod.status}"></span>
+                        <i class="codicon codicon-\${mod.iconId}" style="color:\${mod.color};"></i>
+                        <span class="health-label">\${escapeHtml(mod.label)}</span>
+                    </button>
+                \`;
+            }
+            html += '</div></div>';
+        }
+
+        // Stats Grid
+        if (data.stats && data.stats.length > 0) {
+            html += '<div class="section-block">';
+            html += '<div class="stats-grid">';
+            for (const stat of data.stats) {
+                const color = stat.color || '#d97757';
+                const clickable = stat.targetSection ? ' clickable' : '';
+                const targetAttr = stat.targetSection ? \` data-target-section="\${stat.targetSection}"\` : '';
+                html += \`
+                    <button class="stat-card\${clickable}"\${targetAttr}>
+                        <div class="stat-icon" style="color:\${color}; background:\${color}22;">
+                            <i class="codicon codicon-\${stat.iconId}"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-value">\${escapeHtml(String(stat.value))}</span>
+                            <span class="stat-label">\${escapeHtml(stat.label)}</span>
+                        </div>
+                    </button>
+                \`;
+            }
+            html += '</div></div>';
+        }
 
         // Next Up
-        const launcher = data.launcher || {};
-        const opencode = data.opencode || {};
-        html += '<section class="dash-panel dash-next">';
-        html += \`
-            <div class="dash-panel-header">
-                <div class="dash-panel-title">\${escapeHtml(L.nextUp || 'Next Up')}</div>
-            </div>
-            <div class="dash-next-cards">
-                \${renderNextCard({
-                    title: L.launcher || 'Launcher',
-                    nextLabel: launcher.nextLabel || launcher.nextKey,
-                    lastLabel: launcher.lastLabel || launcher.lastKey,
-                    lastAt: launcher.lastAt,
-                    actionLabel: L.switchNow || 'Switch Now',
-                    actionCommand: 'ampify.launcher.switchNext',
-                    nextLabelText: L.nextAccount || 'Next',
-                    lastLabelText: L.lastSwitched || 'Last',
-                    viewLabel: L.viewLauncher || 'View',
-                    viewSection: 'launcher'
-                })}
-                \${renderNextCard({
-                    title: L.opencode || 'OpenCode',
-                    nextLabel: opencode.nextLabel || opencode.nextId,
-                    lastLabel: opencode.lastLabel || opencode.lastId,
-                    lastAt: opencode.lastAt,
-                    actionLabel: L.switchNow || 'Switch Now',
-                    actionCommand: 'ampify.opencodeAuth.switchNext',
-                    nextLabelText: L.nextAccount || 'Next',
-                    lastLabelText: L.lastSwitched || 'Last',
-                    viewLabel: L.viewOpenCode || 'View',
-                    viewSection: 'opencodeAuth'
-                })}
-            </div>
-        </section>\`;
-
-        // Stats
-        html += '<section class="dash-panel dash-stats">';
-        html += '<div class="dash-panel-header"><div class="dash-panel-title">' + escapeHtml(L.statsTitle || 'Stats') + '</div></div>';
-        html += '<div class="stats-grid">';
-        for (const stat of data.stats) {
-            const color = stat.color || 'var(--vscode-foreground)';
-            html += \`
-                <div class="stat-card">
-                    <div class="stat-icon" style="color: \${color}; background: \${color}22;">
-                        <i class="codicon codicon-\${stat.iconId}"></i>
-                    </div>
-                    <div class="stat-info">
-                        <div class="stat-value">\${stat.value}</div>
-                        <div class="stat-label">\${stat.label}</div>
-                    </div>
-                </div>
-            \`;
-        }
-        html += '</div>';
-        html += '</section>';
-
-        // Activity
-        const activity = data.activity || [];
-        html += '<section class="dash-panel dash-activity">';
-        html += \`<div class="dash-panel-header"><div class="dash-panel-title">\${escapeHtml(L.recentUpdates || 'Recent Updates')}</div></div>\`;
-        if (activity.length === 0) {
-            html += \`<div class="dash-empty">\${escapeHtml(L.noRecentUpdates || 'No recent updates')}</div>\`;
-        } else {
-            html += '<div class="dash-activity-list">';
-            for (const item of activity) {
-                const icon = item.type === 'skill' ? 'library' : 'terminal';
+        const hasNextUp = !!(data.launcher || data.opencode);
+        if (hasNextUp) {
+            html += '<div class="section-block">';
+            html += \`<h3 class="section-title">\${escapeHtml(L.nextUp || 'Next Up')}</h3>\`;
+            html += '<div class="next-up-grid">';
+            if (data.launcher) {
                 html += \`
-                    <div class="dash-activity-row">
-                        <div class="dash-activity-icon"><i class="codicon codicon-\${icon}"></i></div>
-                        <div class="dash-activity-body">
-                            <div class="dash-activity-title">\${escapeHtml(item.label)}</div>
-                            <div class="dash-activity-meta">\${escapeHtml(item.description || '')}</div>
+                    <div class="next-up-card">
+                        <div class="next-up-header">
+                            <i class="codicon codicon-rocket"></i>
+                            <span class="next-up-module">\${escapeHtml(L.launcher || 'Launcher')}</span>
                         </div>
-                        <div class="dash-activity-time">\${formatTimestamp(item.timestamp)}</div>
+                        <div class="next-up-body">
+                            \${data.launcher.lastLabel ? \`
+                                <div class="next-up-info">
+                                    <span class="next-up-label">\${escapeHtml(L.activeAccount || 'Active')}</span>
+                                    <span class="next-up-value">\${escapeHtml(data.launcher.lastLabel)}</span>
+                                </div>
+                            \` : ''}
+                            \${data.launcher.nextLabel ? \`
+                                <div class="next-up-info">
+                                    <span class="next-up-label">\${escapeHtml(L.nextAccount || 'Next')}</span>
+                                    <span class="next-up-value">\${escapeHtml(data.launcher.nextLabel)}</span>
+                                </div>
+                            \` : ''}
+                            \${data.launcher.lastAt ? \`
+                                <div class="next-up-info">
+                                    <span class="next-up-label">\${escapeHtml(L.lastSwitched || 'Last Switched')}</span>
+                                    <span class="next-up-value">\${escapeHtml(formatLastSwitched(data.launcher.lastLabel, data.launcher.lastAt))}</span>
+                                </div>
+                            \` : ''}
+                        </div>
+                        <div class="next-up-actions">
+                            <button class="next-up-btn" data-command="ampify.launcher.switchNext">
+                                <i class="codicon codicon-arrow-swap"></i>
+                                \${escapeHtml(L.switchNow || 'Switch Now')}
+                            </button>
+                        </div>
                     </div>
                 \`;
             }
+            if (data.opencode) {
+                html += \`
+                    <div class="next-up-card">
+                        <div class="next-up-header">
+                            <i class="codicon codicon-key"></i>
+                            <span class="next-up-module">\${escapeHtml(L.opencode || 'OpenCode')}</span>
+                        </div>
+                        <div class="next-up-body">
+                            \${data.opencode.lastLabel ? \`
+                                <div class="next-up-info">
+                                    <span class="next-up-label">\${escapeHtml(L.activeAccount || 'Active')}</span>
+                                    <span class="next-up-value">\${escapeHtml(data.opencode.lastLabel)}</span>
+                                </div>
+                            \` : ''}
+                            \${data.opencode.nextLabel ? \`
+                                <div class="next-up-info">
+                                    <span class="next-up-label">\${escapeHtml(L.nextAccount || 'Next')}</span>
+                                    <span class="next-up-value">\${escapeHtml(data.opencode.nextLabel)}</span>
+                                </div>
+                            \` : ''}
+                            \${data.opencode.lastAt ? \`
+                                <div class="next-up-info">
+                                    <span class="next-up-label">\${escapeHtml(L.lastSwitched || 'Last Switched')}</span>
+                                    <span class="next-up-value">\${escapeHtml(formatLastSwitched(data.opencode.lastLabel, data.opencode.lastAt))}</span>
+                                </div>
+                            \` : ''}
+                        </div>
+                        <div class="next-up-actions">
+                            <button class="next-up-btn" data-command="ampify.opencodeAuth.switchNext">
+                                <i class="codicon codicon-arrow-swap"></i>
+                                \${escapeHtml(L.switchNow || 'Switch Now')}
+                            </button>
+                        </div>
+                    </div>
+                \`;
+            }
+            html += '</div></div>';
+        }
+
+        // Git Info Bar
+        if (data.gitInfo && data.gitInfo.initialized) {
+            const git = data.gitInfo;
+            html += '<div class="section-block">';
+            html += \`<h3 class="section-title">\${escapeHtml(L.gitInfo || 'Git Share')}</h3>\`;
+            html += \`<div class="git-info-bar \${git.hasChanges ? 'git-has-changes' : ''}">\`;
+            html += '<div class="git-info-left">';
+            html += \`<span class="git-branch"><i class="codicon codicon-git-branch"></i>\${escapeHtml(git.branch || 'main')}</span>\`;
+            if (git.remoteUrl) {
+                html += \`<span class="git-remote" title="\${escapeHtml(git.remoteUrl)}"><i class="codicon codicon-remote"></i>\${escapeHtml(truncateUrl(git.remoteUrl))}</span>\`;
+            }
+            if (git.changedFileCount > 0) {
+                html += \`<span class="git-badge"><i class="codicon codicon-diff"></i>\${git.changedFileCount}</span>\`;
+            }
+            if (git.unpushedCount > 0) {
+                html += \`<span class="git-badge git-badge-warn"><i class="codicon codicon-cloud-upload"></i>\${git.unpushedCount}</span>\`;
+            }
+            html += '</div>';
+            html += \`
+                <div class="git-info-actions">
+                    <button class="icon-btn" title="\${escapeHtml(L.gitSync || 'Sync')}" data-command="ampify.gitShare.sync"><i class="codicon codicon-sync"></i></button>
+                    <button class="icon-btn" title="\${escapeHtml(L.gitPull || 'Pull')}" data-command="ampify.gitShare.pull"><i class="codicon codicon-cloud-download"></i></button>
+                    <button class="icon-btn" title="\${escapeHtml(L.gitPush || 'Push')}" data-command="ampify.gitShare.push"><i class="codicon codicon-cloud-upload"></i></button>
+                </div>
+            \`;
+            html += '</div></div>';
+        }
+
+        // Model Proxy Mini Panel
+        if (data.proxyInfo && data.proxyInfo.running) {
+            const proxy = data.proxyInfo;
+            html += '<div class="section-block">';
+            html += \`<h3 class="section-title">\${escapeHtml(L.proxyPanel || 'Model Proxy')}</h3>\`;
+            html += \`
+                <div class="proxy-mini-panel">
+                    <div class="proxy-mini-status">
+                        <span class="health-dot health-active"></span>
+                        <span>\${escapeHtml(L.proxyRunning || 'Running')} :\${proxy.port}</span>
+                    </div>
+                    <div class="proxy-mini-stats">
+                        <span class="proxy-mini-stat"><i class="codicon codicon-pulse"></i>\${proxy.todayRequests}</span>
+                        <span class="proxy-mini-stat"><i class="codicon codicon-symbol-key"></i>\${proxy.todayTokens}</span>
+                        \${proxy.todayErrors > 0 ? \`<span class="proxy-mini-stat" style="color:#f48771"><i class="codicon codicon-warning"></i>\${proxy.todayErrors}</span>\` : ''}
+                    </div>
+                    <div class="proxy-mini-actions">
+                        <button class="icon-btn" title="\${escapeHtml(L.copyBaseUrl || 'Copy Base URL')}" data-command="ampify.modelProxy.copyBaseUrl"><i class="codicon codicon-copy"></i></button>
+                        <button class="text-link" data-section-switch="modelProxy">\${escapeHtml(L.viewDetail || 'Detail')} →</button>
+                    </div>
+                </div>
+            \`;
             html += '</div>';
         }
-        html += '</section>';
-
-        // Model Proxy
-        const proxy = data.modelProxy || {};
-        const proxyStatus = proxy.running ? (L.modelProxyRunning || 'Running') : (L.modelProxyStopped || 'Stopped');
-        html += '<section class="dash-panel dash-health">';
-        html += \`<div class="dash-panel-header"><div class="dash-panel-title">\${escapeHtml(L.modelProxy || 'Model Proxy')}</div></div>\`;
-        html += \`
-            <div class="dash-health-status \${proxy.running ? 'ok' : 'off'}">
-                <span class="dash-health-dot"></span>
-                <span>\${escapeHtml(proxyStatus)}</span>
-            </div>
-            <div class="dash-health-row">
-                <span class="dash-health-label">\${escapeHtml(L.urlLabel || 'URL')}</span>
-                <span class="dash-health-value">\${escapeHtml(proxy.baseUrl || '—')}</span>
-            </div>
-        \`;
-        if (proxy.lastError) {
-            html += \`
-                <div class="dash-health-row dash-health-error">
-                    <span class="dash-health-label">\${escapeHtml(L.modelProxyLastError || 'Last Error')}</span>
-                    <span class="dash-health-value">\${escapeHtml(proxy.lastError)}</span>
-                </div>
-            \`;
-        } else {
-            html += \`
-                <div class="dash-health-row dash-health-ok">
-                    <span class="dash-health-label">\${escapeHtml(L.modelProxyHealthy || 'Healthy')}</span>
-                    <span class="dash-health-value">\${proxy.running ? (L.statusOk || 'OK') : '—'}</span>
-                </div>
-            \`;
-        }
-        html += '</section>';
 
         // Quick Actions
         if (data.quickActions && data.quickActions.length > 0) {
-            html += '<section class="dash-panel dash-quick">';
-            html += '<div class="dash-panel-header"><div class="dash-panel-title">' + escapeHtml(L.quickActionsTitle || 'Quick Actions') + '</div></div>';
-            html += '<div class="quick-actions">';
+            html += '<div class="section-block">';
+            html += \`<h3 class="section-title">\${escapeHtml(L.quickActions || 'Quick Actions')}</h3>\`;
+            html += '<div class="quick-action-grid">';
             for (const action of data.quickActions) {
                 const actionType = action.action || 'command';
                 const section = action.section || '';
                 const actionId = action.actionId || action.id;
                 html += \`
-                    <button class="quick-action-btn" data-command="\${action.command}" data-action-type="\${actionType}" data-action-id="\${actionId}" data-section="\${section}">
+                    <button class="quick-action-btn" data-command="\${action.command || ''}" data-action-type="\${actionType}" data-action-id="\${actionId}" data-section="\${section}">
                         <i class="codicon codicon-\${action.iconId}"></i>
-                        <span>\${action.label}</span>
+                        <span>\${escapeHtml(action.label)}</span>
                     </button>
                 \`;
             }
-            html += '</div>';
-            html += '</section>';
+            html += '</div></div>';
         }
 
+        // Recent Logs
+        html += '<div class="section-block">';
+        html += \`<h3 class="section-title">\${escapeHtml(L.recentLogs || 'Recent Logs')}</h3>\`;
+        if (data.recentLogs && data.recentLogs.length > 0) {
+            html += '<div class="recent-logs-table">';
+            html += \`
+                <div class="log-row log-header">
+                    <span class="log-col log-col-time">\${escapeHtml(L.logTime || 'Time')}</span>
+                    <span class="log-col log-col-model">Model</span>
+                    <span class="log-col log-col-status">Status</span>
+                    <span class="log-col log-col-duration">ms</span>
+                    <span class="log-col log-col-tokens">Tokens</span>
+                </div>
+            \`;
+            for (const log of data.recentLogs) {
+                html += \`
+                    <div class="log-row">
+                        <span class="log-col log-col-time">\${escapeHtml(formatLogTime(log.timestamp))}</span>
+                        <span class="log-col log-col-model" title="\${escapeHtml(log.model)}">\${escapeHtml(truncateModel(log.model))}</span>
+                        <span class="log-col log-col-status">
+                            <span class="log-status-dot \${isSuccessStatus(log.status) ? 'log-status-ok' : 'log-status-err'}"></span>
+                        </span>
+                        <span class="log-col log-col-duration">\${log.durationMs}</span>
+                        <span class="log-col log-col-tokens">\${log.inputTokens + log.outputTokens}</span>
+                    </div>
+                \`;
+            }
+            html += \`<button class="log-view-all" data-view-logs="true">\${escapeHtml(L.viewAllLogs || 'View All Logs')} →</button>\`;
+            html += '</div>';
+        } else {
+            html += \`
+                <div class="recent-logs-empty">
+                    <div class="empty-state">
+                        <i class="codicon codicon-output"></i>
+                        <p>\${escapeHtml(L.noLogs || 'No logs yet')}</p>
+                    </div>
+                    <button class="log-view-all" data-view-logs="true">\${escapeHtml(L.viewAllLogs || 'View All Logs')} →</button>
+                </div>
+            \`;
+        }
         html += '</div>';
-        html += '</div>';
+
+        html += '</div></div>';
         body.innerHTML = html;
 
-        // Bind quick actions
+        // Bind events
+        body.querySelectorAll('[data-module-id]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const section = btn.dataset.moduleId;
+                if (section) vscode.postMessage({ type: 'switchSection', section });
+            });
+        });
+
+        body.querySelectorAll('.stat-card.clickable').forEach(card => {
+            card.addEventListener('click', () => {
+                const section = card.dataset.targetSection;
+                if (section) vscode.postMessage({ type: 'switchSection', section });
+            });
+        });
+
+        body.querySelectorAll('.next-up-btn, .icon-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const command = btn.dataset.command;
+                if (command) vscode.postMessage({ type: 'executeCommand', command });
+            });
+        });
+
+        body.querySelectorAll('[data-section-switch]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const section = btn.dataset.sectionSwitch;
+                if (section) vscode.postMessage({ type: 'switchSection', section });
+            });
+        });
+
         body.querySelectorAll('.quick-action-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const actionType = btn.dataset.actionType || 'command';
@@ -300,75 +438,43 @@ export function getJs(): string {
             });
         });
 
-        body.querySelectorAll('[data-command]').forEach(btn => {
-            if (!btn.classList.contains('dash-action-btn')) {
-                return;
-            }
+        body.querySelectorAll('[data-view-logs]').forEach(btn => {
             btn.addEventListener('click', () => {
-                const command = btn.dataset.command;
-                if (command) {
-                    vscode.postMessage({ type: 'executeCommand', command });
-                }
-            });
-        });
-
-        body.querySelectorAll('[data-section-switch]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const section = btn.dataset.sectionSwitch;
-                if (section) {
-                    vscode.postMessage({ type: 'switchSection', section });
-                }
+                vscode.postMessage({ type: 'switchSection', section: 'modelProxy' });
+                setTimeout(() => vscode.postMessage({ type: 'requestLogFiles' }), 150);
             });
         });
     }
 
-    function renderNextCard({
-        title,
-        nextLabel,
-        lastLabel,
-        lastAt,
-        actionLabel,
-        actionCommand,
-        nextLabelText,
-        lastLabelText,
-        viewLabel,
-        viewSection
-    }) {
-        const lastText = lastLabel ? lastLabel : '—';
-        const lastTime = lastAt ? formatTimestamp(lastAt) : '—';
-        const nextText = nextLabel ? nextLabel : '—';
-        return \`
-            <div class="dash-next-card">
-                <div class="dash-card-head">
-                    <div class="dash-card-title">\${escapeHtml(title)}</div>
-                    <button class="dash-link-btn" data-section-switch="\${viewSection}">\${escapeHtml(viewLabel)}</button>
-                </div>
-                <div class="dash-meta">
-                    <div class="dash-meta-row">
-                        <span class="dash-meta-label">\${escapeHtml(nextLabelText || 'Next')}</span>
-                        <span class="dash-meta-value">\${escapeHtml(nextText)}</span>
-                    </div>
-                    <div class="dash-meta-row">
-                        <span class="dash-meta-label">\${escapeHtml(lastLabelText || 'Last')}</span>
-                        <span class="dash-meta-value">\${escapeHtml(lastText)} · \${escapeHtml(lastTime)}</span>
-                    </div>
-                </div>
-                <button class="dash-action-btn" data-command="\${actionCommand}">
-                    <i class="codicon codicon-debug-start"></i>
-                    <span>\${escapeHtml(actionLabel)}</span>
-                </button>
-            </div>
-        \`;
-    }
-
-    function formatTimestamp(ts) {
-        if (!ts) return '—';
+    function formatLastSwitched(label, ts) {
+        if (!ts) return label || '—';
         try {
             const date = new Date(ts);
-            return date.toLocaleString();
+            return \`\${label || '—'} · \${date.toLocaleString()}\`;
         } catch {
-            return '—';
+            return label || '—';
         }
+    }
+
+    function formatLogTime(ts) {
+        try { return new Date(ts).toLocaleTimeString(); }
+        catch { return ts || '—'; }
+    }
+
+    function truncateUrl(url) {
+        if (!url) return '';
+        if (url.length <= 28) return url;
+        return url.slice(0, 25) + '...';
+    }
+
+    function truncateModel(model) {
+        if (!model) return '';
+        if (model.length <= 28) return model;
+        return model.slice(0, 25) + '...';
+    }
+
+    function isSuccessStatus(status) {
+        return status === 'success' || status === 'ok';
     }
 
     // ==================== Settings Rendering ====================
@@ -385,17 +491,18 @@ export function getJs(): string {
             for (const field of section.fields || []) {
                 html += '<div class="settings-field">';
                 html += '<label class="settings-label">' + field.label + '</label>';
+                const disabledAttr = field.readOnly ? ' disabled' : '';
                 if (field.kind === 'select') {
-                    html += '<select class="settings-input" data-key="' + field.key + '" data-scope="' + field.scope + '">';
+                    html += '<select class="settings-input" data-key="' + field.key + '" data-scope="' + field.scope + '"' + disabledAttr + '>';
                     for (const option of field.options || []) {
                         const selected = option.value === field.value ? ' selected' : '';
                         html += '<option value="' + option.value + '"' + selected + '>' + option.label + '</option>';
                     }
                     html += '</select>';
                 } else if (field.kind === 'textarea') {
-                    html += '<textarea class="settings-input" data-key="' + field.key + '" data-scope="' + field.scope + '" placeholder="' + (field.placeholder || '') + '">' + (field.value || '') + '</textarea>';
+                    html += '<textarea class="settings-input" data-key="' + field.key + '" data-scope="' + field.scope + '" placeholder="' + (field.placeholder || '') + '"' + disabledAttr + '>' + (field.value || '') + '</textarea>';
                 } else {
-                    html += '<input class="settings-input" data-key="' + field.key + '" data-scope="' + field.scope + '" type="text" value="' + (field.value || '') + '" placeholder="' + (field.placeholder || '') + '" />';
+                    html += '<input class="settings-input" data-key="' + field.key + '" data-scope="' + field.scope + '" type="text" value="' + (field.value || '') + '" placeholder="' + (field.placeholder || '') + '"' + disabledAttr + ' />';
                 }
                 if (field.action) {
                     html += '<button class="settings-action-btn" data-command="' + field.action.command + '" title="' + field.action.label + '">';
@@ -419,6 +526,7 @@ export function getJs(): string {
         inputs.forEach(input => {
             let timer = null;
             const sendChange = () => {
+                if (input.disabled) { return; }
                 const key = input.dataset.key;
                 const scope = input.dataset.scope;
                 if (!key || !scope) { return; }
@@ -1013,10 +1121,19 @@ export function getJs(): string {
     }
 
     // ==================== Section Rendering ====================
-    function renderSection(section, tree, toolbarActions, tags, activeTags) {
-        currentTreeData = tree;
+    function renderSection(section, tree, toolbarActions, tags, activeTags, cards) {
+        currentTreeData = tree || [];
+        currentCards = cards || [];
+        currentTags = tags || [];
+        currentActiveTags = activeTags || [];
         renderToolbar(section, toolbarActions);
-        renderTree(tree, tags, activeTags);
+
+        if (section === 'skills' || section === 'commands') {
+            renderCardsSection(section, currentCards, currentTags, currentActiveTags);
+            return;
+        }
+
+        renderTree(currentTreeData, currentTags, currentActiveTags);
     }
 
     function renderToolbar(section, actions) {
@@ -1033,8 +1150,9 @@ export function getJs(): string {
         };
         
         let html = \`<span class="toolbar-title">\${titles[section] || section.toUpperCase()}</span>\`;
-        
-        if (actions) {
+
+        if (actions && actions.length > 0) {
+            html += '<div class="toolbar-actions">';
             for (const action of actions) {
                 html += \`
                     <button class="toolbar-btn" title="\${action.label}" data-command="\${action.command}" data-action-type="\${action.action || 'command'}" data-action-id="\${action.id}">
@@ -1042,8 +1160,9 @@ export function getJs(): string {
                     </button>
                 \`;
             }
+            html += '</div>';
         }
-        
+
         toolbar.innerHTML = html;
         
         toolbar.querySelectorAll('.toolbar-btn').forEach(btn => {
@@ -1062,10 +1181,242 @@ export function getJs(): string {
         });
     }
 
+    // ==================== Cards Rendering ====================
+    function renderCardsSection(section, cards, tags, activeTags) {
+        const body = document.querySelector('.content-body');
+        hideDropOverlay();
+        body.innerHTML = '';
+
+        if (tags && tags.length > 0) {
+            body.appendChild(renderTagChips(tags, activeTags || []));
+        }
+
+        const container = document.createElement('div');
+        container.className = 'cards-container';
+
+        if (!cards || cards.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+            const icon = section === 'skills' ? 'library' : 'terminal';
+            const message = section === 'skills'
+                ? 'No skills found. Create or import a skill to get started.'
+                : 'No commands found. Create or import a command to get started.';
+            const hint = section === 'skills'
+                ? 'You can also drag & drop skill folders here.'
+                : 'You can also drag & drop command files here.';
+            empty.innerHTML = \`
+                <i class="codicon codicon-\${icon}"></i>
+                <p>\${message}</p>
+                <span class="empty-hint">\${hint}</span>
+            \`;
+            container.appendChild(empty);
+        } else {
+            const grid = document.createElement('div');
+            grid.className = 'card-grid';
+            for (const card of cards) {
+                grid.appendChild(createCardElement(card));
+            }
+            container.appendChild(grid);
+        }
+
+        body.appendChild(container);
+    }
+
+    function createCardElement(card) {
+        const el = document.createElement('div');
+        el.className = 'item-card';
+        el.title = card.description || '';
+
+        el.addEventListener('click', () => {
+            activeCardId = card.id;
+            vscode.postMessage({ type: 'cardClick', section: currentSection, cardId: card.id });
+            if (card.fileTree && card.fileTree.length > 0) {
+                showFileTreeDialog(card.name, card.fileTree);
+            }
+        });
+
+        const icon = document.createElement('div');
+        icon.className = 'card-icon';
+        icon.innerHTML = \`<i class="codicon codicon-\${card.iconId || 'extensions'}"></i>\`;
+        el.appendChild(icon);
+
+        const name = document.createElement('div');
+        name.className = 'card-name';
+        name.textContent = card.name || '';
+        el.appendChild(name);
+
+        if (card.description) {
+            const desc = document.createElement('div');
+            desc.className = 'card-desc';
+            desc.textContent = card.description;
+            el.appendChild(desc);
+        }
+
+        if (card.badges && card.badges.length > 0) {
+            const badges = document.createElement('div');
+            badges.className = 'card-badges';
+            const maxBadges = 2;
+            const display = card.badges.slice(0, maxBadges);
+            for (const badge of display) {
+                const chip = document.createElement('span');
+                chip.className = 'card-badge';
+                chip.textContent = badge;
+                badges.appendChild(chip);
+            }
+            if (card.badges.length > maxBadges) {
+                const more = document.createElement('span');
+                more.className = 'card-badge card-badge--more';
+                more.textContent = '+' + (card.badges.length - maxBadges);
+                badges.appendChild(more);
+            }
+            el.appendChild(badges);
+        }
+
+        if (card.actions && card.actions.length > 0) {
+            const actions = document.createElement('div');
+            actions.className = 'card-actions';
+            for (const action of card.actions) {
+                const btn = document.createElement('button');
+                btn.className = 'card-action-btn' + (action.danger ? ' danger' : '');
+                btn.title = action.label;
+                btn.innerHTML = \`<i class="codicon codicon-\${action.iconId || 'circle-outline'}"></i>\`;
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    vscode.postMessage({ type: 'cardAction', section: currentSection, cardId: card.id, actionId: action.id });
+                });
+                actions.appendChild(btn);
+            }
+            el.appendChild(actions);
+        }
+
+        return el;
+    }
+
+    function showFileTreeDialog(title, files) {
+        hideFileTreeDialog();
+
+        const backdrop = document.createElement('div');
+        backdrop.className = 'file-tree-backdrop';
+
+        const panel = document.createElement('div');
+        panel.className = 'file-tree-panel';
+
+        const header = document.createElement('div');
+        header.className = 'file-tree-header';
+        header.innerHTML = \`
+            <span>\${escapeHtml(title)}</span>
+            <button class="icon-btn file-tree-close"><i class="codicon codicon-close"></i></button>
+        \`;
+        panel.appendChild(header);
+
+        const body = document.createElement('div');
+        body.className = 'file-tree-body';
+
+        if (!files || files.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'empty-state';
+            empty.innerHTML = '<i class="codicon codicon-folder"></i><p>No files</p>';
+            body.appendChild(empty);
+        } else {
+            for (const node of files) {
+                body.appendChild(createFileTreeNode(node, 0));
+            }
+        }
+
+        panel.appendChild(body);
+        backdrop.appendChild(panel);
+        document.body.appendChild(backdrop);
+        fileTreeDialog = backdrop;
+
+        const close = () => hideFileTreeDialog();
+        backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+        const closeBtn = panel.querySelector('.file-tree-close');
+        if (closeBtn) closeBtn.addEventListener('click', close);
+        const escHandler = (e) => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', escHandler); } };
+        document.addEventListener('keydown', escHandler);
+    }
+
+    function hideFileTreeDialog() {
+        if (fileTreeDialog) {
+            fileTreeDialog.remove();
+            fileTreeDialog = null;
+        }
+    }
+
+    function createFileTreeNode(node, depth) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'file-tree-node';
+
+        const row = document.createElement('div');
+        row.className = 'file-tree-row' + (!node.isDirectory ? ' file-tree-row--clickable' : '');
+        row.style.paddingLeft = (depth * 16 + 8) + 'px';
+
+        const chevron = document.createElement('span');
+        const chevronIcon = document.createElement('i');
+        if (node.isDirectory) {
+            chevron.className = 'file-tree-chevron';
+            const defaultExpanded = depth < 1;
+            chevronIcon.className = 'codicon ' + (defaultExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right');
+            chevron.appendChild(chevronIcon);
+        } else {
+            chevron.className = 'file-tree-chevron-placeholder';
+        }
+        row.appendChild(chevron);
+
+        const icon = document.createElement('span');
+        icon.className = 'file-tree-icon';
+        const iconId = node.isDirectory ? 'folder' : getFileIcon(node.name || '');
+        icon.innerHTML = \`<i class="codicon codicon-\${iconId}"></i>\`;
+        row.appendChild(icon);
+
+        const name = document.createElement('span');
+        name.className = 'file-tree-name';
+        name.textContent = node.name || '';
+        row.appendChild(name);
+
+        wrapper.appendChild(row);
+
+        let childrenEl = null;
+        if (node.isDirectory && node.children && node.children.length > 0) {
+            childrenEl = document.createElement('div');
+            childrenEl.className = 'file-tree-children';
+            const defaultExpanded = depth < 1;
+            childrenEl.style.display = defaultExpanded ? 'block' : 'none';
+            for (const child of node.children) {
+                childrenEl.appendChild(createFileTreeNode(child, depth + 1));
+            }
+            wrapper.appendChild(childrenEl);
+        }
+
+        row.addEventListener('click', () => {
+            if (node.isDirectory) {
+                if (childrenEl) {
+                    const isOpen = childrenEl.style.display !== 'none';
+                    childrenEl.style.display = isOpen ? 'none' : 'block';
+                    chevronIcon.className = 'codicon ' + (isOpen ? 'codicon-chevron-right' : 'codicon-chevron-down');
+                }
+            } else {
+                vscode.postMessage({ type: 'cardFileClick', section: currentSection, cardId: activeCardId, filePath: node.id });
+            }
+        });
+
+        return wrapper;
+    }
+
+    function getFileIcon(name) {
+        const lower = name.toLowerCase();
+        if (lower.endsWith('.md')) return 'markdown';
+        if (lower.endsWith('.ts') || lower.endsWith('.js')) return 'symbol-method';
+        if (lower.endsWith('.json')) return 'json';
+        if (lower.endsWith('.yaml') || lower.endsWith('.yml')) return 'symbol-namespace';
+        return 'file';
+    }
+
     // ==================== Tree Rendering ====================
     function renderTree(nodes, tags, activeTags) {
         const body = document.querySelector('.content-body');
-        
+        hideDropOverlay();
+
         if (!nodes || nodes.length === 0) {
             body.innerHTML = '';
             if (tags && tags.length > 0) {
@@ -1077,7 +1428,7 @@ export function getJs(): string {
             body.appendChild(empty);
             return;
         }
-        
+
         body.innerHTML = '';
 
         // Tag chips bar (inline filter)
@@ -1097,12 +1448,7 @@ export function getJs(): string {
 
     function renderTagChips(tags, activeTags) {
         const bar = document.createElement('div');
-        bar.className = 'tag-chips-bar';
-
-        const label = document.createElement('span');
-        label.className = 'tag-chips-label';
-        label.innerHTML = '<i class="codicon codicon-tag"></i>';
-        bar.appendChild(label);
+        bar.className = 'tag-chips';
 
         for (const tag of tags) {
             const chip = document.createElement('button');
@@ -1116,7 +1462,7 @@ export function getJs(): string {
 
         if (activeTags.length > 0) {
             const clearBtn = document.createElement('button');
-            clearBtn.className = 'tag-chip-clear';
+            clearBtn.className = 'tag-chip clear-chip';
             clearBtn.innerHTML = '<i class="codicon codicon-close"></i> Clear';
             clearBtn.addEventListener('click', () => {
                 vscode.postMessage({ type: 'clearFilter', section: currentSection });
@@ -1131,27 +1477,28 @@ export function getJs(): string {
         const el = document.createElement('div');
         el.className = 'tree-node';
         el.dataset.nodeId = node.id;
-        
-        // Row
+
         const row = document.createElement('div');
         row.className = 'tree-row';
+        if (node.layout === 'twoLine' || node.layout === 'threeLine') {
+            row.classList.add('tree-row--two-line');
+            if (node.layout === 'threeLine') row.classList.add('tree-row--three-line');
+        }
+        row.style.paddingLeft = (depth * 16 + 4) + 'px';
         if (node.id === selectedNodeId) row.classList.add('selected');
-        
-        // Indent
-        const indent = document.createElement('span');
-        indent.className = 'tree-indent';
-        indent.style.width = (depth * 12 + 4) + 'px';
-        row.appendChild(indent);
-        
-        // Chevron
-        const chevron = document.createElement('span');
+
         const hasChildren = node.collapsible || (node.children && node.children.length > 0);
         const isExpanded = node.expanded || expandedNodes.has(node.id);
-        chevron.className = 'tree-chevron' + (hasChildren ? (isExpanded ? ' expanded' : '') : ' hidden');
-        chevron.innerHTML = '<i class="codicon codicon-chevron-right"></i>';
+
+        const chevron = document.createElement('span');
+        if (hasChildren) {
+            chevron.className = 'tree-chevron';
+            chevron.innerHTML = \`<i class="codicon codicon-\${isExpanded ? 'chevron-down' : 'chevron-right'}"></i>\`;
+        } else {
+            chevron.className = 'tree-chevron-placeholder';
+        }
         row.appendChild(chevron);
-        
-        // Icon
+
         if (node.iconId) {
             const icon = document.createElement('span');
             icon.className = 'tree-icon';
@@ -1159,31 +1506,88 @@ export function getJs(): string {
             icon.innerHTML = \`<i class="codicon codicon-\${node.iconId}"></i>\`;
             row.appendChild(icon);
         }
-        
-        // Label
-        const label = document.createElement('span');
-        label.className = 'tree-label';
-        label.textContent = node.label;
-        if (node.tooltip) label.title = node.tooltip;
-        row.appendChild(label);
-        
-        // Description
-        if (node.description) {
-            const desc = document.createElement('span');
-            desc.className = 'tree-description';
-            desc.textContent = node.description;
-            row.appendChild(desc);
+
+        if (node.layout === 'twoLine' || node.layout === 'threeLine') {
+            const content = document.createElement('div');
+            content.className = 'tree-content';
+
+            const row1 = document.createElement('div');
+            row1.className = 'tree-content-row1';
+            const label = document.createElement('span');
+            label.className = 'tree-label tree-label--primary';
+            label.textContent = node.label;
+            if (node.tooltip) label.title = node.tooltip;
+            row1.appendChild(label);
+            content.appendChild(row1);
+
+            if (node.subtitle || (node.badges && node.badges.length > 0)) {
+                const row2 = document.createElement('div');
+                row2.className = 'tree-content-row2';
+                if (node.subtitle) {
+                    const subtitle = document.createElement('span');
+                    subtitle.className = 'tree-subtitle';
+                    subtitle.textContent = node.subtitle;
+                    subtitle.title = node.subtitle;
+                    row2.appendChild(subtitle);
+                }
+                if (node.badges && node.badges.length > 0) {
+                    const badgeWrap = document.createElement('span');
+                    badgeWrap.className = 'tree-badges';
+                    const maxBadges = 3;
+                    const display = node.badges.slice(0, maxBadges);
+                    for (const badge of display) {
+                        const badgeEl = document.createElement('span');
+                        badgeEl.className = 'tree-badge';
+                        badgeEl.textContent = badge;
+                        badgeWrap.appendChild(badgeEl);
+                    }
+                    if (node.badges.length > maxBadges) {
+                        const more = document.createElement('span');
+                        more.className = 'tree-badge tree-badge--more';
+                        more.textContent = '+' + (node.badges.length - maxBadges);
+                        badgeWrap.appendChild(more);
+                    }
+                    row2.appendChild(badgeWrap);
+                }
+                content.appendChild(row2);
+            }
+
+            if (node.tertiary) {
+                const row3 = document.createElement('div');
+                row3.className = 'tree-content-row3';
+                const tertiary = document.createElement('span');
+                tertiary.className = 'tree-tertiary';
+                tertiary.textContent = node.tertiary;
+                tertiary.title = node.tertiary;
+                row3.appendChild(tertiary);
+                content.appendChild(row3);
+            }
+
+            row.appendChild(content);
+        } else {
+            const label = document.createElement('span');
+            label.className = 'tree-label';
+            label.textContent = node.label;
+            if (node.tooltip) label.title = node.tooltip;
+            row.appendChild(label);
+
+            if (node.description) {
+                const desc = document.createElement('span');
+                desc.className = 'tree-description';
+                desc.textContent = node.description;
+                row.appendChild(desc);
+            }
         }
-        
-        // Inline Actions
+
         if (node.inlineActions && node.inlineActions.length > 0) {
             const actions = document.createElement('span');
-            actions.className = 'tree-actions';
+            actions.className = 'tree-inline-actions';
             for (const action of node.inlineActions) {
+                const pinned = node.pinnedActionId && action.id === node.pinnedActionId;
                 const btn = document.createElement('button');
-                btn.className = 'tree-action-btn' + (action.danger ? ' danger' : '');
+                btn.className = 'tree-action-btn' + (action.danger ? ' danger' : '') + (pinned ? ' tree-action-btn--pinned' : '');
                 btn.title = action.label;
-                btn.innerHTML = \`<i class="codicon codicon-\${action.iconId}"></i>\`;
+                btn.innerHTML = \`<i class="codicon codicon-\${action.iconId || 'circle-outline'}"></i>\`;
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     vscode.postMessage({
@@ -1197,12 +1601,10 @@ export function getJs(): string {
             }
             row.appendChild(actions);
         }
-        
-        // Row click
+
         row.addEventListener('click', (e) => {
             if (e.target.closest('.tree-action-btn')) return;
-            
-            // Toggle expand
+
             if (hasChildren) {
                 const isNowExpanded = expandedNodes.has(node.id);
                 if (isNowExpanded) {
@@ -1210,21 +1612,18 @@ export function getJs(): string {
                 } else {
                     expandedNodes.add(node.id);
                 }
-                chevron.className = 'tree-chevron' + (expandedNodes.has(node.id) ? ' expanded' : '');
                 const childrenEl = el.querySelector(':scope > .tree-children');
                 if (childrenEl) {
                     childrenEl.classList.toggle('collapsed', !expandedNodes.has(node.id));
                 }
+                if (hasChildren) {
+                    chevron.innerHTML = \`<i class="codicon codicon-\${expandedNodes.has(node.id) ? 'chevron-down' : 'chevron-right'}"></i>\`;
+                }
                 saveState();
-            }
-            
-            // Select
-            document.querySelectorAll('.tree-row.selected').forEach(r => r.classList.remove('selected'));
-            row.classList.add('selected');
-            selectedNodeId = node.id;
-            
-            // Command
-            if (node.command) {
+            } else {
+                document.querySelectorAll('.tree-row.selected').forEach(r => r.classList.remove('selected'));
+                row.classList.add('selected');
+                selectedNodeId = node.id;
                 vscode.postMessage({
                     type: 'treeItemClick',
                     nodeId: node.id,
@@ -1232,8 +1631,7 @@ export function getJs(): string {
                 });
             }
         });
-        
-        // Right-click context menu
+
         if (node.contextActions && node.contextActions.length > 0) {
             row.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
@@ -1241,10 +1639,9 @@ export function getJs(): string {
                 showContextMenu(e.clientX, e.clientY, node);
             });
         }
-        
+
         el.appendChild(row);
-        
-        // Children
+
         if (node.children && node.children.length > 0) {
             const childrenEl = document.createElement('div');
             childrenEl.className = 'tree-children' + (isExpanded ? '' : ' collapsed');
@@ -1253,7 +1650,7 @@ export function getJs(): string {
             }
             el.appendChild(childrenEl);
         }
-        
+
         return el;
     }
 
@@ -1317,45 +1714,90 @@ export function getJs(): string {
 
     // ==================== Drag & Drop ====================
     function setupDragDrop() {
-        const body = document.querySelector('.content-body');
-        
-        body.addEventListener('dragover', (e) => {
-            if (currentSection === 'skills' || currentSection === 'commands') {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'copy';
-                body.classList.add('drop-zone-active');
-            }
-        });
-        
-        body.addEventListener('dragleave', () => {
-            body.classList.remove('drop-zone-active');
-        });
-        
-        body.addEventListener('drop', (e) => {
+        window.addEventListener('dragenter', (e) => {
+            if (!isDropSection()) return;
             e.preventDefault();
-            body.classList.remove('drop-zone-active');
-            
-            if (currentSection !== 'skills' && currentSection !== 'commands') return;
-            
-            const files = e.dataTransfer.files;
-            const uris = [];
-            
-            if (files && files.length > 0) {
-                for (let i = 0; i < files.length; i++) {
-                    if (files[i].path) uris.push(files[i].path);
-                }
-            }
-            
-            // Also try URI list
-            const uriList = e.dataTransfer.getData('text/uri-list');
-            if (uriList) {
-                uriList.split('\\n').filter(l => l.trim()).forEach(l => uris.push(l.trim()));
-            }
-            
+            dragDepth += 1;
+            showDropOverlay();
+        }, true);
+
+        window.addEventListener('dragover', (e) => {
+            if (!isDropSection()) return;
+            e.preventDefault();
+            if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+        }, true);
+
+        window.addEventListener('dragleave', (e) => {
+            if (!isDropSection()) return;
+            e.preventDefault();
+            dragDepth = Math.max(0, dragDepth - 1);
+            if (dragDepth === 0) hideDropOverlay();
+        }, true);
+
+        window.addEventListener('drop', (e) => {
+            if (!isDropSection()) return;
+            e.preventDefault();
+            dragDepth = 0;
+            hideDropOverlay();
+            const uris = extractDropUris(e);
             if (uris.length > 0) {
                 vscode.postMessage({ type: 'dropFiles', uris, section: currentSection });
+            } else {
+                vscode.postMessage({ type: 'dropEmpty', section: currentSection });
             }
-        });
+        }, true);
+    }
+
+    function isDropSection() {
+        return currentSection === 'skills' || currentSection === 'commands';
+    }
+
+    function showDropOverlay() {
+        const body = document.querySelector('.content-body');
+        if (!body || dropOverlay) return;
+        const overlay = document.createElement('div');
+        overlay.className = 'drop-overlay';
+        const label = currentSection === 'skills'
+            ? 'Drop skill folders here to import'
+            : 'Drop command files here to import';
+        overlay.innerHTML = \`
+            <div class="drop-overlay-content">
+                <i class="codicon codicon-folder-library"></i>
+                <span>\${label}</span>
+            </div>
+        \`;
+        body.appendChild(overlay);
+        dropOverlay = overlay;
+    }
+
+    function hideDropOverlay() {
+        if (dropOverlay) {
+            dropOverlay.remove();
+            dropOverlay = null;
+        }
+    }
+
+    function extractDropUris(e) {
+        const uris = [];
+        const dt = e.dataTransfer;
+        if (!dt) return uris;
+
+        const files = dt.files;
+        if (files && files.length > 0) {
+            for (let i = 0; i < files.length; i++) {
+                if (files[i].path) uris.push(files[i].path);
+            }
+        }
+
+        const uriList = dt.getData('text/uri-list');
+        if (uriList) {
+            uriList.split('\\n')
+                .map(l => l.trim())
+                .filter(l => l && !l.startsWith('#'))
+                .forEach(l => uris.push(l));
+        }
+
+        return Array.from(new Set(uris));
     }
 
     // ==================== Overlay Panel ====================
