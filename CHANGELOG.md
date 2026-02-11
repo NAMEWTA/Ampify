@@ -1,6 +1,6 @@
 # Change Log
 
-## 2.4.1 - 2026-02-11
+## 3.1.1 - 2026-02-11
 ### Fixed
 - Retry VS Code launches when the incoming update window blocks startup so the launcher keeps trying instead of failing outright
 
