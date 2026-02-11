@@ -9,6 +9,9 @@ import { ConfigManager } from './configManager';
 import { I18n } from '../../../common/i18n';
 
 export class ProcessEngine {
+    private static readonly MAX_UPDATE_RETRIES = 6;
+    private static readonly UPDATE_RETRY_DELAY_MS = 2000;
+
     constructor(private configManager: ConfigManager) {}
 
     private getCodeExecutablePath(): string {
@@ -64,7 +67,11 @@ export class ProcessEngine {
         return process.execPath;
     }
 
-    public launch(instance: InstanceConfig, key: string) {
+    public launch(instance: InstanceConfig, key: string): void {
+        this.launchInternal(instance, key, 0, true);
+    }
+
+    private launchInternal(instance: InstanceConfig, key: string, retryCount: number, markLastUsed: boolean): void {
         const codePath = this.getCodeExecutablePath(); 
         
         const userDataDir = this.configManager.ensureInstanceDir(instance.dirName);
@@ -78,7 +85,9 @@ export class ProcessEngine {
             console.error('Failed to write instance key file:', err);
         }
 
-        this.configManager.setLastUsed(key);
+        if (markLastUsed) {
+            this.configManager.setLastUsed(key);
+        }
         
         const args = [
             '--user-data-dir',
@@ -179,6 +188,22 @@ export class ProcessEngine {
                 }
                 const stdout = Buffer.concat(stdoutChunks).toString('utf8').trim();
                 const stderr = Buffer.concat(stderrChunks).toString('utf8').trim();
+
+                // Windows update window: retry instead of surfacing false-negative launch failure.
+                const isUpdatingError = process.platform === 'win32'
+                    && /Code is currently being updated/i.test(stderr);
+                if (isUpdatingError && retryCount < ProcessEngine.MAX_UPDATE_RETRIES) {
+                    const nextAttempt = retryCount + 1;
+                    vscode.window.setStatusBarMessage(
+                        `VS Code updating, retry launch (\${nextAttempt}/\${ProcessEngine.MAX_UPDATE_RETRIES})...`,
+                        ProcessEngine.UPDATE_RETRY_DELAY_MS
+                    );
+                    setTimeout(() => {
+                        this.launchInternal(instance, key, nextAttempt, false);
+                    }, ProcessEngine.UPDATE_RETRY_DELAY_MS);
+                    return;
+                }
+
                 const details = [
                     `exitCode=${code ?? ''}`,
                     signal ? `signal=${signal}` : '',
