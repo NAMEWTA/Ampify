@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.1.2 - 2026-02-11
+### Added
+- feat(skill-creator): 新增技能创建工具脚本和文档
+
+### Changed
+- refactor(skill-applier): streamline skill linking logic and enhance path normalization
+- refactor(agent-md-manager): improve target path handling and add workspace-relative path conversion
+- refactor(command-applier): encapsulate command linking logic in a dedicated method
+- chore(gitignore): add __pycache__ to .gitignore
+
 ## 3.1.1 - 2026-02-11
 ### Fixed
 - Retry VS Code launches when the incoming update window blocks startup so the launcher keeps trying instead of failing outright
