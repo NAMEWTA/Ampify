@@ -136,12 +136,12 @@ export class AgentMdManager {
         // SKILLS.md 放在 injectTarget 的父目录
         // 例如 injectTarget = '.agents/skills/' => SKILLS.md 在 '.agents/SKILLS.md'
         const normalizedTarget = injectTarget.replace(/\/$/, '').replace(/\\$/, '');
-        const targetParent = path.dirname(normalizedTarget);
-        const skillsMdRelativePath = targetParent === '.'
-            ? SKILLS_MD_FILENAME
-            : `${targetParent}/${SKILLS_MD_FILENAME}`;
-
-        const skillsMdAbsPath = path.join(workspaceRoot, skillsMdRelativePath);
+        const targetDirAbs = path.isAbsolute(normalizedTarget)
+            ? normalizedTarget
+            : path.join(workspaceRoot, normalizedTarget);
+        const targetParentAbs = path.dirname(targetDirAbs);
+        const skillsMdAbsPath = path.join(targetParentAbs, SKILLS_MD_FILENAME);
+        const skillsMdRelativePath = this.toWorkspaceRelativePath(workspaceRoot, skillsMdAbsPath);
 
         // 确保父目录存在
         const skillsMdDir = path.dirname(skillsMdAbsPath);
@@ -156,6 +156,18 @@ export class AgentMdManager {
         fs.writeFileSync(skillsMdAbsPath, content, 'utf8');
 
         return skillsMdRelativePath;
+    }
+
+    private toWorkspaceRelativePath(workspaceRoot: string, absPath: string): string {
+        let relativePath = path.relative(workspaceRoot, absPath);
+        if (!relativePath || relativePath.trim().length === 0) {
+            relativePath = path.basename(absPath);
+        }
+        return this.normalizePath(relativePath);
+    }
+
+    private normalizePath(value: string): string {
+        return value.replace(/\\/g, '/').replace(/^\.\//, '');
     }
 
     private normalizeInjectTarget(target: string): string {

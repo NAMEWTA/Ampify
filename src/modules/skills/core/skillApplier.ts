@@ -135,14 +135,7 @@ export class SkillApplier {
                 fs.mkdirSync(targetDir, { recursive: true });
             }
 
-            // 如果目标已存在，先删除
-            if (fs.existsSync(skillTargetPath)) {
-                fs.rmSync(skillTargetPath, { recursive: true, force: true });
-            }
-
-            // 使用软链注入 Skill（Windows 使用 junction）
-            const linkType = process.platform === 'win32' ? 'junction' : 'dir';
-            fs.symlinkSync(skill.path, skillTargetPath, linkType);
+            this.ensureSkillLink(skill.path, skillTargetPath);
 
             return { success: true };
         } catch (error: unknown) {
@@ -175,5 +168,27 @@ export class SkillApplier {
             return target.replace(/^\.claude(?=[\\/]|$)/, '.agents');
         }
         return target;
+    }
+
+    private ensureSkillLink(sourcePath: string, targetPath: string): void {
+        if (fs.existsSync(targetPath)) {
+            const stats = fs.lstatSync(targetPath);
+            if (stats.isSymbolicLink()) {
+                const existingTarget = this.normalizeFsPath(fs.realpathSync(targetPath));
+                const desiredTarget = this.normalizeFsPath(fs.realpathSync(sourcePath));
+                if (existingTarget === desiredTarget) {
+                    return;
+                }
+            }
+            fs.rmSync(targetPath, { recursive: true, force: true });
+        }
+
+        const linkType = process.platform === 'win32' ? 'junction' : 'dir';
+        fs.symlinkSync(sourcePath, targetPath, linkType);
+    }
+
+    private normalizeFsPath(value: string): string {
+        const normalized = path.resolve(value);
+        return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
     }
 }

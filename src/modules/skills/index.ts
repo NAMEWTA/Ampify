@@ -119,7 +119,8 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
             
             if (result.success) {
                 try {
-                    const injectTarget = applier.getInjectTarget(workspaceRoot);
+                    const config = configManager.getConfig();
+                    const injectTarget = config.injectTarget || '.agents/skills/';
                     agentMdManager.scanAndSync(workspaceRoot, injectTarget);
                 } catch (error) {
                     console.error('Failed to sync AGENT.md:', error);

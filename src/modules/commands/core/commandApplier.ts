@@ -41,12 +41,7 @@ export class CommandApplier {
 
             const targetPath = path.join(targetDir, `${command.meta.command}.md`);
 
-            if (fs.existsSync(targetPath)) {
-                fs.rmSync(targetPath, { force: true });
-            }
-
-            // 使用软链注入命令文件（Windows 需要开启开发者模式或管理员权限）
-            fs.symlinkSync(command.path, targetPath, 'file');
+            this.ensureCommandLink(command.path, targetPath);
 
             vscode.window.showInformationMessage(
                 I18n.get('commands.applied', command.meta.command)
@@ -115,5 +110,27 @@ export class CommandApplier {
             return target.replace(/^\.claude(?=[\\/]|$)/, '.agents');
         }
         return target;
+    }
+
+    private ensureCommandLink(sourcePath: string, targetPath: string): void {
+        if (fs.existsSync(targetPath)) {
+            const stats = fs.lstatSync(targetPath);
+            if (stats.isSymbolicLink()) {
+                const existingTarget = this.normalizeFsPath(fs.realpathSync(targetPath));
+                const desiredTarget = this.normalizeFsPath(fs.realpathSync(sourcePath));
+                if (existingTarget === desiredTarget) {
+                    return;
+                }
+            }
+            fs.rmSync(targetPath, { force: true });
+        }
+
+        // 使用软链注入命令文件（Windows 需要开启开发者模式或管理员权限）
+        fs.symlinkSync(sourcePath, targetPath, 'file');
+    }
+
+    private normalizeFsPath(value: string): string {
+        const normalized = path.resolve(value);
+        return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
     }
 }
