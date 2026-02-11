@@ -1,7 +1,7 @@
 # MainView 模块
 
 ## 模块概述
-MainView 使用单一 `WebviewViewProvider` 统一渲染 6 个业务模块的视图（dashboard、launcher、skills、commands、gitshare、settings）。TreeView 方案已弃用。
+MainView 使用单一 `WebviewViewProvider` 统一渲染 8 个业务模块的视图（dashboard、launcher、skills、commands、gitshare、modelProxy、opencodeAuth、settings）。TreeView 方案已弃用。
 
 ## 目录结构
 - src/modules/mainView/index.ts
@@ -42,6 +42,8 @@ flowchart LR
         SB[SkillsBridge]
         CB[CommandsBridge]
         GB[GitShareBridge]
+        MP[ModelProxyBridge]
+        OA[OpenCodeAuthBridge]
         ST[SettingsBridge]
     end
 

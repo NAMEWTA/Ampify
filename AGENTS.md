@@ -188,5 +188,5 @@ ESLint 规则在 [eslint.config.js](eslint.config.js) 中定义，TypeScript 严
 # AMPIFY
 <ampify>
   <instruction>必须在此处查看可用的 SKILLS 列表</instruction>
-  <include path=".claude/SKILLS.md" />
+  <include path=".agents/SKILLS.md" />
 </ampify>

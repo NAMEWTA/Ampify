@@ -21,6 +21,8 @@ flowchart TB
         SKI[skills]
         CMD[commands]
         GIT[gitShare]
+        OPA[opencodeAuth]
+        MP[modelProxy]
     end
 
     EXT --> MV
@@ -29,6 +31,8 @@ flowchart TB
     EXT --> GIT
     EXT --> SKI
     EXT --> CMD
+    EXT --> OPA
+    EXT --> MP
 
     MV --> COMMON
     COP --> COMMON
@@ -36,11 +40,15 @@ flowchart TB
     SKI --> COMMON
     CMD --> COMMON
     GIT --> COMMON
+    OPA --> COMMON
+    MP --> COMMON
 
     MV --> SKI
     MV --> CMD
     MV --> LAU
     MV --> GIT
+    MV --> OPA
+    MV --> MP
 ```
 
 ## 扩展激活与注册顺序
@@ -55,6 +63,8 @@ sequenceDiagram
     participant GIT as GitShare
     participant SKI as Skills
     participant CMD as Commands
+    participant OPA as OpenCode Auth
+    participant MP as Model Proxy
 
     VS->>EXT: onStartupFinished
     EXT->>MV: registerMainView()
@@ -63,6 +73,8 @@ sequenceDiagram
     EXT->>GIT: registerGitShare()
     EXT->>SKI: registerSkillManager() (try)
     EXT->>CMD: registerCommandManager() (try)
+    EXT->>OPA: registerOpenCodeCopilotAuth() (try)
+    EXT->>MP: registerModelProxy() (try)
 ```
 
 ## Webview 消息流
@@ -108,6 +120,13 @@ flowchart TD
 │   ├── config.json
 │   ├── userdata/
 │   └── shareExtensions/
+├── opencode-copilot-auth/
+│   └── config.json
+├── modelproxy/
+│   ├── config.json
+│   └── logs/
+│       ├── 2026-02-06.jsonl
+│       └── ...
 └── gitshare/
     ├── .git/
     ├── .gitignore
@@ -136,3 +155,4 @@ flowchart LR
 - VS Code Settings 负责 `ampify.*` 配置
 - Git Share 配置集中存放于 `gitshare/config.json`
 - Skills/Commands 模块配置分别位于 `gitshare/vscodeskillsmanager/config.json` 与 `gitshare/vscodecmdmanager/config.json`
+- 其他本地模块配置位于 `~/.vscode-ampify/<module>/config.json`（如 `opencode-copilot-auth`、`modelproxy`）

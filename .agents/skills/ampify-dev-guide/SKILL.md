@@ -7,13 +7,15 @@ description: Ampify VS Code 扩展开发规范指南。用于新建功能模块�
 
 本 Skill 提供 Ampify 扩展的开发指引与模块化说明。先阅读本文快速建立全局结构，再按需进入各 `references/` 文档获取详细流程与 Mermaid 图。
 
-## 项目速览（6 大模块）
+## 项目速览（8 大模块）
 1. Copier：复制文件路径与行号
 2. Launcher：VS Code 多实例启动器
 3. Skills Manager：Skill 仓库管理与注入
 4. Commands Manager：Command 仓库管理与注入
 5. Git Share：Git 同步与差异预览
-6. MainView：统一 Webview 视图与 Bridge
+6. OpenCode Copilot Auth：多凭证管理与快速切换
+7. Model Proxy：本地 HTTP 反代理与日志
+8. MainView：统一 Webview 视图与 Bridge
 
 ## 目录结构（真实结构）
 
@@ -42,6 +44,10 @@ Ampify/
 │       │   ├── core/
 │       │   └── templates/
 │       ├── gitShare/
+│       ├── opencode-copilot-auth/
+│       │   └── core/
+│       ├── modelProxy/
+│       │   └── core/
 │       └── mainView/
 │           ├── bridges/
 │           ├── templates/
@@ -75,11 +81,14 @@ Ampify/
 ## 参考文档导航（按需阅读）
 
 - 总体架构与数据流：references/architecture.md
+- Dashboard（数据聚合与快捷操作）：references/module-dashboard.md
 - Copier 模块：references/module-copier.md
 - Launcher 模块：references/module-launcher.md
 - Skills Manager 模块：references/module-skills.md
 - Commands Manager 模块：references/module-commands.md
 - Git Share 模块：references/module-gitshare.md
 - MainView 模块（含 Bridge TreeNode 结构流图）：references/module-mainview.md
+- Settings（配置面板与写入策略）：references/module-settings.md
 - Model Proxy 模块（HTTP 反代理、双格式兼容、日志）：references/module-modelproxy.md
+- OpenCode Copilot Auth 模块：references/module-opencode-copilot-auth.md
 - 编码规范与开发流程：references/coding-conventions.md
