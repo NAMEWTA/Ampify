@@ -55,7 +55,6 @@ MainView 使用单一 `WebviewViewProvider`（`AmpifyViewProvider`）承载全�
 2. 可见时触发 `gitManager.sync()`，并做 30 秒节流。
 3. `ampify.mainView.refresh` 刷新当前 section。
 4. `settingsAction=reloadWindow` 可重载窗口；`restartProxy` 可重启 Model Proxy。
-5. 前端会定时轮询会话状态：仅在 `accountCenter/sessions` 可见且无内嵌可见会话时触发 `refreshSessions`。
 
 ## Account Center 结构
 - tab：`launcher`、`auth`、`ohmy`、`sessions`

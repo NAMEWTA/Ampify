@@ -69,8 +69,6 @@ src/modules/opencode-copilot-auth/
 - 外部终端：创建 VS Code terminal，执行 `opencode --port 0`。
 - 内嵌 Web：spawn `opencode serve --hostname 127.0.0.1 --port <freePort>`，并等待 HTTP 就绪。
 - 会话记录写入 `managedSessions`，同时保存 provider/oh-my 快照。
-- 监听 `onDidCloseTerminal` 自动清理已关闭终端对应的 managed session。
-- `getSessionViews()` 会合并“托管会话 + 外部扫描到的 opencode 进程”，并按 `startedAt` 倒序输出。
 
 ## 数据存储
 ### Ampify 本地配置

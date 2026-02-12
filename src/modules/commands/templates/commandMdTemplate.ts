@@ -70,7 +70,8 @@ function generateDefaultBody(_meta: CommandMeta): string {
  * @returns 解析结果，包含 meta 和 body
  */
 export function parseCommandMd(content: string): { meta: CommandMeta | null; body: string } {
-    const frontmatterMatch = content.match(/^---\s*\r?\n([\s\S]*?)\r?\n---/);
+    // 兼容 UTF-8 BOM：某些编辑器保存的 MD 会在开头写入 \uFEFF
+    const frontmatterMatch = content.match(/^\uFEFF?---\s*\r?\n([\s\S]*?)\r?\n---/);
 
     if (!frontmatterMatch) {
         return { meta: null, body: content };

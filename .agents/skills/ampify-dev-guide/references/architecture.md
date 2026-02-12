@@ -54,11 +54,6 @@ sequenceDiagram
     EXT->>EXT: registerModelProxy() (try)
 ```
 
-## 实例身份链路（instanceKey）
-- Launcher 在目标 `user-data-dir` 写入 `.ampify-instance-key`。
-- 扩展激活时 `detectInstanceKey()` 从 `process.argv --user-data-dir` 解析并读取该文件。
-- MainView 用该值渲染侧边栏账号徽标；Model Proxy 日志按该值分桶写入 `logs/{instanceKey}/`。
-
 ## MainView Section 路由
 - 主 section：`dashboard`、`accountCenter`、`skills`、`commands`、`gitshare`、`modelProxy`、`settings`
 - 兼容 section：`launcher` / `opencodeAuth` 会被 `AmpifyViewProvider.normalizeSection()` 映射到 `accountCenter`

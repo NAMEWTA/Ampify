@@ -92,7 +92,8 @@ export class AgentMdManager {
     private parseSkillMetaFromMarkdown(skillMdPath: string, fallbackName: string): SkillMeta | null {
         try {
             const content = fs.readFileSync(skillMdPath, 'utf8');
-            const match = content.match(/^---\s*\r?\n([\s\S]*?)\r?\n---/);
+            // 兼容 UTF-8 BOM：某些编辑器保存的 SKILL.md 会在开头写入 \uFEFF
+            const match = content.match(/^\uFEFF?---\s*\r?\n([\s\S]*?)\r?\n---/);
 
             if (!match) {
                 return null;
