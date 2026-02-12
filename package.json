@@ -2,7 +2,7 @@
   "name": "ampify",
   "displayName": "Ampify",
   "description": "Ampify: A practical, multi-feature VS Code extension combining path+line copying and a multi-instance launcher (多功能实用扩展，集文件路径行号复制与多实例启动器于一体，持续发展中)。",
-  "version": "3.1.2",
+  "version": "3.1.3",
   "publisher": "NAMEWTA",
   "repository": {
     "type": "git",
@@ -376,9 +376,24 @@
         "icon": "$(play)"
       },
       {
+        "command": "ampify.opencode.session.startInternal",
+        "title": "Start Internal Opencode Session",
+        "icon": "$(browser)"
+      },
+      {
         "command": "ampify.opencode.session.open",
         "title": "Open Managed Opencode Terminal",
         "icon": "$(terminal)"
+      },
+      {
+        "command": "ampify.opencode.session.openInternal",
+        "title": "Open Internal Opencode Session",
+        "icon": "$(browser)"
+      },
+      {
+        "command": "ampify.opencode.session.minimizeInternal",
+        "title": "Minimize Internal Opencode Session",
+        "icon": "$(chrome-minimize)"
       },
       {
         "command": "ampify.opencode.session.kill",

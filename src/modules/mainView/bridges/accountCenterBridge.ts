@@ -143,7 +143,8 @@ export class AccountCenterBridge {
                 toolbarActions: I18n.get('accountCenter.toolbarActions'),
                 authZeroConfig: I18n.get('accountCenter.authZeroConfig'),
                 sourceManaged: I18n.get('accountCenter.sourceManaged'),
-                sourceExternal: I18n.get('accountCenter.sourceExternal')
+                sourceExternal: I18n.get('accountCenter.sourceExternal'),
+                minimizeInternalTerminal: I18n.get('accountCenter.minimizeInternalTerminal')
             },
             sections,
             toolbar: this.getToolbarByActiveTab()
@@ -193,6 +194,7 @@ export class AccountCenterBridge {
                 return [
                     { id: 'openConfig', label: I18n.get('accountCenter.toolbarOpenConfig'), iconId: 'go-to-file', command: '' },
                     { id: 'startSession', label: I18n.get('accountCenter.startSession'), iconId: 'play', command: '' },
+                    { id: 'startSessionInternal', label: I18n.get('accountCenter.startSessionInternal'), iconId: 'browser', command: '' },
                     { id: 'refreshSessions', label: I18n.get('accountCenter.refreshSessions'), iconId: 'refresh', command: '' }
                 ];
         }
@@ -290,28 +292,54 @@ export class AccountCenterBridge {
             const rowId = session.source === 'managed'
                 ? `session:managed:${session.managedSessionId || session.id}`
                 : `session:external:${session.pid}`;
+            const providers = session.activeProvidersSnapshot && session.activeProvidersSnapshot.length > 0
+                ? session.activeProvidersSnapshot.join(', ')
+                : '-';
+            const ohMy = session.activeOhMyNameSnapshot || '-';
 
             const actions = [];
-            if (session.openable && session.managedSessionId) {
-                actions.push({ id: 'open', label: I18n.get('accountCenter.openTerminal'), iconId: 'terminal' });
+            if (session.source === 'managed' && session.managedSessionId) {
+                if (session.launchMode === 'externalTerminal' && session.openable) {
+                    actions.push({ id: 'open', label: I18n.get('accountCenter.openTerminal'), iconId: 'terminal' });
+                }
+                if (session.launchMode === 'internalWeb') {
+                    if (session.minimized === false) {
+                        actions.push({ id: 'minimizeInternal', label: I18n.get('accountCenter.minimizeInternalTerminal'), iconId: 'chrome-minimize' });
+                    } else {
+                        actions.push({ id: 'openInternal', label: I18n.get('accountCenter.openInternalTerminal'), iconId: 'browser' });
+                    }
+                }
             }
             if (session.status === 'running') {
                 actions.push({ id: 'kill', label: I18n.get('accountCenter.killSession'), iconId: 'debug-stop', danger: true });
             }
+
+            const badges = [
+                session.source === 'managed'
+                    ? I18n.get('accountCenter.sourceManaged')
+                    : I18n.get('accountCenter.sourceExternal'),
+                session.launchMode === 'internalWeb'
+                    ? I18n.get('accountCenter.sessionModeInternal')
+                    : I18n.get('accountCenter.sessionModeExternal')
+            ];
 
             return {
                 id: rowId,
                 name: session.name,
                 description: session.pid > 0 ? `PID ${session.pid}` : 'PID —',
                 subtitle: `${startedAt} · ${session.command}`,
-                status: session.status,
-                badges: [
-                    session.source === 'managed'
-                        ? I18n.get('accountCenter.sourceManaged')
-                        : I18n.get('accountCenter.sourceExternal')
+                metaLines: [
+                    `${I18n.get('accountCenter.sessionProviderSnapshot')}${providers}`,
+                    `${I18n.get('accountCenter.sessionOhMySnapshot')}${ohMy}`
                 ],
+                status: session.status,
+                badges,
                 domain: 'opencode',
                 source: session.source,
+                launchMode: session.launchMode,
+                internalUrl: session.internalUrl,
+                internalVisible: session.launchMode === 'internalWeb' && session.minimized === false,
+                internalSessionId: session.managedSessionId,
                 pid: session.pid,
                 actions
             };
@@ -455,6 +483,11 @@ export class AccountCenterBridge {
             return;
         }
 
+        if (actionId === 'startSessionInternal') {
+            await vscode.commands.executeCommand('ampify.opencode.session.startInternal');
+            return;
+        }
+
         if (actionId === 'refreshSessions' || actionId === 'refresh') {
             await vscode.commands.executeCommand('ampify.opencode.session.refresh');
             return;
@@ -471,6 +504,16 @@ export class AccountCenterBridge {
 
         if (actionId === 'open' && view.managedSessionId) {
             await vscode.commands.executeCommand('ampify.opencode.session.open', view.managedSessionId);
+            return;
+        }
+
+        if (actionId === 'openInternal' && view.managedSessionId) {
+            await vscode.commands.executeCommand('ampify.opencode.session.openInternal', view.managedSessionId);
+            return;
+        }
+
+        if (actionId === 'minimizeInternal' && view.managedSessionId) {
+            await vscode.commands.executeCommand('ampify.opencode.session.minimizeInternal', view.managedSessionId);
             return;
         }
 

@@ -233,6 +233,7 @@ export interface AccountCenterLabels {
     authZeroConfig: string;
     sourceManaged: string;
     sourceExternal: string;
+    minimizeInternalTerminal: string;
 }
 
 export interface AccountCenterTabMeta {
@@ -255,10 +256,15 @@ export interface AccountCenterRow {
     name: string;
     description: string;
     subtitle?: string;
+    metaLines?: string[];
     badges?: string[];
     status?: 'running' | 'stopped' | 'active' | 'inactive';
     domain?: 'github' | 'opencode';
     source?: 'managed' | 'external' | 'internal';
+    launchMode?: 'externalTerminal' | 'internalWeb';
+    internalUrl?: string;
+    internalVisible?: boolean;
+    internalSessionId?: string;
     pid?: number;
     actions: AccountCenterRowAction[];
 }

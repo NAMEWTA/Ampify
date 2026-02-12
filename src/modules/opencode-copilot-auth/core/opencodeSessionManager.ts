@@ -1,4 +1,6 @@
-﻿import * as cp from 'child_process';
+import * as cp from 'child_process';
+import * as http from 'http';
+import * as net from 'net';
 import * as vscode from 'vscode';
 import { randomUUID } from 'crypto';
 import { ManagedOpencodeSession } from '../../../common/types';
@@ -17,6 +19,11 @@ export interface OpencodeSessionView {
     openable: boolean;
     managedSessionId?: string;
     terminalName?: string;
+    launchMode: 'externalTerminal' | 'internalWeb';
+    internalUrl?: string;
+    minimized?: boolean;
+    activeProvidersSnapshot?: string[];
+    activeOhMyNameSnapshot?: string;
 }
 
 interface RunningProcessInfo {
@@ -24,6 +31,10 @@ interface RunningProcessInfo {
     command: string;
     startedAt?: number;
 }
+
+const INTERNAL_HOST = '127.0.0.1';
+const INTERNAL_READY_TIMEOUT_MS = 12000;
+const INTERNAL_READY_RETRY_INTERVAL_MS = 250;
 
 export class OpencodeSessionManager {
     constructor(private readonly configManager: OpenCodeCopilotAuthConfigManager) {}
@@ -34,6 +45,7 @@ export class OpencodeSessionManager {
         const terminalName = `opencode-${Date.now()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
         const workspaceArg = workspace ? ` "${workspace.replace(/"/g, '\\"')}"` : '';
         const command = `opencode --port 0${workspaceArg}`;
+        const snapshots = this.buildSessionSnapshots();
 
         const terminal = vscode.window.createTerminal({
             name: terminalName,
@@ -48,20 +60,83 @@ export class OpencodeSessionManager {
         const session: ManagedOpencodeSession = {
             id,
             terminalName,
+            launchMode: 'externalTerminal',
             pid,
             startedAt: Date.now(),
             command,
             status: 'running',
-            workspace
+            workspace,
+            activeProvidersSnapshot: snapshots.activeProvidersSnapshot,
+            activeOhMyProfileIdSnapshot: snapshots.activeOhMyProfileIdSnapshot,
+            activeOhMyNameSnapshot: snapshots.activeOhMyNameSnapshot
         };
 
         this.configManager.upsertManagedSession(session);
         return session;
     }
 
+    async startInternalSession(): Promise<ManagedOpencodeSession> {
+        const workspace = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+        const id = randomUUID();
+        const port = await findFreePort();
+        const terminalName = `opencode-internal-${Date.now()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`;
+        const command = `opencode serve --hostname ${INTERNAL_HOST} --port ${port}`;
+        const internalUrl = `http://${INTERNAL_HOST}:${port}`;
+        const snapshots = this.buildSessionSnapshots();
+
+        const child = cp.spawn(getOpencodeExecutable(), [
+            'serve',
+            '--hostname',
+            INTERNAL_HOST,
+            '--port',
+            String(port)
+        ], {
+            cwd: workspace,
+            windowsHide: true,
+            stdio: 'ignore'
+        });
+
+        const pid = await waitForSpawnedPid(child);
+        child.unref();
+
+        try {
+            await waitForHttpReady(internalUrl, INTERNAL_READY_TIMEOUT_MS);
+        } catch (error) {
+            try {
+                await this.killByPid(pid);
+            } catch {
+                // noop
+            }
+            throw error;
+        }
+
+        const session: ManagedOpencodeSession = {
+            id,
+            terminalName,
+            launchMode: 'internalWeb',
+            pid,
+            startedAt: Date.now(),
+            command,
+            status: 'running',
+            workspace,
+            port,
+            internalUrl,
+            minimized: false,
+            activeProvidersSnapshot: snapshots.activeProvidersSnapshot,
+            activeOhMyProfileIdSnapshot: snapshots.activeOhMyProfileIdSnapshot,
+            activeOhMyNameSnapshot: snapshots.activeOhMyNameSnapshot
+        };
+
+        this.configManager.upsertManagedSession(session);
+        this.configManager.minimizeOtherInternalSessions(session.id);
+        this.configManager.setInternalSessionMinimized(session.id, false);
+
+        return this.configManager.getManagedSessions().find((item) => item.id === session.id) || session;
+    }
+
     async openManagedSession(sessionId: string): Promise<boolean> {
         const managed = this.configManager.getManagedSessions().find((item) => item.id === sessionId);
-        if (!managed) {
+        if (!managed || managed.launchMode !== 'externalTerminal') {
             return false;
         }
 
@@ -72,6 +147,31 @@ export class OpencodeSessionManager {
 
         terminal.show();
         return true;
+    }
+
+    async openInternalSession(sessionId: string): Promise<boolean> {
+        const views = await this.getSessionViews();
+        const target = views.find((item) =>
+            item.source === 'managed'
+            && item.managedSessionId === sessionId
+            && item.launchMode === 'internalWeb'
+            && item.status === 'running'
+        );
+
+        if (!target) {
+            return false;
+        }
+
+        this.configManager.minimizeOtherInternalSessions(sessionId);
+        return this.configManager.setInternalSessionMinimized(sessionId, false);
+    }
+
+    async minimizeInternalSession(sessionId: string): Promise<boolean> {
+        const managed = this.configManager.getManagedSessions().find((item) => item.id === sessionId);
+        if (!managed || managed.launchMode !== 'internalWeb') {
+            return false;
+        }
+        return this.configManager.setInternalSessionMinimized(sessionId, true);
     }
 
     async killByPid(pid: number): Promise<void> {
@@ -96,9 +196,11 @@ export class OpencodeSessionManager {
             return;
         }
 
-        const terminal = vscode.window.terminals.find((item) => item.name === managed.terminalName);
-        if (terminal) {
-            terminal.dispose();
+        if (managed.launchMode === 'externalTerminal') {
+            const terminal = vscode.window.terminals.find((item) => item.name === managed.terminalName);
+            if (terminal) {
+                terminal.dispose();
+            }
         }
 
         if (managed.pid) {
@@ -127,20 +229,26 @@ export class OpencodeSessionManager {
         }
 
         for (const session of managed) {
-            const terminalAlive = terminalNameSet.has(session.terminalName);
             let matchedProc: RunningProcessInfo | undefined;
+            const terminalAlive = session.launchMode === 'externalTerminal' && terminalNameSet.has(session.terminalName);
 
-            if (session.pid && runningByPid.has(session.pid)) {
-                matchedProc = runningByPid.get(session.pid);
-            } else if (terminalAlive) {
-                matchedProc = matchRunningProcessByStartTime(running, consumedPidSet, session.startedAt);
+            if (session.launchMode === 'externalTerminal') {
+                if (session.pid && runningByPid.has(session.pid)) {
+                    matchedProc = runningByPid.get(session.pid);
+                } else if (terminalAlive) {
+                    matchedProc = matchRunningProcessByStartTime(running, consumedPidSet, session.startedAt);
+                }
+            } else {
+                matchedProc = resolveInternalRunningProcess(session, running, runningByPid, consumedPidSet);
             }
 
             if (matchedProc) {
                 consumedPidSet.add(matchedProc.pid);
             }
 
-            const isRunning = terminalAlive || Boolean(matchedProc);
+            const isRunning = session.launchMode === 'externalTerminal'
+                ? (terminalAlive || Boolean(matchedProc))
+                : Boolean(matchedProc);
             if (!isRunning) {
                 continue;
             }
@@ -148,13 +256,17 @@ export class OpencodeSessionManager {
             const resolvedPid = matchedProc?.pid ?? session.pid;
             const resolvedCommand = matchedProc?.command ?? session.command;
             const resolvedStartedAt = matchedProc?.startedAt ?? session.startedAt;
+            const internalUrl = session.launchMode === 'internalWeb'
+                ? (session.internalUrl || (session.port ? `http://${INTERNAL_HOST}:${session.port}` : undefined))
+                : undefined;
 
             const updatedSession: ManagedOpencodeSession = {
                 ...session,
                 pid: resolvedPid,
                 command: resolvedCommand,
                 startedAt: resolvedStartedAt || session.startedAt,
-                status: 'running'
+                status: 'running',
+                internalUrl
             };
             nextManaged.push(updatedSession);
 
@@ -168,7 +280,12 @@ export class OpencodeSessionManager {
                 status: 'running',
                 openable: terminalAlive,
                 managedSessionId: session.id,
-                terminalName: session.terminalName
+                terminalName: session.terminalName,
+                launchMode: session.launchMode,
+                internalUrl,
+                minimized: session.launchMode === 'internalWeb' ? session.minimized !== false : undefined,
+                activeProvidersSnapshot: session.activeProvidersSnapshot || [],
+                activeOhMyNameSnapshot: session.activeOhMyNameSnapshot
             });
         }
 
@@ -185,6 +302,7 @@ export class OpencodeSessionManager {
                 startedAt: proc.startedAt,
                 status: 'running',
                 openable: false,
+                launchMode: 'externalTerminal'
             });
         }
 
@@ -192,6 +310,26 @@ export class OpencodeSessionManager {
 
         views.sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
         return views;
+    }
+
+    private buildSessionSnapshots(): Pick<ManagedOpencodeSession, 'activeProvidersSnapshot' | 'activeOhMyProfileIdSnapshot' | 'activeOhMyNameSnapshot'> {
+        const activeMap = this.configManager.getActiveByProviderMap();
+        const credentialIds = new Set(this.configManager.getCredentials().map((item) => item.id));
+        const activeProvidersSnapshot = Object.entries(activeMap)
+            .filter(([, credentialId]) => typeof credentialId === 'string' && credentialIds.has(credentialId))
+            .map(([provider]) => provider)
+            .sort();
+
+        const activeOhMyProfileIdSnapshot = this.configManager.getActiveOhMyProfileId();
+        const activeOhMyNameSnapshot = activeOhMyProfileIdSnapshot
+            ? this.configManager.getOhMyProfileById(activeOhMyProfileIdSnapshot)?.name
+            : undefined;
+
+        return {
+            activeProvidersSnapshot,
+            activeOhMyProfileIdSnapshot,
+            activeOhMyNameSnapshot
+        };
     }
 
     private scanRunningProcesses(): RunningProcessInfo[] {
@@ -211,7 +349,7 @@ export class OpencodeSessionManager {
             'powershell',
             '-NoProfile',
             '-Command',
-            `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and ($_.CommandLine -match '(?i)\\bopencode(\\.cmd)?\\b') -and ($_.CommandLine -notmatch 'Get-CimInstance Win32_Process') } | Select-Object ProcessId,CommandLine,CreationDate | ConvertTo-Json -Compress`
+            `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and ($_.CommandLine -match '(?i)\\bopencode(\\.cmd|\\.exe)?\\b') -and ($_.CommandLine -notmatch 'Get-CimInstance Win32_Process') } | Select-Object ProcessId,CommandLine,CreationDate | ConvertTo-Json -Compress`
         ].join(' ');
 
         const output = cp.execSync(command, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
@@ -241,7 +379,7 @@ export class OpencodeSessionManager {
     }
 
     private scanUnixProcesses(): RunningProcessInfo[] {
-        const command = `ps -ax -o pid=,lstart=,command= | grep -E "[o]pencode"`;
+        const command = 'ps -ax -o pid=,lstart=,command= | grep -E "[o]pencode"';
         const output = cp.execSync(command, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
         if (!output) {
             return [];
@@ -291,6 +429,44 @@ function dedupeByPid(items: RunningProcessInfo[]): RunningProcessInfo[] {
     return [...map.values()];
 }
 
+function resolveInternalRunningProcess(
+    session: ManagedOpencodeSession,
+    running: RunningProcessInfo[],
+    runningByPid: Map<number, RunningProcessInfo>,
+    consumedPidSet: Set<number>
+): RunningProcessInfo | undefined {
+    if (session.pid && runningByPid.has(session.pid)) {
+        return runningByPid.get(session.pid);
+    }
+
+    if (session.port) {
+        const byPort = findRunningProcessByPort(running, consumedPidSet, session.port);
+        if (byPort) {
+            return byPort;
+        }
+    }
+
+    const serveOnly = running.filter((item) => isOpencodeServeCommand(item.command));
+    return matchRunningProcessByStartTime(serveOnly, consumedPidSet, session.startedAt);
+}
+
+function findRunningProcessByPort(
+    running: RunningProcessInfo[],
+    consumedPidSet: Set<number>,
+    port: number
+): RunningProcessInfo | undefined {
+    for (const proc of running) {
+        if (consumedPidSet.has(proc.pid)) {
+            continue;
+        }
+        if (!isPortInCommand(proc.command, port)) {
+            continue;
+        }
+        return proc;
+    }
+    return undefined;
+}
+
 function matchRunningProcessByStartTime(
     running: RunningProcessInfo[],
     consumedPidSet: Set<number>,
@@ -325,7 +501,22 @@ function isOpencodeCommand(command: string): boolean {
     if (!command) {
         return false;
     }
-    return /\bopencode(\.cmd)?\b/i.test(command);
+    return /\bopencode(\.cmd|\.exe)?\b/i.test(command);
+}
+
+function isOpencodeServeCommand(command: string): boolean {
+    if (!isOpencodeCommand(command)) {
+        return false;
+    }
+    return /\bserve\b/i.test(command);
+}
+
+function isPortInCommand(command: string, port: number): boolean {
+    if (!command || !port) {
+        return false;
+    }
+    const pattern = new RegExp(`--port\\s+${port}\\b`);
+    return pattern.test(command);
 }
 
 async function resolveProcessId(terminal: vscode.Terminal): Promise<number | undefined> {
@@ -341,6 +532,93 @@ async function resolveProcessId(terminal: vscode.Terminal): Promise<number | und
     }
 
     return undefined;
+}
+
+function findFreePort(): Promise<number> {
+    return new Promise((resolve, reject) => {
+        const server = net.createServer();
+        server.on('error', reject);
+        server.listen(0, INTERNAL_HOST, () => {
+            const address = server.address();
+            if (!address || typeof address === 'string') {
+                server.close(() => reject(new Error('Failed to allocate internal opencode port')));
+                return;
+            }
+
+            const { port } = address;
+            server.close((closeError) => {
+                if (closeError) {
+                    reject(closeError);
+                    return;
+                }
+                resolve(port);
+            });
+        });
+    });
+}
+
+function waitForSpawnedPid(child: cp.ChildProcess): Promise<number> {
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+            reject(new Error('Timed out while starting internal opencode process'));
+        }, 2000);
+
+        const cleanup = () => {
+            clearTimeout(timeout);
+            child.removeListener('spawn', onSpawn);
+            child.removeListener('error', onError);
+        };
+
+        const onSpawn = () => {
+            cleanup();
+            const pid = child.pid;
+            if (!pid || pid <= 0) {
+                reject(new Error('Internal opencode process did not provide a valid PID'));
+                return;
+            }
+            resolve(pid);
+        };
+
+        const onError = (error: Error) => {
+            cleanup();
+            reject(error);
+        };
+
+        child.once('spawn', onSpawn);
+        child.once('error', onError);
+    });
+}
+
+async function waitForHttpReady(url: string, timeoutMs: number): Promise<void> {
+    const start = Date.now();
+
+    while (Date.now() - start < timeoutMs) {
+        const ready = await probeHttp(url);
+        if (ready) {
+            return;
+        }
+        await delay(INTERNAL_READY_RETRY_INTERVAL_MS);
+    }
+
+    throw new Error(`Timed out waiting for internal opencode web UI: ${url}`);
+}
+
+function probeHttp(url: string): Promise<boolean> {
+    return new Promise((resolve) => {
+        const req = http.get(url, (res) => {
+            res.resume();
+            resolve(Boolean(res.statusCode && res.statusCode >= 200 && res.statusCode < 500));
+        });
+        req.setTimeout(1000, () => {
+            req.destroy();
+            resolve(false);
+        });
+        req.on('error', () => resolve(false));
+    });
+}
+
+function getOpencodeExecutable(): string {
+    return process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
 }
 
 function delay(ms: number): Promise<void> {

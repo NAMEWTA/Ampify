@@ -3407,6 +3407,60 @@ html, body {
     gap: 8px;
 }
 
+.account-internal-panel {
+    border: 1px solid color-mix(in srgb, var(--ac-opencode-accent) 38%, var(--vscode-panel-border, #2b2b2b) 62%);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--ac-opencode-soft) 42%, var(--vscode-editor-background, #1e1e1e) 58%);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.account-internal-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid color-mix(in srgb, var(--ac-opencode-accent) 28%, var(--vscode-panel-border, #2b2b2b) 72%);
+}
+
+.account-internal-panel-title-wrap {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.account-internal-panel-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--vscode-foreground, #cccccc);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.account-internal-panel-url {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground, #717171);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.account-internal-panel-body {
+    min-height: 380px;
+    background: var(--vscode-editor-background, #1e1e1e);
+}
+
+.account-internal-iframe {
+    width: 100%;
+    height: 460px;
+    border: none;
+    background: #0f0f0f;
+}
+
 .account-row {
     border: 1px solid var(--vscode-panel-border, #2b2b2b);
     background: var(--vscode-editor-background, #1e1e1e);
@@ -3495,6 +3549,20 @@ html, body {
     overflow: hidden;
     word-break: break-word;
     overflow-wrap: anywhere;
+}
+
+.account-row-meta-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.account-row-meta {
+    font-size: 10px;
+    color: var(--vscode-descriptionForeground, #717171);
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .account-row-actions {

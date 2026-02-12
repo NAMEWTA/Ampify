@@ -135,8 +135,20 @@ export function getJs(): string {
             if (tab !== 'sessions') {
                 return;
             }
+            if (hasVisibleInternalSession(accountCenterData)) {
+                return;
+            }
             vscode.postMessage({ type: 'accountCenterAction', tab: 'sessions', actionId: 'refreshSessions' });
         }, ACCOUNT_CENTER_POLL_INTERVAL_MS);
+    }
+
+    function hasVisibleInternalSession(data) {
+        if (!data || data.activeTab !== 'sessions') {
+            return false;
+        }
+        const sections = data.sections || {};
+        const rows = (sections.sessions && sections.sessions.rows) || [];
+        return rows.some((row) => row && row.launchMode === 'internalWeb' && row.internalVisible && row.internalUrl);
     }
 
     // ==================== Message Handling ====================
@@ -1536,6 +1548,7 @@ export function getJs(): string {
         const activeSection = sections[activeTab];
         const activeTabMeta = tabs.find((tab) => tab.id === activeTab);
         const activeDomain = (activeTabMeta && activeTabMeta.domain) || (activeTab === 'launcher' ? 'github' : 'opencode');
+        const rows = activeSection && activeSection.rows ? activeSection.rows : [];
         const activeProviders = Array.isArray(dashboard.activeProviders) ? dashboard.activeProviders : [];
         const activeProvidersText = activeProviders.length > 0 ? activeProviders.join(', ') : '-';
 
@@ -1587,6 +1600,27 @@ export function getJs(): string {
             html += '</div>';
         }
 
+        if (activeTab === 'sessions') {
+            const internalRow = rows.find((row) => row && row.launchMode === 'internalWeb' && row.internalVisible && row.internalUrl);
+            if (internalRow) {
+                html += '<div class="account-internal-panel">';
+                html += '<div class="account-internal-panel-head">';
+                html += '<div class="account-internal-panel-title-wrap">';
+                html += '<div class="account-internal-panel-title">' + escapeHtml(internalRow.name || 'Internal Opencode') + '</div>';
+                html += '<div class="account-internal-panel-url">' + escapeHtml(internalRow.internalUrl || '') + '</div>';
+                html += '</div>';
+                html += '<button class="account-row-action account-row-action--opencode" data-ac-action="minimizeInternal" data-row-id="' + escapeHtml(internalRow.id || '') + '">';
+                html += '<i class="codicon codicon-chrome-minimize"></i>';
+                html += '<span>' + escapeHtml(labels.minimizeInternalTerminal || 'Minimize') + '</span>';
+                html += '</button>';
+                html += '</div>';
+                html += '<div class="account-internal-panel-body">';
+                html += '<iframe class="account-internal-iframe" src="' + escapeHtml(internalRow.internalUrl || '') + '" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>';
+                html += '</div>';
+                html += '</div>';
+            }
+        }
+
         if (activeTab === 'ohmy') {
             html += '<div class="account-models-panel">';
             html += '<div class="account-models-note-title">' + escapeHtml(labels.dashboardModelsMeaningTitle || 'Model Reference Scope') + '</div>';
@@ -1603,7 +1637,6 @@ export function getJs(): string {
         }
 
         html += '<div class="account-list">';
-        const rows = activeSection && activeSection.rows ? activeSection.rows : [];
         if (!rows.length) {
             html += '<div class="empty-state">';
             html += '<i class="codicon codicon-info"></i>';
@@ -1626,6 +1659,14 @@ export function getJs(): string {
 
                 if (row.subtitle) {
                     html += '<div class="account-row-subtitle" title="' + escapeHtml(row.subtitle) + '">' + escapeHtml(row.subtitle) + '</div>';
+                }
+
+                if (row.metaLines && row.metaLines.length > 0) {
+                    html += '<div class="account-row-meta-list">';
+                    for (const line of row.metaLines) {
+                        html += '<div class="account-row-meta" title="' + escapeHtml(line || '') + '">' + escapeHtml(line || '') + '</div>';
+                    }
+                    html += '</div>';
                 }
 
                 if (row.actions && row.actions.length > 0) {
