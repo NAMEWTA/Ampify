@@ -31,14 +31,40 @@ export class AccountCenterBridge {
     }
 
     async getData(): Promise<AccountCenterData> {
-        const launcherRows = this.buildLauncherRows();
-        const authRows = this.buildAuthRows();
-        const ohMyRows = this.buildOhMyRows();
-        const sessionRows = await this.buildSessionRows();
+        const launcherCount = Object.keys(this.launcherConfig.getConfig().instances).length;
+        const authCount = this.authConfig.getCredentials().length;
+        const ohMyCount = this.authConfig.getOhMyProfiles().length;
+        const activeByProvider = this.authConfig.getActiveByProviderMap();
+        const credentialIds = new Set(this.authConfig.getCredentials().map((cred) => cred.id));
+        const activeProviders = Object.entries(activeByProvider)
+            .filter(([, credentialId]) => typeof credentialId === 'string' && credentialIds.has(credentialId))
+            .map(([provider]) => provider)
+            .sort();
+
+        let launcherRows: AccountCenterRow[] = [];
+        let authRows: AccountCenterRow[] = [];
+        let ohMyRows: AccountCenterRow[] = [];
+        let sessionRows: AccountCenterRow[] = [];
+
+        switch (this.activeTab) {
+            case 'launcher':
+                launcherRows = this.buildLauncherRows();
+                break;
+            case 'auth':
+                authRows = this.buildAuthRows();
+                break;
+            case 'ohmy':
+                ohMyRows = this.buildOhMyRows();
+                break;
+            case 'sessions':
+                sessionRows = await this.buildSessionRows();
+                break;
+        }
 
         const currentInfo = this.ohMyManager.readCurrentInfo();
         const activeOhMyId = this.ohMyManager.resolveCurrentProfileId();
         const activeOhMy = activeOhMyId ? this.authConfig.getOhMyProfileById(activeOhMyId) : undefined;
+        const sessionCount = this.lastSessionViews.filter((item) => item.status === 'running').length;
 
         const sections: Record<AccountCenterTabId, AccountCenterTabData> = {
             launcher: {
@@ -67,25 +93,25 @@ export class AccountCenterBridge {
             {
                 id: 'launcher' as const,
                 label: I18n.get('accountCenter.tabLauncher'),
-                count: launcherRows.length,
+                count: launcherCount,
                 domain: 'github' as const
             },
             {
                 id: 'auth' as const,
                 label: I18n.get('accountCenter.tabAuth'),
-                count: authRows.length,
+                count: authCount,
                 domain: 'opencode' as const
             },
             {
                 id: 'ohmy' as const,
                 label: I18n.get('accountCenter.tabOhMy'),
-                count: ohMyRows.length,
+                count: ohMyCount,
                 domain: 'opencode' as const
             },
             {
                 id: 'sessions' as const,
                 label: I18n.get('accountCenter.tabSessions'),
-                count: sessionRows.filter((row) => row.status === 'running').length,
+                count: sessionCount,
                 domain: 'opencode' as const
             }
         ];
@@ -96,6 +122,7 @@ export class AccountCenterBridge {
             tabs,
             dashboard: {
                 providerCount: this.authSwitcher.getProviderCount(),
+                activeProviders,
                 activeOhMyName: activeOhMy?.name,
                 activeOhMyHash: currentInfo.contentHash?.slice(0, 12),
                 modelCount: currentInfo.modelIds.length,
@@ -103,6 +130,7 @@ export class AccountCenterBridge {
             },
             labels: {
                 dashboardProviders: I18n.get('accountCenter.dashboardProviders'),
+                dashboardActiveProviders: I18n.get('accountCenter.dashboardActiveProviders'),
                 dashboardActiveOhMy: I18n.get('accountCenter.dashboardActiveOhMy'),
                 dashboardModels: I18n.get('accountCenter.dashboardModels'),
                 dashboardModelsMeaningTitle: I18n.get('accountCenter.dashboardModelsMeaningTitle'),
@@ -220,6 +248,7 @@ export class AccountCenterBridge {
                 source: 'internal',
                 actions: [
                     { id: 'apply', label: I18n.get('opencodeAuth.apply'), iconId: 'check' },
+                    { id: 'unapply', label: I18n.get('opencodeAuth.unapply'), iconId: 'circle-slash', disabled: !isActive },
                     { id: 'rename', label: I18n.get('opencodeAuth.rename'), iconId: 'edit' },
                     { id: 'delete', label: I18n.get('opencodeAuth.delete'), iconId: 'trash', danger: true }
                 ]
@@ -252,8 +281,11 @@ export class AccountCenterBridge {
 
     private async buildSessionRows(): Promise<AccountCenterRow[]> {
         this.lastSessionViews = await this.sessionManager.getSessionViews();
+        return this.mapSessionViewsToRows(this.lastSessionViews);
+    }
 
-        return this.lastSessionViews.map((session) => {
+    private mapSessionViewsToRows(views: OpencodeSessionView[]): AccountCenterRow[] {
+        return views.map((session) => {
             const startedAt = session.startedAt ? new Date(session.startedAt).toLocaleString() : '—';
             const rowId = session.source === 'managed'
                 ? `session:managed:${session.managedSessionId || session.id}`
@@ -362,9 +394,18 @@ export class AccountCenterBridge {
         }
 
         const id = rowId.slice('auth:'.length);
+        const credential = this.authConfig.getCredentialById(id);
+        if (!credential) {
+            return;
+        }
 
         if (actionId === 'apply') {
             await vscode.commands.executeCommand('ampify.opencodeAuth.apply', id);
+            return;
+        }
+
+        if (actionId === 'unapply') {
+            await vscode.commands.executeCommand('ampify.opencodeAuth.clear', credential.provider);
             return;
         }
 

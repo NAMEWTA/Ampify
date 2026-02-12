@@ -118,6 +118,9 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             case 'ready':
                 // 发送初始数据
                 await this.sendDashboard();
+                this.sendAccountCenterData().catch((error) => {
+                    console.error('Preload account center failed:', error);
+                });
                 break;
 
             case 'switchSection':

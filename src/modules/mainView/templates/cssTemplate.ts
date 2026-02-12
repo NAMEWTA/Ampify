@@ -3176,7 +3176,7 @@ html, body {
 
 .account-center-dashboard {
     display: grid;
-    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 8px;
 }
 
@@ -3209,7 +3209,15 @@ html, body {
     text-overflow: ellipsis;
 }
 
-.account-models-note {
+.account-stat-value--list {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+    white-space: normal;
+    word-break: break-word;
+}
+
+.account-models-panel {
     border: 1px solid var(--vscode-panel-border, #2b2b2b);
     border-radius: 6px;
     background: var(--vscode-editor-background, #1e1e1e);
@@ -3233,6 +3241,7 @@ html, body {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    margin-top: 8px;
 }
 
 .account-model-chip {

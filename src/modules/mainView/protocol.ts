@@ -210,6 +210,7 @@ export type AccountCenterTabId = 'launcher' | 'auth' | 'ohmy' | 'sessions';
 
 export interface AccountCenterDashboard {
     providerCount: number;
+    activeProviders: string[];
     activeOhMyName?: string;
     activeOhMyHash?: string;
     modelCount: number;
@@ -218,6 +219,7 @@ export interface AccountCenterDashboard {
 
 export interface AccountCenterLabels {
     dashboardProviders: string;
+    dashboardActiveProviders: string;
     dashboardActiveOhMy: string;
     dashboardModels: string;
     dashboardModelsMeaningTitle: string;

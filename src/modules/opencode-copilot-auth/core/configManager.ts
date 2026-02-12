@@ -270,6 +270,13 @@ export class OpenCodeCopilotAuthConfigManager extends BaseConfigManager<OpenCode
                 delete config.activeId;
             }
         }
+        if (config.lastSwitchedId) {
+            const lastSwitched = config.credentials.find((item) => item.id === config.lastSwitchedId);
+            if (lastSwitched?.provider === provider) {
+                delete config.lastSwitchedId;
+                delete config.lastSwitchedAt;
+            }
+        }
         this.saveConfig(config);
     }
 

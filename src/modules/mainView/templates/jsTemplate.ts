@@ -1536,36 +1536,11 @@ export function getJs(): string {
         const activeSection = sections[activeTab];
         const activeTabMeta = tabs.find((tab) => tab.id === activeTab);
         const activeDomain = (activeTabMeta && activeTabMeta.domain) || (activeTab === 'launcher' ? 'github' : 'opencode');
+        const activeProviders = Array.isArray(dashboard.activeProviders) ? dashboard.activeProviders : [];
+        const activeProvidersText = activeProviders.length > 0 ? activeProviders.join(', ') : '-';
 
         let html = '';
         html += '<div class="account-center-view">';
-        html += '<div class="account-center-dashboard">';
-        html += '<div class="account-stat-card">';
-        html += '<div class="account-stat-label">' + escapeHtml(labels.dashboardProviders || 'Providers') + '</div>';
-        html += '<div class="account-stat-value">' + Number(dashboard.providerCount || 0) + '</div>';
-        html += '</div>';
-        html += '<div class="account-stat-card">';
-        html += '<div class="account-stat-label">' + escapeHtml(labels.dashboardActiveOhMy || 'Active Oh-My') + '</div>';
-        html += '<div class="account-stat-value account-stat-value--text">' + escapeHtml(dashboard.activeOhMyName || '-') + '</div>';
-        html += '</div>';
-        html += '<div class="account-stat-card">';
-        html += '<div class="account-stat-label">' + escapeHtml(labels.dashboardModels || 'Models') + '</div>';
-        html += '<div class="account-stat-value">' + Number(dashboard.modelCount || 0) + '</div>';
-        html += '</div>';
-        html += '</div>';
-
-        html += '<div class="account-models-note">';
-        html += '<div class="account-models-note-title">' + escapeHtml(labels.dashboardModelsMeaningTitle || 'Model Reference Scope') + '</div>';
-        html += '<div class="account-models-note-desc">' + escapeHtml(labels.dashboardModelsMeaningDesc || 'These model IDs are read from the active oh-my-opencode.json (agents + categories) and represent config references, not real-time session runtime.') + '</div>';
-        html += '</div>';
-
-        if (dashboard.models && dashboard.models.length > 0) {
-            html += '<div class="account-models">';
-            for (const model of dashboard.models) {
-                html += '<span class="account-model-chip">' + escapeHtml(model) + '</span>';
-            }
-            html += '</div>';
-        }
 
         html += '<div class="account-domain-strips">';
         html += '<div class="account-domain-strip account-domain-strip--github' + (activeDomain === 'github' ? ' active' : '') + '">';
@@ -1598,6 +1573,34 @@ export function getJs(): string {
             html += '</button>';
         }
         html += '</div>';
+
+        if (activeTab === 'sessions') {
+            html += '<div class="account-center-dashboard">';
+            html += '<div class="account-stat-card">';
+            html += '<div class="account-stat-label">' + escapeHtml(labels.dashboardActiveProviders || 'Active Providers') + '</div>';
+            html += '<div class="account-stat-value account-stat-value--list" title="' + escapeHtml(activeProvidersText) + '">' + escapeHtml(activeProvidersText) + '</div>';
+            html += '</div>';
+            html += '<div class="account-stat-card">';
+            html += '<div class="account-stat-label">' + escapeHtml(labels.dashboardActiveOhMy || 'Active Oh-My') + '</div>';
+            html += '<div class="account-stat-value account-stat-value--text">' + escapeHtml(dashboard.activeOhMyName || '-') + '</div>';
+            html += '</div>';
+            html += '</div>';
+        }
+
+        if (activeTab === 'ohmy') {
+            html += '<div class="account-models-panel">';
+            html += '<div class="account-models-note-title">' + escapeHtml(labels.dashboardModelsMeaningTitle || 'Model Reference Scope') + '</div>';
+            html += '<div class="account-models-note-desc">' + escapeHtml(labels.dashboardModelsMeaningDesc || 'These model IDs are read from the active oh-my-opencode.json (agents + categories) and represent config references, not real-time session runtime.') + '</div>';
+
+            if (dashboard.models && dashboard.models.length > 0) {
+                html += '<div class="account-models">';
+                for (const model of dashboard.models) {
+                    html += '<span class="account-model-chip">' + escapeHtml(model) + '</span>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+        }
 
         html += '<div class="account-list">';
         const rows = activeSection && activeSection.rows ? activeSection.rows : [];
