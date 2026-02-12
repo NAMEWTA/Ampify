@@ -3,9 +3,6 @@
 此文件由 Ampify 自动生成，包含项目中所有 Skills 的层级结构清单。
 
 <skills>
-  <skill name="ampify-dev-guide" path="ampify-dev-guide">
-    <description>Ampify VS Code 扩展开发规范指南。用于新建功能模块、扩展 MainView Webview、添加命令、调整配置与存储结构、理解技能与命令数据的 Git Share 同步逻辑。当用户提到 Ampify 开发、架构、模块实现、数据流、Webview 协议或项目结构时使用。</description>
-  </skill>
   <skill name="element-plus-vue3" path="element-plus-vue3">
     <description>Provides comprehensive guidance for Element Plus Vue 3 component library including installation, components, themes, internationalization, and API reference. Use when the user asks about Element Plus for Vue 3, needs to build Vue 3 applications with Element Plus, or customize component styles.</description>
   </skill>
