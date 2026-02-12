@@ -1,6 +1,6 @@
-/**
- * JS 模板
- * Webview 客户端逻辑
+﻿/**
+ * JS 妯℃澘
+ * Webview 瀹㈡埛绔€昏緫
  */
 export function getJs(): string {
     return `
@@ -24,6 +24,10 @@ export function getJs(): string {
     let dragDepth = 0;
     let viewModes = { skills: 'cards', commands: 'cards' };
     let compactListMode = false;
+    let dashboardData = null;
+    let accountCenterData = null;
+    let accountCenterPollTimer = null;
+    const ACCOUNT_CENTER_POLL_INTERVAL_MS = 5000;
 
     // Restore persisted state
     const persistedState = vscode.getState();
@@ -43,6 +47,7 @@ export function getJs(): string {
         setupContextMenuDismiss();
         setupDragDrop();
         setupProxyActions();
+        setupAccountCenterPolling();
         window.addEventListener('resize', () => {
             if (!compactListMode) { return; }
             const container = document.querySelector('.tree-container');
@@ -54,6 +59,10 @@ export function getJs(): string {
         // Apply persisted nav state
         const navRail = document.querySelector('.nav-rail');
         if (navExpanded) navRail.classList.add('expanded');
+
+        if (!document.querySelector('.nav-item[data-section="' + currentSection + '"]')) {
+            currentSection = 'dashboard';
+        }
 
         // Highlight current section
         setActiveNavItem(currentSection);
@@ -114,6 +123,22 @@ export function getJs(): string {
         });
     }
 
+    function setupAccountCenterPolling() {
+        if (accountCenterPollTimer) {
+            clearInterval(accountCenterPollTimer);
+        }
+        accountCenterPollTimer = setInterval(() => {
+            if (currentSection !== 'accountCenter') {
+                return;
+            }
+            const tab = accountCenterData && accountCenterData.activeTab;
+            if (tab !== 'sessions') {
+                return;
+            }
+            vscode.postMessage({ type: 'accountCenterAction', tab: 'sessions', actionId: 'refreshSessions' });
+        }, ACCOUNT_CENTER_POLL_INTERVAL_MS);
+    }
+
     // ==================== Message Handling ====================
     window.addEventListener('message', event => {
         const msg = event.data;
@@ -121,8 +146,18 @@ export function getJs(): string {
             case 'updateSection':
                 renderSection(msg.section, msg.tree, msg.toolbar, msg.tags, msg.activeTags, msg.cards);
                 break;
+            case 'updateAccountCenter':
+                accountCenterData = msg.data;
+                if (currentSection === 'accountCenter') {
+                    renderToolbar('accountCenter', [], msg.data && msg.data.title);
+                    renderAccountCenter(msg.data);
+                }
+                break;
             case 'updateDashboard':
-                renderDashboard(msg.data);
+                dashboardData = msg.data;
+                if (currentSection === 'dashboard') {
+                    renderDashboard(msg.data);
+                }
                 break;
             case 'updateSettings':
                 renderSettings(msg.data);
@@ -140,6 +175,12 @@ export function getJs(): string {
                 currentSection = msg.section;
                 setActiveNavItem(msg.section);
                 saveState();
+                if (currentSection === 'dashboard' && dashboardData) {
+                    renderDashboard(dashboardData);
+                } else if (currentSection === 'accountCenter' && accountCenterData) {
+                    renderToolbar('accountCenter', [], accountCenterData.title);
+                    renderAccountCenter(accountCenterData);
+                }
                 break;
             case 'showOverlay':
                 showOverlayPanel(msg.data);
@@ -331,7 +372,7 @@ export function getJs(): string {
                     </div>
                     <div class="proxy-mini-actions">
                         <button class="icon-btn" title="\${escapeHtml(L.copyBaseUrl || 'Copy Base URL')}" data-command="ampify.modelProxy.copyBaseUrl"><i class="codicon codicon-copy"></i></button>
-                        <button class="text-link" data-section-switch="modelProxy">\${escapeHtml(L.viewDetail || 'Detail')} →</button>
+                        <button class="text-link" data-section-switch="modelProxy">\${escapeHtml(L.viewDetail || 'Detail')} -></button>
                     </div>
                 </div>
             \`;
@@ -384,7 +425,7 @@ export function getJs(): string {
                     </div>
                 \`;
             }
-            html += \`<button class="log-view-all" data-view-logs="true">\${escapeHtml(L.viewAllLogs || 'View All Logs')} →</button>\`;
+            html += \`<button class="log-view-all" data-view-logs="true">\${escapeHtml(L.viewAllLogs || 'View All Logs')} -></button>\`;
             html += '</div>';
         } else {
             html += \`
@@ -393,7 +434,7 @@ export function getJs(): string {
                         <i class="codicon codicon-output"></i>
                         <p>\${escapeHtml(L.noLogs || 'No logs yet')}</p>
                     </div>
-                    <button class="log-view-all" data-view-logs="true">\${escapeHtml(L.viewAllLogs || 'View All Logs')} →</button>
+                    <button class="log-view-all" data-view-logs="true">\${escapeHtml(L.viewAllLogs || 'View All Logs')} -></button>
                 </div>
             \`;
         }
@@ -455,18 +496,18 @@ export function getJs(): string {
     }
 
     function formatLastSwitched(label, ts) {
-        if (!ts) return label || '—';
+        if (!ts) return label || '-';
         try {
             const date = new Date(ts);
-            return \`\${label || '—'} · \${date.toLocaleString()}\`;
+            return \`\${label || '-'} | \${date.toLocaleString()}\`;
         } catch {
-            return label || '—';
+            return label || '-';
         }
     }
 
     function formatLogTime(ts) {
         try { return new Date(ts).toLocaleTimeString(); }
-        catch { return ts || '—'; }
+        catch { return ts || '-'; }
     }
 
     function truncateUrl(url) {
@@ -573,11 +614,11 @@ export function getJs(): string {
             : '0%';
         const avgLatency = data.avgLatencyMs > 0
             ? (data.avgLatencyMs / 1000).toFixed(2) + 's'
-            : '—';
+            : '-';
 
         let html = '<div class="proxy-dashboard">';
 
-        // ── Stats Grid ──
+        // 鈹€鈹€ Stats Grid 鈹€鈹€
         html += '<div class="proxy-stats-grid">';
         html += makeProxyStatCard(
             running ? 'pass-filled' : 'circle-slash',
@@ -591,7 +632,7 @@ export function getJs(): string {
         html += makeProxyStatCard('clock', '#6a9bcc', avgLatency, L.avgLatency || 'Avg Latency');
         html += '</div>';
 
-        // ── Connection Info (only when running) ──
+        // 鈹€鈹€ Connection Info (only when running) 鈹€鈹€
         if (running) {
             html += '<div class="proxy-section-title">' + escapeHtml(L.connection || 'CONNECTION') + '</div>';
             html += '<div class="proxy-connection">';
@@ -605,7 +646,7 @@ export function getJs(): string {
             html += '</div>';
         }
 
-        // ── API Key Bindings ──
+        // 鈹€鈹€ API Key Bindings 鈹€鈹€
         html += '<div class="proxy-section-title">' + escapeHtml(L.bindings || 'API KEY BINDINGS');
         html += ' <button class="proxy-conn-btn" data-proxy-action="addBinding" title="' + escapeHtml(L.addBinding || 'Add Binding') + '"><i class="codicon codicon-add"></i></button>';
         html += '</div>';
@@ -627,7 +668,7 @@ export function getJs(): string {
             html += '<div class="proxy-empty-models"><i class="codicon codicon-info"></i> ' + escapeHtml(L.noBindings || 'No bindings yet. Add one to get started.') + '</div>';
         }
 
-        // ── Available Models (collapsible compact list, read-only) ──
+        // 鈹€鈹€ Available Models (collapsible compact list, read-only) 鈹€鈹€
         const modelsTitle = escapeHtml(L.availableModels || 'Available Models');
         html += '<div class="proxy-section-title proxy-models-toggle" data-toggle="proxy-models-list">';
         html += modelsTitle;
@@ -651,7 +692,7 @@ export function getJs(): string {
         }
         html += '</div>';
 
-        // ── Recent Logs (compact) ──
+        // 鈹€鈹€ Recent Logs (compact) 鈹€鈹€
         html += '<div class="proxy-section-title proxy-logs-title">';
         html += escapeHtml(L.recentLogs || 'Recent Logs');
         html += '<span class="proxy-logs-actions">';
@@ -689,7 +730,7 @@ export function getJs(): string {
         // Store labels ref for log viewer
         window.__proxyLabels = L;
 
-        // ── Bind events ──
+        // 鈹€鈹€ Bind events 鈹€鈹€
         // Binding copy button click
         body.querySelectorAll('.proxy-binding-copy').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -729,7 +770,7 @@ export function getJs(): string {
 
         // Proxy action buttons & "View All Logs" are handled by delegation in setupProxyActions()
 
-        // Log row click → show detail popup
+        // Log row click -> show detail popup
         body.querySelectorAll('.proxy-log-row').forEach(row => {
             row.addEventListener('click', () => {
                 const idx = parseInt(row.dataset.logIdx, 10);
@@ -826,7 +867,7 @@ export function getJs(): string {
         // Store grouped data for cascading selects
         const lvGrouped = grouped;
 
-        // ── Bind events ──
+        // 鈹€鈹€ Bind events 鈹€鈹€
         const closeViewer = () => backdrop.remove();
         backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeViewer(); });
         backdrop.querySelector('.log-viewer-close').addEventListener('click', closeViewer);
@@ -1065,7 +1106,7 @@ export function getJs(): string {
 
         // Meta info
         detailHtml += '<div class="proxy-log-detail-meta">';
-        detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">' + escapeHtml(L.logRequestId || 'Request ID') + '</span><span class="proxy-log-detail-value mono">' + escapeHtml(log.requestId || '—') + '</span></div>';
+        detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">' + escapeHtml(L.logRequestId || 'Request ID') + '</span><span class="proxy-log-detail-value mono">' + escapeHtml(log.requestId || '-') + '</span></div>';
         detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">Time</span><span class="proxy-log-detail-value">' + escapeHtml(time) + '</span></div>';
         detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">Model</span><span class="proxy-log-detail-value">' + escapeHtml(log.model) + '</span></div>';
         detailHtml += '<div class="proxy-log-detail-row"><span class="proxy-log-detail-label">Format</span><span class="proxy-log-detail-value">' + escapeHtml(log.format) + '</span></div>';
@@ -1154,10 +1195,11 @@ export function getJs(): string {
         renderTree(currentTreeData, currentTags, currentActiveTags);
     }
 
-    function renderToolbar(section, actions) {
+    function renderToolbar(section, actions, titleOverride) {
         const toolbar = document.querySelector('.toolbar');
         const titles = {
             dashboard: 'DASHBOARD',
+            accountCenter: 'ACCOUNT CENTER',
             launcher: 'LAUNCHER',
             skills: 'SKILLS',
             commands: 'COMMANDS',
@@ -1167,7 +1209,8 @@ export function getJs(): string {
             settings: 'SETTINGS'
         };
         
-        let html = \`<span class="toolbar-title">\${titles[section] || section.toUpperCase()}</span>\`;
+        const title = titleOverride || titles[section] || section.toUpperCase();
+        let html = \`<span class="toolbar-title">\${escapeHtml(title)}</span>\`;
 
         const actionButtons = [];
         if (actions && actions.length > 0) {
@@ -1475,6 +1518,172 @@ export function getJs(): string {
         return 'file';
     }
 
+    // ==================== Account Center Rendering ====================
+    function renderAccountCenter(data) {
+        const body = document.querySelector('.content-body');
+        hideDropOverlay();
+        const labels = (data && data.labels) || {};
+
+        if (!data) {
+            body.innerHTML = '<div class="empty-state"><i class="codicon codicon-info"></i><p>' + escapeHtml(labels.emptyData || 'No data') + '</p></div>';
+            return;
+        }
+
+        const dashboard = data.dashboard || {};
+        const tabs = data.tabs || [];
+        const sections = data.sections || {};
+        const activeTab = data.activeTab || 'launcher';
+        const activeSection = sections[activeTab];
+        const activeTabMeta = tabs.find((tab) => tab.id === activeTab);
+        const activeDomain = (activeTabMeta && activeTabMeta.domain) || (activeTab === 'launcher' ? 'github' : 'opencode');
+
+        let html = '';
+        html += '<div class="account-center-view">';
+        html += '<div class="account-center-dashboard">';
+        html += '<div class="account-stat-card">';
+        html += '<div class="account-stat-label">' + escapeHtml(labels.dashboardProviders || 'Providers') + '</div>';
+        html += '<div class="account-stat-value">' + Number(dashboard.providerCount || 0) + '</div>';
+        html += '</div>';
+        html += '<div class="account-stat-card">';
+        html += '<div class="account-stat-label">' + escapeHtml(labels.dashboardActiveOhMy || 'Active Oh-My') + '</div>';
+        html += '<div class="account-stat-value account-stat-value--text">' + escapeHtml(dashboard.activeOhMyName || '-') + '</div>';
+        html += '</div>';
+        html += '<div class="account-stat-card">';
+        html += '<div class="account-stat-label">' + escapeHtml(labels.dashboardModels || 'Models') + '</div>';
+        html += '<div class="account-stat-value">' + Number(dashboard.modelCount || 0) + '</div>';
+        html += '</div>';
+        html += '</div>';
+
+        html += '<div class="account-models-note">';
+        html += '<div class="account-models-note-title">' + escapeHtml(labels.dashboardModelsMeaningTitle || 'Model Reference Scope') + '</div>';
+        html += '<div class="account-models-note-desc">' + escapeHtml(labels.dashboardModelsMeaningDesc || 'These model IDs are read from the active oh-my-opencode.json (agents + categories) and represent config references, not real-time session runtime.') + '</div>';
+        html += '</div>';
+
+        if (dashboard.models && dashboard.models.length > 0) {
+            html += '<div class="account-models">';
+            for (const model of dashboard.models) {
+                html += '<span class="account-model-chip">' + escapeHtml(model) + '</span>';
+            }
+            html += '</div>';
+        }
+
+        html += '<div class="account-domain-strips">';
+        html += '<div class="account-domain-strip account-domain-strip--github' + (activeDomain === 'github' ? ' active' : '') + '">';
+        html += '<span class="account-domain-dot"></span>';
+        html += '<span>' + escapeHtml(labels.groupGithub || 'GitHub Login Domain') + '</span>';
+        html += '</div>';
+        html += '<div class="account-domain-strip account-domain-strip--opencode' + (activeDomain === 'opencode' ? ' active' : '') + '">';
+        html += '<span class="account-domain-dot"></span>';
+        html += '<span>' + escapeHtml(labels.groupOpenCode || 'OpenCode Operation Domain') + '</span>';
+        html += '</div>';
+        html += '</div>';
+
+        html += '<div class="account-tabs">';
+        for (const tab of tabs) {
+            const tabDomain = tab.domain || (tab.id === 'launcher' ? 'github' : 'opencode');
+            const active = tab.id === activeTab ? ' active' : '';
+            html += '<button class="account-tab-btn account-tab-btn--' + tabDomain + active + '" data-account-tab="' + escapeHtml(tab.id) + '">';
+            html += '<span>' + escapeHtml(tab.label) + '</span>';
+            html += '<span class="account-tab-count">' + Number(tab.count || 0) + '</span>';
+            html += '</button>';
+        }
+        html += '</div>';
+
+        html += '<div class="account-inline-toolbar-label">' + escapeHtml(labels.toolbarActions || 'Actions') + '</div>';
+        html += '<div class="account-inline-toolbar account-inline-toolbar--' + activeDomain + '">';
+        for (const action of (data.toolbar || [])) {
+            html += '<button class="account-toolbar-btn account-toolbar-btn--' + activeDomain + '" data-ac-action="' + escapeHtml(action.id) + '">';
+            html += '<i class="codicon codicon-' + escapeHtml(action.iconId || 'circle-outline') + '"></i>';
+            html += '<span>' + escapeHtml(action.label) + '</span>';
+            html += '</button>';
+        }
+        html += '</div>';
+
+        html += '<div class="account-list">';
+        const rows = activeSection && activeSection.rows ? activeSection.rows : [];
+        if (!rows.length) {
+            html += '<div class="empty-state">';
+            html += '<i class="codicon codicon-info"></i>';
+            html += '<p>' + escapeHtml((activeSection && activeSection.emptyText) || labels.emptyData || 'No data') + '</p>';
+            html += '</div>';
+        } else {
+            for (const row of rows) {
+                const rowDomain = row.domain || activeDomain;
+                const domainClass = rowDomain ? ' account-row--' + rowDomain : '';
+                const statusClass = row.status ? ' account-row--' + row.status : '';
+                html += '<div class="account-row' + domainClass + statusClass + '" data-row-id="' + escapeHtml(row.id) + '">';
+                html += '<div class="account-row-head">';
+                html += '<div class="account-row-name-wrap">';
+                html += '<span class="account-row-name">' + escapeHtml(row.name || '') + '</span>';
+                const badgesHtml = (row.badges || []).map((badge) => '<span class="account-row-badge">' + escapeHtml(badge) + '</span>').join('');
+                html += badgesHtml;
+                html += '</div>';
+                html += '<span class="account-row-desc" title="' + escapeHtml(row.description || '-') + '">' + escapeHtml(row.description || '-') + '</span>';
+                html += '</div>';
+
+                if (row.subtitle) {
+                    html += '<div class="account-row-subtitle" title="' + escapeHtml(row.subtitle) + '">' + escapeHtml(row.subtitle) + '</div>';
+                }
+
+                if (row.actions && row.actions.length > 0) {
+                    html += '<div class="account-row-actions">';
+                    for (const action of row.actions) {
+                        const danger = action.danger ? ' danger' : '';
+                        const disabledClass = action.disabled ? ' disabled' : '';
+                        const disabledAttr = action.disabled ? ' disabled' : '';
+                        html += '<button class="account-row-action account-row-action--' + rowDomain + danger + disabledClass + '" data-ac-action="' + escapeHtml(action.id) + '" data-row-id="' + escapeHtml(row.id) + '"' + disabledAttr + '>';
+                        html += '<i class="codicon codicon-' + escapeHtml(action.iconId || 'circle-outline') + '"></i>';
+                        html += '<span>' + escapeHtml(action.label) + '</span>';
+                        html += '</button>';
+                    }
+                    html += '</div>';
+                }
+
+                html += '</div>';
+            }
+        }
+        html += '</div>';
+        html += '</div>';
+
+        body.innerHTML = html;
+
+        body.querySelectorAll('[data-account-tab]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.accountTab;
+                if (!tab || tab === activeTab) {
+                    return;
+                }
+                vscode.postMessage({ type: 'accountCenterTabChange', tab });
+            });
+        });
+
+        body.querySelectorAll('.account-toolbar-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const actionId = btn.dataset.acAction;
+                if (!actionId) {
+                    return;
+                }
+                vscode.postMessage({ type: 'accountCenterAction', tab: activeTab, actionId });
+            });
+        });
+
+        body.querySelectorAll('.account-row-action').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (btn.classList.contains('disabled')) {
+                    return;
+                }
+                const actionId = btn.dataset.acAction;
+                const rowId = btn.dataset.rowId;
+                if (!actionId) {
+                    return;
+                }
+                vscode.postMessage({ type: 'accountCenterAction', tab: activeTab, actionId, rowId });
+            });
+        });
+    }
+
     // ==================== Tree Rendering ====================
     function renderTree(nodes, tags, activeTags) {
         const body = document.querySelector('.content-body');
@@ -1673,7 +1882,7 @@ export function getJs(): string {
                     if (node.badges.length > maxBadges) {
                         const more = document.createElement('span');
                         more.className = 'tree-badge tree-badge--more';
-                        more.textContent = '…';
+                        more.textContent = '...';
                         badgeWrap.appendChild(more);
                     }
                     compactContent.appendChild(badgeWrap);
@@ -2191,7 +2400,7 @@ export function getJs(): string {
     }
 
     function getTagsFromContainer(container) {
-        return Array.from(container.querySelectorAll('.overlay-tag-item')).map(el => el.textContent.replace(/\\s*×?\\s*$/, '').trim());
+        return Array.from(container.querySelectorAll('.overlay-tag-item')).map(el => el.textContent.replace(/\\s*[xX]?\\s*$/, '').trim());
     }
 
     function escapeHtml(str) {
@@ -2273,3 +2482,5 @@ export function getJs(): string {
 })();
 `;
 }
+
+

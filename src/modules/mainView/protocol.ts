@@ -5,7 +5,7 @@
 
 // ==================== 导航 Section ====================
 
-export type SectionId = 'dashboard' | 'launcher' | 'skills' | 'commands' | 'gitshare' | 'modelProxy' | 'settings' | 'opencodeAuth';
+export type SectionId = 'dashboard' | 'accountCenter' | 'launcher' | 'skills' | 'commands' | 'gitshare' | 'modelProxy' | 'settings' | 'opencodeAuth';
 
 // ==================== 通用树节点 ====================
 
@@ -202,6 +202,79 @@ export interface ToolbarAction {
     command: string;
     /** 'command' executes VS Code command; 'overlay' sends toolbarAction to open overlay */
     action?: 'command' | 'overlay';
+}
+
+// ==================== Account Center ====================
+
+export type AccountCenterTabId = 'launcher' | 'auth' | 'ohmy' | 'sessions';
+
+export interface AccountCenterDashboard {
+    providerCount: number;
+    activeOhMyName?: string;
+    activeOhMyHash?: string;
+    modelCount: number;
+    models: string[];
+}
+
+export interface AccountCenterLabels {
+    dashboardProviders: string;
+    dashboardActiveOhMy: string;
+    dashboardModels: string;
+    dashboardModelsMeaningTitle: string;
+    dashboardModelsMeaningDesc: string;
+    emptyData: string;
+    groupGithub: string;
+    groupOpenCode: string;
+    toolbarRefresh: string;
+    toolbarOpenConfig: string;
+    toolbarActions: string;
+    authZeroConfig: string;
+    sourceManaged: string;
+    sourceExternal: string;
+}
+
+export interface AccountCenterTabMeta {
+    id: AccountCenterTabId;
+    label: string;
+    count: number;
+    domain: 'github' | 'opencode';
+}
+
+export interface AccountCenterRowAction {
+    id: string;
+    label: string;
+    iconId?: string;
+    danger?: boolean;
+    disabled?: boolean;
+}
+
+export interface AccountCenterRow {
+    id: string;
+    name: string;
+    description: string;
+    subtitle?: string;
+    badges?: string[];
+    status?: 'running' | 'stopped' | 'active' | 'inactive';
+    domain?: 'github' | 'opencode';
+    source?: 'managed' | 'external' | 'internal';
+    pid?: number;
+    actions: AccountCenterRowAction[];
+}
+
+export interface AccountCenterTabData {
+    id: AccountCenterTabId;
+    emptyText: string;
+    rows: AccountCenterRow[];
+}
+
+export interface AccountCenterData {
+    title: string;
+    activeTab: AccountCenterTabId;
+    tabs: AccountCenterTabMeta[];
+    dashboard: AccountCenterDashboard;
+    labels: AccountCenterLabels;
+    sections: Record<AccountCenterTabId, AccountCenterTabData>;
+    toolbar: ToolbarAction[];
 }
 
 // ==================== Overlay Panel ====================
@@ -456,6 +529,8 @@ export type WebviewMessage =
     | { type: 'ready' }
     | { type: 'dropFiles'; uris: string[]; section: SectionId }
     | { type: 'dropEmpty'; section: SectionId }
+    | { type: 'accountCenterTabChange'; tab: AccountCenterTabId }
+    | { type: 'accountCenterAction'; tab: AccountCenterTabId; actionId: string; rowId?: string }
     | { type: 'changeSetting'; key: string; value: string; scope: SettingsScope }
     | { type: 'settingsAction'; command: string }
     | { type: 'quickAction'; actionId: string; section: SectionId }
@@ -483,6 +558,7 @@ export type ExtensionMessage =
     | { type: 'response'; id: string; result?: unknown; error?: string }
     | { type: 'event'; event: string; data?: unknown }
     | { type: 'updateSection'; section: SectionId; tree: TreeNode[]; toolbar: ToolbarAction[]; tags?: string[]; activeTags?: string[]; cards?: CardItem[] }
+    | { type: 'updateAccountCenter'; data: AccountCenterData }
     | { type: 'updateDashboard'; data: DashboardData }
     | { type: 'setActiveSection'; section: SectionId }
     | { type: 'showNotification'; message: string; level: 'info' | 'warn' | 'error' }

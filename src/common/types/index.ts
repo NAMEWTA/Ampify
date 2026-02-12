@@ -286,15 +286,47 @@ export interface AvailableModel {
 export interface CopilotCredential {
     id: string;
     name: string;
+    provider: string;
     type: string;
     access: string;
     refresh: string;
     expires: number;
     lastUsedAt?: number;
+    lastImportedAt?: number;
+    /**
+     * Preserve provider-specific fields from auth.json (for example accountId).
+     * These fields will be merged back when applying to auth.json.
+     */
+    raw?: Record<string, unknown>;
+}
+
+export type ManagedSessionStatus = 'running' | 'stopped' | 'unknown';
+
+export interface ManagedOpencodeSession {
+    id: string;
+    terminalName: string;
+    pid?: number;
+    startedAt: number;
+    command: string;
+    status: ManagedSessionStatus;
+    workspace?: string;
+}
+
+export interface OhMyProfile {
+    id: string;
+    name: string;
+    content: string;
+    contentHash: string;
+    importedAt: number;
+    lastAppliedAt?: number;
 }
 
 export interface OpenCodeCopilotAuthConfig {
     credentials: CopilotCredential[];
+    activeByProvider?: Record<string, string>;
+    ohMyProfiles?: OhMyProfile[];
+    activeOhMyProfileId?: string;
+    managedSessions?: ManagedOpencodeSession[];
     activeId?: string;
     lastSwitchedId?: string;
     lastSwitchedAt?: number;

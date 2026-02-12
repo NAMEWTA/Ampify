@@ -1,6 +1,6 @@
-/**
- * HTML 模板
- * 组装完整 HTML 文档
+﻿/**
+ * HTML 妯℃澘
+ * 缁勮瀹屾暣 HTML 鏂囨。
  */
 import * as vscode from 'vscode';
 import { getCss } from './cssTemplate';
@@ -15,12 +15,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     { id: 'dashboard', label: 'Dashboard', iconClass: 'codicon-dashboard' },
+    { id: 'accountCenter', label: '\u8d26\u6237\u4e2d\u5fc3', iconClass: 'codicon-account' },
     { id: 'skills', label: 'Skills', iconClass: 'codicon-library' },
     { id: 'commands', label: 'Commands', iconClass: 'codicon-terminal' },
     { id: 'gitshare', label: 'Git Sync', iconClass: 'codicon-git-merge' },
     { id: 'modelProxy', label: 'Model Proxy', iconClass: 'codicon-radio-tower' },
-    { id: 'launcher', label: 'Launcher', iconClass: 'codicon-rocket' },
-    { id: 'opencodeAuth', label: 'OpenCode', iconClass: 'codicon-key' },
     { id: 'settings', label: 'Settings', iconClass: 'codicon-settings-gear' },
 ];
 

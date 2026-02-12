@@ -3162,6 +3162,400 @@ html, body {
     text-overflow: ellipsis;
 }
 
+/* ==================== Account Center ==================== */
+.account-center-view {
+    --ac-github-accent: #d97757;
+    --ac-github-soft: rgba(217, 119, 87, 0.12);
+    --ac-opencode-accent: #4ea3ff;
+    --ac-opencode-soft: rgba(78, 163, 255, 0.12);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 10px 12px 14px;
+}
+
+.account-center-dashboard {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    gap: 8px;
+}
+
+.account-stat-card {
+    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    background: var(--vscode-editor-background, #1e1e1e);
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.account-stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--vscode-descriptionForeground, #717171);
+}
+
+.account-stat-value {
+    margin-top: 4px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--vscode-foreground, #cccccc);
+}
+
+.account-stat-value--text {
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.account-models-note {
+    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-radius: 6px;
+    background: var(--vscode-editor-background, #1e1e1e);
+    padding: 8px 10px;
+}
+
+.account-models-note-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--vscode-foreground, #cccccc);
+}
+
+.account-models-note-desc {
+    margin-top: 3px;
+    font-size: 10px;
+    line-height: 1.45;
+    color: var(--vscode-descriptionForeground, #717171);
+}
+
+.account-models {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.account-model-chip {
+    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-radius: 10px;
+    background: var(--vscode-editor-background, #1e1e1e);
+    color: var(--vscode-descriptionForeground, #717171);
+    font-size: 10px;
+    padding: 1px 7px;
+}
+
+.account-domain-strips {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    overflow-x: auto;
+}
+
+.account-domain-strip {
+    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-radius: 7px;
+    padding: 6px 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    flex: 1 1 0;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground, #717171);
+    background: var(--vscode-editor-background, #1e1e1e);
+}
+
+.account-domain-strip .account-domain-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.account-domain-strip span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.account-domain-strip--github .account-domain-dot {
+    background: var(--ac-github-accent);
+}
+
+.account-domain-strip--opencode .account-domain-dot {
+    background: var(--ac-opencode-accent);
+}
+
+.account-domain-strip.active.account-domain-strip--github {
+    border-color: var(--ac-github-accent);
+    background: var(--ac-github-soft);
+    color: var(--vscode-foreground, #cccccc);
+}
+
+.account-domain-strip.active.account-domain-strip--opencode {
+    border-color: var(--ac-opencode-accent);
+    background: var(--ac-opencode-soft);
+    color: var(--vscode-foreground, #cccccc);
+}
+
+.account-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.account-tab-btn {
+    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    background: var(--vscode-editor-background, #1e1e1e);
+    color: var(--vscode-foreground, #cccccc);
+    border-radius: 6px;
+    padding: 5px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.account-tab-btn--github {
+    border-color: color-mix(in srgb, var(--ac-github-accent) 38%, var(--vscode-panel-border, #2b2b2b) 62%);
+}
+
+.account-tab-btn--opencode {
+    border-color: color-mix(in srgb, var(--ac-opencode-accent) 38%, var(--vscode-panel-border, #2b2b2b) 62%);
+}
+
+.account-tab-btn.active.account-tab-btn--github {
+    border-color: var(--ac-github-accent);
+    background: var(--ac-github-soft);
+}
+
+.account-tab-btn.active.account-tab-btn--opencode {
+    border-color: var(--ac-opencode-accent);
+    background: var(--ac-opencode-soft);
+}
+
+.account-tab-count {
+    border-radius: 9px;
+    padding: 0 6px;
+    font-size: 10px;
+    background: var(--vscode-badge-background, #4d4d4d);
+    color: var(--vscode-badge-foreground, #ffffff);
+}
+
+.account-inline-toolbar-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--vscode-descriptionForeground, #717171);
+}
+
+.account-inline-toolbar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.account-toolbar-btn {
+    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    background: var(--vscode-editor-background, #1e1e1e);
+    color: var(--vscode-foreground, #cccccc);
+    border-radius: 6px;
+    padding: 5px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.account-toolbar-btn:hover {
+    background: var(--vscode-list-hoverBackground, #2a2d2e);
+}
+
+.account-toolbar-btn--github {
+    border-color: color-mix(in srgb, var(--ac-github-accent) 35%, var(--vscode-panel-border, #2b2b2b) 65%);
+}
+
+.account-toolbar-btn--opencode {
+    border-color: color-mix(in srgb, var(--ac-opencode-accent) 35%, var(--vscode-panel-border, #2b2b2b) 65%);
+}
+
+.account-toolbar-btn--github:hover {
+    border-color: var(--ac-github-accent);
+    background: var(--ac-github-soft);
+}
+
+.account-toolbar-btn--opencode:hover {
+    border-color: var(--ac-opencode-accent);
+    background: var(--ac-opencode-soft);
+}
+
+.account-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.account-row {
+    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    background: var(--vscode-editor-background, #1e1e1e);
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.account-row--github {
+    border-color: color-mix(in srgb, var(--ac-github-accent) 28%, var(--vscode-panel-border, #2b2b2b) 72%);
+}
+
+.account-row--opencode {
+    border-color: color-mix(in srgb, var(--ac-opencode-accent) 28%, var(--vscode-panel-border, #2b2b2b) 72%);
+}
+
+.account-row--active.account-row--github {
+    border-color: var(--ac-github-accent);
+    background: var(--ac-github-soft);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac-github-accent) 45%, transparent 55%);
+}
+
+.account-row--active.account-row--opencode {
+    border-color: var(--ac-opencode-accent);
+    background: var(--ac-opencode-soft);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ac-opencode-accent) 45%, transparent 55%);
+}
+
+.account-row-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(120px, 42%);
+    align-items: start;
+    gap: 10px;
+}
+
+.account-row-name-wrap {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    flex-wrap: nowrap;
+}
+
+.account-row-name {
+    min-width: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--vscode-foreground, #cccccc);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.account-row-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: var(--vscode-badge-background, #4d4d4d);
+    color: var(--vscode-badge-foreground, #ffffff);
+    flex-shrink: 0;
+    white-space: nowrap;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.account-row-desc {
+    justify-self: end;
+    min-width: 0;
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground, #717171);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: right;
+    max-width: 100%;
+}
+
+.account-row-subtitle {
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground, #717171);
+    white-space: normal;
+    overflow: hidden;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.account-row-actions {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.account-row-action {
+    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    background: transparent;
+    color: var(--vscode-foreground, #cccccc);
+    border-radius: 4px;
+    padding: 3px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.account-row-action:hover {
+    background: var(--vscode-list-hoverBackground, #2a2d2e);
+}
+
+.account-row-action--github {
+    border-color: color-mix(in srgb, var(--ac-github-accent) 35%, var(--vscode-panel-border, #2b2b2b) 65%);
+}
+
+.account-row-action--opencode {
+    border-color: color-mix(in srgb, var(--ac-opencode-accent) 35%, var(--vscode-panel-border, #2b2b2b) 65%);
+}
+
+.account-row-action--github:hover {
+    border-color: var(--ac-github-accent);
+    background: var(--ac-github-soft);
+}
+
+.account-row-action--opencode:hover {
+    border-color: var(--ac-opencode-accent);
+    background: var(--ac-opencode-soft);
+}
+
+.account-row-action.danger {
+    color: var(--vscode-errorForeground, #f48771);
+    border-color: #f4877166;
+}
+
+.account-row-action.disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+    .account-center-dashboard {
+        grid-template-columns: 1fr;
+    }
+
+    .account-row-head {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 5px;
+    }
+
+    .account-row-desc {
+        justify-self: start;
+        text-align: left;
+    }
+}
+
 /* ==================== Codicon Font (fallback, main CSS loaded via <link>) ==================== */
 @font-face {
     font-family: "codicon";

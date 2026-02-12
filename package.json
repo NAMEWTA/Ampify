@@ -317,11 +317,25 @@
       },
       {
         "command": "ampify.opencodeAuth.import",
-        "title": "Import OpenCode Copilot Credential"
+        "title": "Import All OpenCode Credentials"
+      },
+      {
+        "command": "ampify.opencodeAuth.zeroConfig",
+        "title": "Zero Config (Import Then Clear auth.json)",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "ampify.opencodeAuth.openAuthJson",
+        "title": "Open OpenCode auth.json",
+        "icon": "$(go-to-file)"
       },
       {
         "command": "ampify.opencodeAuth.switch",
-        "title": "Switch OpenCode Copilot Credential"
+        "title": "Apply OpenCode Credential to auth.json"
+      },
+      {
+        "command": "ampify.opencodeAuth.apply",
+        "title": "Apply OpenCode Copilot Credential"
       },
       {
         "command": "ampify.opencodeAuth.delete",
@@ -340,6 +354,46 @@
         "command": "ampify.opencodeAuth.clear",
         "title": "Clear github-copilot in auth.json",
         "icon": "$(circle-slash)"
+      },
+      {
+        "command": "ampify.opencode.ohmy.import",
+        "title": "Import oh-my-opencode.json Snapshot",
+        "icon": "$(cloud-download)"
+      },
+      {
+        "command": "ampify.opencode.ohmy.apply",
+        "title": "Apply oh-my-opencode.json Snapshot",
+        "icon": "$(check)"
+      },
+      {
+        "command": "ampify.opencode.ohmy.openConfig",
+        "title": "Open oh-my-opencode.json",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "ampify.opencode.session.start",
+        "title": "Start Opencode Session",
+        "icon": "$(play)"
+      },
+      {
+        "command": "ampify.opencode.session.open",
+        "title": "Open Managed Opencode Terminal",
+        "icon": "$(terminal)"
+      },
+      {
+        "command": "ampify.opencode.session.kill",
+        "title": "Kill Opencode Session",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "ampify.opencode.session.refresh",
+        "title": "Refresh Opencode Sessions",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ampify.opencode.session.openConfig",
+        "title": "Open Opencode Session Config",
+        "icon": "$(go-to-file)"
       }
     ],
     "keybindings": [

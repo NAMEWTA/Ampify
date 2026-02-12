@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { getHtml } from './templates/htmlTemplate';
 import {
     SectionId,
+    AccountCenterTabId,
     WebviewMessage,
     ExtensionMessage,
     TreeNode,
@@ -22,6 +23,7 @@ import { GitShareBridge } from './bridges/gitShareBridge';
 import { ModelProxyBridge } from './bridges/modelProxyBridge';
 import { SettingsBridge } from './bridges/settingsBridge';
 import { OpenCodeAuthBridge } from './bridges/opencodeAuthBridge';
+import { AccountCenterBridge } from './bridges/accountCenterBridge';
 import { GitManager } from '../../common/git';
 import { I18n } from '../../common/i18n';
 import { SkillConfigManager } from '../skills/core/skillConfigManager';
@@ -42,6 +44,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     private modelProxyBridge: ModelProxyBridge;
     private settingsBridge: SettingsBridge;
     private opencodeAuthBridge: OpenCodeAuthBridge;
+    private accountCenterBridge: AccountCenterBridge;
     private gitManager: GitManager;
     private lastAutoSyncAt = 0;
     private autoSyncInFlight?: Promise<void>;
@@ -58,6 +61,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         this.modelProxyBridge = new ModelProxyBridge();
         this.settingsBridge = new SettingsBridge();
         this.opencodeAuthBridge = new OpenCodeAuthBridge();
+        this.accountCenterBridge = new AccountCenterBridge();
         this.gitManager = new GitManager();
     }
 
@@ -99,7 +103,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
      * 刷新当前活跃 section，或指定 section
      */
     public async refresh(section?: SectionId): Promise<void> {
-        const target = section || this._activeSection;
+        const target = this.normalizeSection(section || this._activeSection);
         if (target === 'dashboard') {
             await this.sendDashboard();
         } else {
@@ -117,11 +121,18 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 break;
 
             case 'switchSection':
-                this._activeSection = msg.section;
-                if (msg.section === 'dashboard') {
+                this._activeSection = this.normalizeSection(msg.section);
+                if (this._activeSection === 'accountCenter') {
+                    const tab = this.getAccountCenterTabBySection(msg.section);
+                    if (tab) {
+                        this.accountCenterBridge.setActiveTab(tab);
+                    }
+                }
+                this.postMessage({ type: 'setActiveSection', section: this._activeSection });
+                if (this._activeSection === 'dashboard') {
                     await this.sendDashboard();
                 } else {
-                    await this.sendSectionData(msg.section);
+                    await this.sendSectionData(this._activeSection);
                 }
                 break;
 
@@ -158,6 +169,20 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 break;
             case 'dropEmpty':
                 await this.handleDropEmpty(msg.section);
+                break;
+            case 'accountCenterTabChange':
+                this.accountCenterBridge.setActiveTab(msg.tab);
+                if (this._activeSection === 'accountCenter') {
+                    await this.sendAccountCenterData();
+                }
+                break;
+            case 'accountCenterAction':
+                this.accountCenterBridge.setActiveTab(msg.tab);
+                await this.accountCenterBridge.executeAction(msg.actionId, msg.rowId);
+                if (this._activeSection === 'accountCenter') {
+                    await this.sendAccountCenterData();
+                }
+                await this.sendDashboard();
                 break;
             case 'changeSetting':
                 await this.settingsBridge.updateSetting(msg.scope, msg.key, msg.value);
@@ -342,6 +367,9 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         let toolbar: ToolbarAction[] = [];
 
         switch (section) {
+            case 'accountCenter':
+                await this.sendAccountCenterData();
+                return;
             case 'launcher':
                 tree = this.launcherBridge.getTreeData();
                 toolbar = this.launcherBridge.getToolbar();
@@ -389,6 +417,11 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     private async sendSettings(): Promise<void> {
         const data = this.settingsBridge.getSettingsData();
         this.postMessage({ type: 'updateSettings', data });
+    }
+
+    private async sendAccountCenterData(): Promise<void> {
+        const data = await this.accountCenterBridge.getData();
+        this.postMessage({ type: 'updateAccountCenter', data });
     }
 
     // ==================== 事件处理 ====================
@@ -536,6 +569,10 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             return;
         }
         switch (section) {
+            case 'accountCenter':
+                await this.accountCenterBridge.executeAction(actionId);
+                await this.sendAccountCenterData();
+                break;
             case 'skills':
                 await this.handleSkillsToolbarAction(actionId);
                 break;
@@ -584,12 +621,19 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async handleQuickAction(actionId: string, section: SectionId): Promise<void> {
-        this._activeSection = section;
-        this.postMessage({ type: 'setActiveSection', section });
-        await this.sendSectionData(section);
+        const normalized = this.normalizeSection(section);
+        if (normalized === 'accountCenter') {
+            const tab = this.getAccountCenterTabBySection(section);
+            if (tab) {
+                this.accountCenterBridge.setActiveTab(tab);
+            }
+        }
+        this._activeSection = normalized;
+        this.postMessage({ type: 'setActiveSection', section: normalized });
+        await this.sendSectionData(normalized);
 
         setTimeout(() => {
-            void this.handleToolbarAction(section, actionId);
+            void this.handleToolbarAction(normalized, actionId);
         }, 150);
     }
 
@@ -931,6 +975,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             configManager.addCredential(
                 name,
                 'github-copilot',
+                'oauth',
                 accessToken,
                 values.refreshToken?.trim() || '',
                 expires
@@ -1200,6 +1245,23 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     }
 
     // ==================== 工具 ====================
+
+    private normalizeSection(section: SectionId): SectionId {
+        if (section === 'launcher' || section === 'opencodeAuth') {
+            return 'accountCenter';
+        }
+        return section;
+    }
+
+    private getAccountCenterTabBySection(section: SectionId): AccountCenterTabId | undefined {
+        if (section === 'launcher') {
+            return 'launcher';
+        }
+        if (section === 'opencodeAuth') {
+            return 'auth';
+        }
+        return undefined;
+    }
 
     private postMessage(msg: ExtensionMessage): void {
         if (this._view) {
