@@ -95,7 +95,7 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 ### Git Share 逻辑
 1. `GitManager` 负责初始化、拉取、提交、推送与冲突处理
 2. `DiffViewer` 提供 VS Code diff 预览
-3. MainView 打开时自动触发 `gitManager.sync()`（30s 节流）
+3. 模块注册完成后会执行启动阶段远端接收（`forceReceiveRemote`），并在扩展停用时执行关闭阶段推送恢复（`forcePushWithRecovery`）
 
 ### Model Proxy 逻辑
 1. `ProxyConfigManager` 管理 `modelproxy/config.json` 与日志目录

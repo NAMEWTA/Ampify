@@ -71,7 +71,7 @@ Commands manager stores one command per markdown file and supports preview/apply
 
 ![Git Sync](docs/images-en/git-sync/image.png)
 
-Git Share panel for sync/pull/push/commit/diff against shared repositories that host skills and commands.
+Git Share panel for sync/pull/push/commit/diff against shared repositories that host skills and commands, with startup receive and shutdown flush recovery.
 
 ![Model Proxy](docs/images-en/model-proxy/model-proxy.png)
 
@@ -114,7 +114,8 @@ Settings panel centralizes language, storage root, inject targets, and Model Pro
 ### Git Share Flow
 
 1. Open `gitshare`.
-2. Run sync/pull/push/commit operations.
+2. At extension startup, Ampify auto-receives remote changes for `gitshare` (with conflict-recovery handling).
+3. Run sync/pull/push/commit operations as needed.
 3. Use diff preview before commit/push when needed.
 
 ### Model Proxy Flow

@@ -1,5 +1,9 @@
 # Change Log
 
+## 3.2.2 - 2026-02-12
+### Added
+- feat(gitshare): add lifecycle sync recovery and localized main view
+
 ## 3.2.1 - 2026-02-12
 ### Changed
 - docs(readme): refresh bilingual product guide
