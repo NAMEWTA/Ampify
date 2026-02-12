@@ -46,8 +46,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     private opencodeAuthBridge: OpenCodeAuthBridge;
     private accountCenterBridge: AccountCenterBridge;
     private gitManager: GitManager;
-    private lastAutoSyncAt = 0;
-    private autoSyncInFlight?: Promise<void>;
 
     /** Pending overlay/confirm callbacks keyed by overlayId/confirmId */
     private pendingCallbacks = new Map<string, (values?: Record<string, string>) => Promise<void>>();
@@ -90,13 +88,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(
             (message: WebviewMessage) => this.handleMessage(message)
         );
-
-        this.triggerAutoSync();
-        webviewView.onDidChangeVisibility(() => {
-            if (webviewView.visible) {
-                this.triggerAutoSync();
-            }
-        });
     }
 
     /**
@@ -189,6 +180,13 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 break;
             case 'changeSetting':
                 await this.settingsBridge.updateSetting(msg.scope, msg.key, msg.value);
+                // Refresh all i18n-sensitive surfaces immediately (especially Account Center)
+                await this.sendSettings();
+                await this.sendDashboard();
+                await this.sendAccountCenterData();
+                if (this._activeSection !== 'dashboard' && this._activeSection !== 'accountCenter' && this._activeSection !== 'settings') {
+                    await this.sendSectionData(this._activeSection);
+                }
                 break;
 
             case 'settingsAction':
@@ -1270,47 +1268,5 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         if (this._view) {
             this._view.webview.postMessage(msg);
         }
-    }
-
-    private async triggerAutoSync(): Promise<void> {
-        const now = Date.now();
-        if (now - this.lastAutoSyncAt < 30000) {
-            return;
-        }
-        if (this.autoSyncInFlight) {
-            return;
-        }
-
-        this.lastAutoSyncAt = now;
-
-        const doSync = async (): Promise<void> => {
-            try {
-                await vscode.window.withProgress(
-                    {
-                        location: vscode.ProgressLocation.Notification,
-                        title: I18n.get('gitShare.syncing'),
-                        cancellable: false
-                    },
-                    async () => {
-                        const result = await this.gitManager.sync();
-                        if (!result.success) {
-                            if (result.conflict) {
-                                vscode.window.showErrorMessage(I18n.get('gitShare.mergeConflict'));
-                            } else if (result.authError) {
-                                vscode.window.showErrorMessage(I18n.get('gitShare.configureAuth'));
-                            } else if (result.error) {
-                                vscode.window.showErrorMessage(I18n.get('gitShare.syncFailed', result.error));
-                            }
-                        }
-                        await this.refresh();
-                    }
-                );
-            } finally {
-                this.autoSyncInFlight = undefined;
-            }
-        };
-
-        this.autoSyncInFlight = doSync();
-        await this.autoSyncInFlight;
     }
 }

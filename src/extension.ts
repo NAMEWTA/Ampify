@@ -6,7 +6,7 @@ import { registerLauncher } from './modules/launcher';
 import { registerSkillManager } from './modules/skills';
 import { registerCommandManager } from './modules/commands';
 import { registerMainView } from './modules/mainView';
-import { registerGitShare } from './modules/gitShare';
+import { GitShareLifecycle, registerGitShare } from './modules/gitShare';
 import { registerModelProxy } from './modules/modelProxy';
 import { registerOpenCodeCopilotAuth } from './modules/opencode-copilot-auth';
 
@@ -16,6 +16,7 @@ import { registerOpenCodeCopilotAuth } from './modules/opencode-copilot-auth';
  * 主实例（非 Launcher 启动）值为空字符串。
  */
 export let instanceKey: string = '';
+let gitShareLifecycle: GitShareLifecycle | undefined;
 
 /**
  * 检测当前 VS Code 实例的 Launcher key。
@@ -72,7 +73,13 @@ export async function activate(context: vscode.ExtensionContext) {
     registerLauncher(context);
 
     // Register Git Share module
-    registerGitShare(context);
+    try {
+        gitShareLifecycle = await registerGitShare(context);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('Failed to register Git Share module:', message);
+        vscode.window.showErrorMessage(`Git Share module failed to load: ${message}`);
+    }
 
     // Register the "Skills" module
     try {
@@ -113,4 +120,14 @@ export async function activate(context: vscode.ExtensionContext) {
     console.log('Ampify Extension Activated');
 }
 
-export function deactivate() {}
+export async function deactivate() {
+    if (!gitShareLifecycle) {
+        return;
+    }
+    try {
+        await gitShareLifecycle.flushOnDeactivate();
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('Git Share shutdown flush failed:', message);
+    }
+}

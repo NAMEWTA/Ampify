@@ -5,15 +5,33 @@ import { GitStatus, DiffFile, GitConfig } from '../types';
 import { getGitShareDir, getGitShareConfigPath, ensureDir } from '../paths';
 
 /**
- * Git 共享配置
+ * Git share config
  */
 export interface GitShareConfig {
     gitConfig: GitConfig;
 }
 
+export type GitOperationPhase = 'pull' | 'push' | 'startup' | 'shutdown';
+
+export interface GitOperationResult {
+    success: boolean;
+    error?: string;
+    authError?: boolean;
+    conflict?: boolean;
+    noRemote?: boolean;
+    localOnly?: boolean;
+    networkError?: boolean;
+    recovered?: boolean;
+    phase?: GitOperationPhase;
+}
+
+export interface ForceReceiveOptions {
+    conflictsOnly?: boolean;
+    phase?: GitOperationPhase;
+}
+
 /**
- * 共享 Git 管理器
- * 统一管理 gitshare 目录的 Git 操作
+ * Shared git manager for gitshare directory.
  */
 export class GitManager {
     private git: SimpleGit;
@@ -27,16 +45,10 @@ export class GitManager {
         this.git = simpleGit(this.rootDir);
     }
 
-    /**
-     * 获取 Git 共享根目录
-     */
     public getRootDir(): string {
         return this.rootDir;
     }
 
-    /**
-     * 确保初始化
-     */
     public ensureInit(): void {
         ensureDir(this.rootDir);
         if (!fs.existsSync(this.configPath)) {
@@ -47,9 +59,6 @@ export class GitManager {
         }
     }
 
-    /**
-     * 获取配置
-     */
     public getConfig(): GitShareConfig {
         try {
             if (!fs.existsSync(this.configPath)) {
@@ -57,8 +66,7 @@ export class GitManager {
             }
             const content = fs.readFileSync(this.configPath, 'utf8');
             const config = JSON.parse(content) as GitShareConfig;
-            
-            // 兼容处理
+
             if (!config.gitConfig) {
                 config.gitConfig = { remoteUrls: [] };
             }
@@ -76,16 +84,10 @@ export class GitManager {
         }
     }
 
-    /**
-     * 保存配置
-     */
     public saveConfig(config: GitShareConfig): void {
         fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf8');
     }
 
-    /**
-     * 更新 Git 配置
-     */
     public updateGitConfig(gitConfig: Partial<GitConfig>): void {
         const config = this.getConfig();
         const merged: GitConfig = { ...config.gitConfig, ...gitConfig };
@@ -96,22 +98,15 @@ export class GitManager {
         this.saveConfig(config);
     }
 
-    /**
-     * 获取配置文件路径
-     */
     public getConfigPath(): string {
         return this.configPath;
     }
 
-    /**
-     * 初始化 Git 仓库
-     */
     public async init(): Promise<boolean> {
         try {
             const isRepo = await this.isGitRepository();
             if (!isRepo) {
                 await this.git.init();
-                // 创建 .gitignore
                 const gitignorePath = path.join(this.rootDir, '.gitignore');
                 if (!fs.existsSync(gitignorePath)) {
                     fs.writeFileSync(gitignorePath, '# Ampify Git Share\n.DS_Store\n*.log\nconfig.json\n', 'utf8');
@@ -124,9 +119,6 @@ export class GitManager {
         }
     }
 
-    /**
-     * 检查是否是 Git 仓库
-     */
     public async isGitRepository(): Promise<boolean> {
         try {
             await this.git.status();
@@ -136,9 +128,6 @@ export class GitManager {
         }
     }
 
-    /**
-     * 获取 Git 状态
-     */
     public async getStatus(): Promise<GitStatus> {
         const status: GitStatus = {
             initialized: false,
@@ -157,7 +146,6 @@ export class GitManager {
 
             status.initialized = true;
 
-            // 获取状态
             const gitStatus: StatusResult = await this.git.status();
             status.branch = gitStatus.current || undefined;
             status.hasUnstagedChanges =
@@ -171,7 +159,6 @@ export class GitManager {
                 status.hasUnstagedChanges;
             status.changedFiles = gitStatus.files.length;
 
-            // 检查远程
             const remotes = await this.git.getRemotes(true);
             const origin = remotes.find(r => r.name === 'origin');
             if (origin) {
@@ -189,13 +176,11 @@ export class GitManager {
                 }
             }
 
-            // 检查未推送的提交
             if (status.hasRemote && status.branch) {
                 try {
                     const log = await this.git.log([`origin/${status.branch}..HEAD`]);
                     status.unpushedCommitCount = log.total;
                 } catch {
-                    // 可能远程分支不存在
                     status.unpushedCommitCount = 0;
                 }
             }
@@ -207,24 +192,15 @@ export class GitManager {
         }
     }
 
-    /**
-     * 配置 Git 用户信息
-     */
     public async configureUser(userName: string, userEmail: string): Promise<void> {
         await this.git.addConfig('user.name', userName, false, 'local');
         await this.git.addConfig('user.email', userEmail, false, 'local');
     }
 
-    /**
-     * 设置远程仓库
-     */
     public async setRemote(url: string): Promise<boolean> {
         return this.setRemotes([url]);
     }
 
-    /**
-     * 设置多个远程仓库
-     */
     public async setRemotes(urls: string[]): Promise<boolean> {
         try {
             const remotes = await this.git.getRemotes();
@@ -248,18 +224,12 @@ export class GitManager {
         }
     }
 
-    /**
-     * 从配置同步远程仓库
-     */
     public async syncRemotesFromConfig(): Promise<boolean> {
         const urls = this.getConfiguredRemoteUrls();
         if (urls.length === 0) return false;
         return this.setRemotes(urls);
     }
 
-    /**
-     * 获取远程仓库 URL
-     */
     public async getRemoteUrl(): Promise<string | undefined> {
         try {
             const remotes = await this.git.getRemotes(true);
@@ -270,16 +240,10 @@ export class GitManager {
         }
     }
 
-    /**
-     * 暂存所有更改
-     */
     public async stageAll(): Promise<void> {
         await this.git.add(['-A']);
     }
 
-    /**
-     * 提交更改
-     */
     public async commit(message: string): Promise<boolean> {
         try {
             const status = await this.git.status();
@@ -299,127 +263,180 @@ export class GitManager {
         }
     }
 
-    /**
-     * 拉取远程更新
-     */
-    public async pull(): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean; noRemote?: boolean }> {
+    public async pull(): Promise<GitOperationResult> {
+        const phase: GitOperationPhase = 'pull';
         try {
             await this.init();
-            const status = await this.getStatus();
+            let status = await this.getStatus();
             if (!status.hasRemote) {
                 const synced = await this.syncRemotesFromConfig();
                 if (!synced) {
-                    return { success: true, noRemote: true };
+                    return { success: true, noRemote: true, phase };
                 }
+                status = await this.getStatus();
             }
 
-            const refreshed = await this.getStatus();
-            if (!refreshed.hasRemote) {
-                return { success: true, noRemote: true };
+            if (!status.hasRemote) {
+                return { success: true, noRemote: true, phase };
             }
-            const remoteBranch = await this.resolveRemoteBranch(refreshed.branch);
+
+            const remoteBranch = await this.resolveRemoteBranch(status.branch);
             if (!remoteBranch) {
-                return { success: true, noRemote: true };
+                return { success: true, noRemote: true, phase };
             }
+
             await this.git.pull('origin', remoteBranch);
 
             const afterStatus = await this.git.status();
             if (afterStatus.conflicted && afterStatus.conflicted.length > 0) {
-                return { success: false, conflict: true, error: 'Merge conflicts detected' };
+                return { success: false, conflict: true, error: 'Merge conflicts detected', phase };
             }
 
-            return { success: true };
+            return { success: true, phase };
         } catch (error: unknown) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            const isAuthError = errorMsg.includes('Authentication') || 
-                               errorMsg.includes('Permission denied') ||
-                               errorMsg.includes('could not read Username');
-            const isConflict = errorMsg.includes('CONFLICT') ||
-                               errorMsg.includes('Merge conflict') ||
-                               errorMsg.includes('Automatic merge failed');
-            return { 
-                success: false, 
+            const errorMsg = this.getErrorMessage(error);
+            return {
+                success: false,
                 error: errorMsg,
-                authError: isAuthError,
-                conflict: isConflict
+                authError: this.isAuthError(errorMsg),
+                conflict: this.isConflictError(errorMsg),
+                networkError: this.isNetworkError(errorMsg),
+                phase
             };
         }
     }
 
-    /**
-     * 推送到远程
-     */
-    public async push(options?: { skipPull?: boolean }): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean; noRemote?: boolean }> {
+    public async push(options?: { skipPull?: boolean }): Promise<GitOperationResult> {
+        const phase: GitOperationPhase = 'push';
         try {
             await this.init();
             const status = await this.getStatus();
             if (!status.hasRemote) {
                 const synced = await this.syncRemotesFromConfig();
                 if (!synced) {
-                    return { success: true, noRemote: true };
+                    return { success: true, noRemote: true, phase };
                 }
             }
 
             if (!options?.skipPull) {
                 const pullResult = await this.pull();
                 if (!pullResult.success) {
-                    return {
-                        success: false,
-                        error: pullResult.error,
-                        authError: pullResult.authError,
-                        conflict: pullResult.conflict
-                    };
+                    return { ...pullResult, phase };
                 }
             }
 
             const refreshed = await this.getStatus();
             if (!refreshed.hasRemote) {
-                return { success: true, noRemote: true };
+                return { success: true, noRemote: true, phase };
             }
 
-            // pull 后再提交
             if (refreshed.hasUncommittedChanges) {
                 const committed = await this.commit('Auto-commit before push');
                 if (!committed) {
-                    return { success: false, error: 'Commit failed' };
+                    return { success: false, error: 'Commit failed', phase };
                 }
             }
 
             const branch = await this.resolveRemoteBranch(refreshed.branch) || refreshed.branch || 'main';
-            const remotes = await this.getRemotesForPush();
-            if (remotes.length === 0) {
-                return { success: true, noRemote: true };
-            }
-
-            for (const remote of remotes) {
-                if (remote === 'origin') {
-                    await this.git.push(remote, branch, ['--set-upstream']);
-                } else {
-                    await this.git.push(remote, branch);
-                }
-            }
-            return { success: true };
+            const pushResult = await this.pushBranchToAllRemotes(branch);
+            return { ...pushResult, phase };
         } catch (error: unknown) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            const isAuthError = errorMsg.includes('Authentication') || 
-                               errorMsg.includes('Permission denied') ||
-                               errorMsg.includes('could not read Username');
-            const isConflict = errorMsg.includes('CONFLICT') ||
-                               errorMsg.includes('Merge conflict') ||
-                               errorMsg.includes('Automatic merge failed');
-            return { 
-                success: false, 
+            const errorMsg = this.getErrorMessage(error);
+            return {
+                success: false,
                 error: errorMsg,
-                authError: isAuthError,
-                conflict: isConflict
+                authError: this.isAuthError(errorMsg),
+                conflict: this.isConflictError(errorMsg),
+                networkError: this.isNetworkError(errorMsg),
+                phase
             };
         }
     }
 
-    /**
-     * 统一同步：init -> pull -> commit -> push
-     */
-    public async sync(): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean; localOnly?: boolean }> {
+    public async sync(): Promise<GitOperationResult> {
+        return this.forcePushWithRecovery('sync');
+    }
+
+    public async forceReceiveRemote(options?: ForceReceiveOptions): Promise<GitOperationResult> {
+        const phase = options?.phase || 'pull';
+        const conflictsOnly = options?.conflictsOnly ?? true;
+
+        try {
+            await this.init();
+
+            let status = await this.getStatus();
+            if (!status.hasRemote) {
+                const synced = await this.syncRemotesFromConfig();
+                if (!synced) {
+                    return { success: true, noRemote: true, phase };
+                }
+                status = await this.getStatus();
+            }
+
+            if (!status.hasRemote) {
+                return { success: true, noRemote: true, phase };
+            }
+
+            const remoteBranch = await this.resolveRemoteBranch(status.branch);
+            if (!remoteBranch) {
+                return { success: true, noRemote: true, phase };
+            }
+
+            try {
+                await this.git.pull('origin', remoteBranch);
+            } catch (error: unknown) {
+                const errorMsg = this.getErrorMessage(error);
+                if (this.isConflictError(errorMsg)) {
+                    const resolved = await this.resolveConflictsByTheirs({
+                        conflictsOnly,
+                        commitMessage: 'Auto-resolve: accept remote changes'
+                    });
+                    if (resolved) {
+                        return { success: true, recovered: true, phase };
+                    }
+                    return { success: false, conflict: true, error: 'Merge conflict', phase };
+                }
+
+                return {
+                    success: false,
+                    error: errorMsg,
+                    authError: this.isAuthError(errorMsg),
+                    conflict: this.isConflictError(errorMsg),
+                    networkError: this.isNetworkError(errorMsg),
+                    phase
+                };
+            }
+
+            const afterStatus = await this.git.status();
+            if (afterStatus.conflicted && afterStatus.conflicted.length > 0) {
+                const resolved = await this.resolveConflictsByTheirs({
+                    conflictsOnly,
+                    commitMessage: 'Auto-resolve: accept remote changes'
+                });
+                if (!resolved) {
+                    return { success: false, conflict: true, error: 'Merge conflict', phase };
+                }
+                return { success: true, recovered: true, phase };
+            }
+
+            return { success: true, phase };
+        } catch (error: unknown) {
+            const errorMsg = this.getErrorMessage(error);
+            return {
+                success: false,
+                error: errorMsg,
+                authError: this.isAuthError(errorMsg),
+                conflict: this.isConflictError(errorMsg),
+                networkError: this.isNetworkError(errorMsg),
+                phase
+            };
+        }
+    }
+
+    public async forcePushWithRecovery(context: 'sync' | 'shutdown'): Promise<GitOperationResult> {
+        const phase: GitOperationPhase = context === 'shutdown' ? 'shutdown' : 'push';
+        const commitMessage = context === 'shutdown' ? 'Auto-shutdown commit' : 'Auto-sync commit';
+
         try {
             await this.init();
 
@@ -431,139 +448,153 @@ export class GitManager {
                 }
             }
 
-            const hasRemote = status.hasRemote;
-
-            const stashed = await this.stashIfNeeded();
-
-            if (hasRemote) {
-                const branch = await this.resolveRemoteBranch(status.branch) || status.branch || 'main';
-                const pullResult = await this.pullWithRebase(branch);
-                if (!pullResult.success) {
-                    return {
-                        success: false,
-                        error: pullResult.error,
-                        authError: pullResult.authError,
-                        conflict: pullResult.conflict
-                    };
+            if (!status.hasRemote) {
+                const localCommitResult = await this.commitIfNeeded(commitMessage, phase);
+                if (!localCommitResult.success) {
+                    return localCommitResult;
                 }
+                return { success: true, localOnly: true, noRemote: true, phase };
             }
 
-            if (stashed) {
-                const popped = await this.popStashAndResolve();
-                if (!popped) {
-                    return { success: false, conflict: true, error: 'Stash pop conflict' };
-                }
+            const branch = await this.resolveRemoteBranch(status.branch) || status.branch || 'main';
+
+            const firstCommitResult = await this.commitIfNeeded(commitMessage, phase);
+            if (!firstCommitResult.success) {
+                return firstCommitResult;
             }
 
-            const refreshed = await this.getStatus();
-            if (refreshed.hasUncommittedChanges) {
-                const committed = await this.commit('Auto-sync commit');
-                if (!committed) {
-                    return { success: false, error: 'Commit failed' };
-                }
+            const firstPushResult = await this.pushBranchToAllRemotes(branch, phase);
+            if (firstPushResult.success) {
+                return firstPushResult;
             }
 
-            if (hasRemote) {
-                const pushResult = await this.push({ skipPull: true });
-                if (!pushResult.success) {
-                    return {
-                        success: false,
-                        error: pushResult.error,
-                        authError: pushResult.authError,
-                        conflict: pushResult.conflict
-                    };
-                }
-                return { success: true };
+            if (firstPushResult.networkError) {
+                return firstPushResult;
             }
 
-            return { success: true, localOnly: true };
+            const receiveResult = await this.forceReceiveRemote({ conflictsOnly: true, phase: 'pull' });
+            if (!receiveResult.success) {
+                return receiveResult;
+            }
+
+            const secondCommitResult = await this.commitIfNeeded(commitMessage, phase);
+            if (!secondCommitResult.success) {
+                return secondCommitResult;
+            }
+
+            const refreshedStatus = await this.getStatus();
+            const refreshedBranch = await this.resolveRemoteBranch(refreshedStatus.branch) || refreshedStatus.branch || branch;
+            const secondPushResult = await this.pushBranchToAllRemotes(refreshedBranch, phase);
+            if (secondPushResult.success) {
+                return { ...secondPushResult, recovered: true, phase };
+            }
+            return secondPushResult;
         } catch (error: unknown) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            return { success: false, error: errorMsg };
-        }
-    }
-
-    private async stashIfNeeded(): Promise<boolean> {
-        const status = await this.git.status();
-        if (status.files.length === 0) {
-            return false;
-        }
-        await this.git.stash(['push', '-u', '-m', 'ampify-auto-sync']);
-        return true;
-    }
-
-    private async popStashAndResolve(): Promise<boolean> {
-        try {
-            await this.git.stash(['pop']);
-            const status = await this.git.status();
-            if (status.conflicted && status.conflicted.length > 0) {
-                return this.resolveConflictsByTheirs();
-            }
-            return true;
-        } catch (error) {
-            console.error('Stash pop failed:', error);
-            return false;
-        }
-    }
-
-    private async pullWithRebase(branch: string): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean }> {
-        try {
-            await this.git.fetch(['--all']);
-            await this.git.pull('origin', branch, ['--rebase']);
-
-            const status = await this.git.status();
-            if (status.conflicted && status.conflicted.length > 0) {
-                return { success: false, conflict: true, error: 'Rebase conflict' };
-            }
-
-            return { success: true };
-        } catch (error: unknown) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            if (this.isAuthError(errorMsg)) {
-                return { success: false, authError: true, error: errorMsg };
-            }
-
-            if (this.isConflictError(errorMsg)) {
-                await this.git.raw(['rebase', '--abort']).catch(() => undefined);
-                const merged = await this.pullAndMerge(branch);
-                return merged;
-            }
-
-            return { success: false, error: errorMsg };
-        }
-    }
-
-    private async pullAndMerge(branch: string): Promise<{ success: boolean; error?: string; authError?: boolean; conflict?: boolean }> {
-        try {
-            await this.git.pull('origin', branch);
-            const status = await this.git.status();
-            if (status.conflicted && status.conflicted.length > 0) {
-                const resolved = await this.resolveConflictsByTheirs();
-                if (!resolved) {
-                    return { success: false, conflict: true, error: 'Merge conflict' };
-                }
-            }
-            return { success: true };
-        } catch (error: unknown) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
+            const errorMsg = this.getErrorMessage(error);
             return {
                 success: false,
                 error: errorMsg,
                 authError: this.isAuthError(errorMsg),
-                conflict: this.isConflictError(errorMsg)
+                conflict: this.isConflictError(errorMsg),
+                networkError: this.isNetworkError(errorMsg),
+                phase
             };
         }
     }
 
-    private async resolveConflictsByTheirs(): Promise<boolean> {
+    public isNetworkError(errorMsg: string): boolean {
+        const lower = errorMsg.toLowerCase();
+        return lower.includes('enotfound') ||
+            lower.includes('econnrefused') ||
+            lower.includes('econnreset') ||
+            lower.includes('etimedout') ||
+            lower.includes('network is unreachable') ||
+            lower.includes('could not resolve host') ||
+            lower.includes('failed to connect') ||
+            lower.includes('failed to connect to') ||
+            lower.includes('connection timed out') ||
+            lower.includes('timed out');
+    }
+
+    private async resolveConflictsByTheirs(options?: { conflictsOnly?: boolean; commitMessage?: string }): Promise<boolean> {
         try {
-            await this.git.raw(['checkout', '--theirs', '.']);
-            await this.stageAll();
-            await this.git.commit('Auto-resolve: accept remote changes');
+            const status = await this.git.status();
+            const conflicted = status.conflicted || [];
+            if (conflicted.length === 0) {
+                return true;
+            }
+
+            if (options?.conflictsOnly) {
+                await this.git.raw(['checkout', '--theirs', '--', ...conflicted]);
+                await this.git.raw(['add', '-A', '--', ...conflicted]);
+            } else {
+                await this.git.raw(['checkout', '--theirs', '.']);
+                await this.stageAll();
+            }
+
+            const afterStatus = await this.git.status();
+            if (afterStatus.conflicted && afterStatus.conflicted.length > 0) {
+                return false;
+            }
+
+            await this.git.commit(options?.commitMessage || 'Auto-resolve: accept remote changes');
             return true;
         } catch (error) {
             console.error('Auto-resolve conflicts failed:', error);
             return false;
+        }
+    }
+
+    private async commitIfNeeded(message: string, phase: GitOperationPhase): Promise<GitOperationResult> {
+        try {
+            const status = await this.git.status();
+            if (status.files.length === 0) {
+                return { success: true, phase };
+            }
+            const committed = await this.commit(message);
+            if (!committed) {
+                return { success: false, error: 'Commit failed', phase };
+            }
+            return { success: true, phase };
+        } catch (error: unknown) {
+            const errorMsg = this.getErrorMessage(error);
+            return {
+                success: false,
+                error: errorMsg,
+                authError: this.isAuthError(errorMsg),
+                conflict: this.isConflictError(errorMsg),
+                networkError: this.isNetworkError(errorMsg),
+                phase
+            };
+        }
+    }
+
+    private async pushBranchToAllRemotes(branch: string, phase: GitOperationPhase = 'push'): Promise<GitOperationResult> {
+        try {
+            const remotes = await this.getRemotesForPush();
+            if (remotes.length === 0) {
+                return { success: true, noRemote: true, phase };
+            }
+
+            for (const remote of remotes) {
+                if (remote === 'origin') {
+                    await this.git.push(remote, branch, ['--set-upstream']);
+                } else {
+                    await this.git.push(remote, branch);
+                }
+            }
+
+            return { success: true, phase };
+        } catch (error: unknown) {
+            const errorMsg = this.getErrorMessage(error);
+            return {
+                success: false,
+                error: errorMsg,
+                authError: this.isAuthError(errorMsg),
+                conflict: this.isConflictError(errorMsg),
+                networkError: this.isNetworkError(errorMsg),
+                phase
+            };
         }
     }
 
@@ -577,7 +608,13 @@ export class GitManager {
         return errorMsg.includes('CONFLICT') ||
             errorMsg.includes('Merge conflict') ||
             errorMsg.includes('Automatic merge failed') ||
+            errorMsg.includes('non-fast-forward') ||
+            errorMsg.includes('fetch first') ||
             errorMsg.includes('could not apply');
+    }
+
+    private getErrorMessage(error: unknown): string {
+        return error instanceof Error ? error.message : String(error);
     }
 
     private getConfiguredRemoteUrls(): string[] {
@@ -619,9 +656,6 @@ export class GitManager {
         return null;
     }
 
-    /**
-     * 获取本地变更文件列表
-     */
     public async getLocalChanges(): Promise<DiffFile[]> {
         try {
             const status = await this.git.status();
@@ -650,9 +684,6 @@ export class GitManager {
         }
     }
 
-    /**
-     * 获取与远程的差异
-     */
     public async getRemoteDiff(): Promise<DiffFile[]> {
         try {
             const status = await this.getStatus();
@@ -660,7 +691,6 @@ export class GitManager {
                 return [];
             }
 
-            // 先 fetch
             await this.git.fetch('origin');
 
             const remoteBranch = await this.resolveRemoteBranch(status.branch);
@@ -668,7 +698,6 @@ export class GitManager {
                 return [];
             }
 
-            // 获取差异文件
             const diff = await this.git.diff([
                 '--name-status',
                 `HEAD..origin/${remoteBranch}`
@@ -696,16 +725,10 @@ export class GitManager {
         }
     }
 
-    /**
-     * 获取文件的完整路径
-     */
     public getFilePath(relativePath: string): string {
         return path.join(this.rootDir, relativePath);
     }
 
-    /**
-     * 获取文件在某个提交的内容
-     */
     public async getFileContent(filePath: string, ref: string = 'HEAD'): Promise<string | null> {
         try {
             const content = await this.git.show([`${ref}:${filePath}`]);
@@ -715,14 +738,11 @@ export class GitManager {
         }
     }
 
-    /**
-     * 获取远程分支文件内容
-     */
     public async getRemoteFileContent(filePath: string): Promise<string | null> {
         try {
             const status = await this.getStatus();
             if (!status.hasRemote) return null;
-            
+
             await this.git.fetch('origin');
             const remoteBranch = await this.resolveRemoteBranch(status.branch);
             if (!remoteBranch) return null;
@@ -733,9 +753,6 @@ export class GitManager {
         }
     }
 
-    /**
-     * 解析远程分支名称（优先当前分支，其次 main/master）
-     */
     private async resolveRemoteBranch(preferred?: string): Promise<string | undefined> {
         try {
             const branches = await this.git.branch(['-r']);
@@ -759,9 +776,6 @@ export class GitManager {
         }
     }
 
-    /**
-     * 获取指定模块目录下的变更文件
-     */
     public async getModuleChanges(moduleName: string): Promise<DiffFile[]> {
         const allChanges = await this.getLocalChanges();
         return allChanges.filter(change => change.path.startsWith(`${moduleName}/`));

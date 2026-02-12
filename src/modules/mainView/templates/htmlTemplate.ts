@@ -6,22 +6,13 @@ import * as vscode from 'vscode';
 import { getCss } from './cssTemplate';
 import { getJs } from './jsTemplate';
 import { SectionId } from '../protocol';
+import { I18n } from '../../../common/i18n';
 
 interface NavItem {
     id: SectionId;
     label: string;
     iconClass: string;
 }
-
-const NAV_ITEMS: NavItem[] = [
-    { id: 'dashboard', label: 'Dashboard', iconClass: 'codicon-dashboard' },
-    { id: 'accountCenter', label: '\u8d26\u6237\u4e2d\u5fc3', iconClass: 'codicon-account' },
-    { id: 'skills', label: 'Skills', iconClass: 'codicon-library' },
-    { id: 'commands', label: 'Commands', iconClass: 'codicon-terminal' },
-    { id: 'gitshare', label: 'Git Sync', iconClass: 'codicon-git-merge' },
-    { id: 'modelProxy', label: 'Model Proxy', iconClass: 'codicon-radio-tower' },
-    { id: 'settings', label: 'Settings', iconClass: 'codicon-settings-gear' },
-];
 
 export function getHtml(
     webview: vscode.Webview,
@@ -43,8 +34,18 @@ export function getHtml(
     // Build CSS with codicon font URI injected
     const css = getCss().replace('{codiconUri}', codiconFontUri.toString());
 
+    const navItems: NavItem[] = [
+        { id: 'dashboard', label: I18n.get('nav.dashboard'), iconClass: 'codicon-dashboard' },
+        { id: 'accountCenter', label: I18n.get('nav.accountCenter'), iconClass: 'codicon-account' },
+        { id: 'skills', label: I18n.get('nav.skills'), iconClass: 'codicon-library' },
+        { id: 'commands', label: I18n.get('nav.commands'), iconClass: 'codicon-terminal' },
+        { id: 'gitshare', label: I18n.get('nav.gitShare'), iconClass: 'codicon-git-merge' },
+        { id: 'modelProxy', label: I18n.get('nav.modelProxy'), iconClass: 'codicon-radio-tower' },
+        { id: 'settings', label: I18n.get('nav.settings'), iconClass: 'codicon-settings-gear' },
+    ];
+
     // Build nav items HTML
-    const navItemsHtml = NAV_ITEMS.map(item => `
+    const navItemsHtml = navItems.map(item => `
         <button class="nav-item${item.id === activeSection ? ' active' : ''}" data-section="${item.id}" title="${item.label}">
             <span class="nav-icon"><i class="codicon ${item.iconClass}"></i></span>
             <span class="nav-label">${item.label}</span>
@@ -76,18 +77,18 @@ export function getHtml(
                 <span class="account-letter">${(instanceKey || 'default').charAt(0).toUpperCase()}</span>
                 <span class="account-label">${instanceKey || 'default'}</span>
             </div>
-            <button class="nav-toggle" title="Toggle sidebar">
+            <button class="nav-toggle" title="${I18n.get('nav.toggleSidebar')}">
                 <i class="codicon codicon-layout-sidebar-left"></i>
             </button>
         </nav>
         <div class="content">
             <div class="toolbar">
-                <span class="toolbar-title">DASHBOARD</span>
+                <span class="toolbar-title">${I18n.get('nav.dashboard').toUpperCase()}</span>
             </div>
             <div class="content-body">
                 <div class="empty-state">
                     <i class="codicon codicon-dashboard"></i>
-                    <p>Loading...</p>
+                    <p>${I18n.get('common.loading')}</p>
                 </div>
             </div>
         </div>

@@ -313,7 +313,9 @@ export class AccountCenterBridge {
             return {
                 id: rowId,
                 name: session.name,
-                description: session.pid > 0 ? `PID ${session.pid}` : 'PID —',
+                description: session.pid > 0
+                    ? `${I18n.get('accountCenter.pidLabel')} ${session.pid}`
+                    : `${I18n.get('accountCenter.pidLabel')} ${I18n.get('accountCenter.na')}`,
                 subtitle: `${I18n.get('accountCenter.sessionStartedAt')}${startedAt}`,
                 metaItems: [
                     { label: I18n.get('accountCenter.sessionProvidersLabel'), value: providers },

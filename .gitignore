@@ -8,4 +8,3 @@ node_modules
 .turbo
 **/__pycache__/
 .sisyphus/
-.agents/

@@ -5,10 +5,9 @@ description: |
   Use when: writing documentation, creating README files, documenting APIs, writing tutorials,
   creating user guides, or when user mentions documentation, technical writing, or needs help
   explaining technical concepts clearly.
-license: MIT
-metadata:
-  author: awesome-llm-apps
-  version: "1.0.0"
+tags:
+  - writer
+  - readme
 ---
 
 # Technical Writer
