@@ -38,6 +38,8 @@ const INTERNAL_READY_TIMEOUT_MS = 12000;
 const INTERNAL_READY_RETRY_INTERVAL_MS = 250;
 
 export class OpencodeSessionManager {
+    private lastScanErrorAt = 0;
+
     constructor(private readonly configManager: OpenCodeCopilotAuthConfigManager) {}
 
     async startSession(): Promise<ManagedOpencodeSession> {
@@ -331,7 +333,11 @@ export class OpencodeSessionManager {
             }
             return this.scanUnixProcesses();
         } catch (error) {
-            console.error('Failed to scan opencode processes:', error);
+            const now = Date.now();
+            if (now - this.lastScanErrorAt > 30000) {
+                this.lastScanErrorAt = now;
+                console.error('Failed to scan opencode processes:', error);
+            }
             return [];
         }
     }
@@ -353,8 +359,12 @@ export class OpencodeSessionManager {
                 '$rows = @(Get-Process | Where-Object { $_.ProcessName -match "(?i)opencode" })',
                 'if ($rows.Count -eq 0) { "[]" } else { $rows | Select-Object Id,ProcessName,StartTime | ConvertTo-Json -Compress }'
             ].join('; ');
-            const output = runPowerShell(fallbackScript);
-            return parseWindowsFallbackRows(output);
+            try {
+                const output = runPowerShell(fallbackScript);
+                return parseWindowsFallbackRows(output);
+            } catch {
+                return [];
+            }
         }
     }
 

@@ -3564,29 +3564,42 @@ html, body {
 .account-row-kv-item {
     min-width: 0;
     display: flex;
-    align-items: baseline;
-    gap: 6px;
+    flex-direction: column;
+    gap: 3px;
+    border: 1px solid color-mix(in srgb, var(--ac-opencode-accent) 22%, var(--vscode-panel-border, #2b2b2b) 78%);
+    border-radius: 5px;
+    padding: 6px 8px;
+    background: color-mix(in srgb, var(--ac-opencode-soft) 18%, var(--vscode-editor-background, #1e1e1e) 82%);
 }
 
 .account-row-kv-item--full {
     grid-column: 1 / -1;
+    background: color-mix(in srgb, var(--ac-opencode-soft) 14%, var(--vscode-editor-background, #1e1e1e) 86%);
 }
 
 .account-row-kv-label {
-    flex: 0 0 auto;
     font-size: 10px;
     font-weight: 600;
     color: var(--vscode-descriptionForeground, #717171);
+    text-transform: uppercase;
+    letter-spacing: 0.25px;
 }
 
 .account-row-kv-value {
     min-width: 0;
-    flex: 1 1 auto;
     font-size: 11px;
+    font-weight: 600;
     color: var(--vscode-foreground, #cccccc);
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.account-row-kv-item:not(.account-row-kv-item--full) .account-row-kv-value {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .account-row-kv-item--full .account-row-kv-value {
@@ -3598,6 +3611,8 @@ html, body {
 .account-row-kv-value--mono {
     font-family: 'Consolas', 'Courier New', monospace;
     font-size: 10px;
+    font-weight: 500;
+    line-height: 1.45;
 }
 
 .account-row-meta-list {

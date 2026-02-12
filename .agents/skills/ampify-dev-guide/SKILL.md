@@ -10,6 +10,7 @@ description: Ampify VS Code 扩展开发指南。用于实现/重构 src 模块�
 2. 目标模块 `src/modules/<module>/index.ts` + `core/*`：确认命令、配置、存储目录。
 3. `src/modules/mainView/AmpifyViewProvider.ts` + `src/modules/mainView/protocol.ts`：确认 Webview section、消息协议、Bridge 路由。
 4. `package.json`：对齐 contributes 的命令与配置项（仅用户可见命令必须声明）。
+5. 涉及实例隔离或日志归属时，联读 `src/extension.ts`（`detectInstanceKey`）、`src/modules/launcher/core/processEngine.ts`、`src/modules/modelProxy/core/logManager.ts`。
 
 ## 当前架构快照
 - 激活顺序：MainView → Copier → Launcher → Git Share → Skills → Commands → OpenCode Copilot Auth → Model Proxy。
