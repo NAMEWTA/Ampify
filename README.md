@@ -1,169 +1,303 @@
 # Ampify
 
-Ampify is a practical, all-in-one VS Code extension that helps you move faster. It unifies **path + line copying**, a **multi-account launcher**, **Skills/Commands management**, **Git Share sync**, and a **Model Proxy** in one MainView.
+Ampify is an all-in-one VS Code extension for daily engineering workflows. It combines path-and-line copy, account/session tooling, Skills/Commands management, Git synchronization, and a local Model Proxy in one unified MainView.
 
-## Features
+## Language
 
-- Copy relative or absolute file paths with line ranges
-- Multi-account launcher with isolated user data per instance
-- OpenCode Copilot credential manager with quick switching
-- Skills Manager with SKILL.md metadata, search, tag filter, preview, and inject
-- Skill Creator tool for generating new skills with scripts and documentation
-- Commands Manager with single-file command definitions and project injection
-- Skills/Commands cards and list view toggle with compact list layout
-- Git Share sync and diff preview for skills and commands repositories
-- Model Proxy: local HTTP reverse proxy (OpenAI + Anthropic compatible) with API key, model routing, instance management, and logs
-- Enhanced Anthropic handler with tool integration, SSE support, and improved request serialization
-- Unified MainView with sections for all modules
+- English first in this README.
+- 简体中文请查看下半部分「中文说明」。
 
-## Screenshots
+## What Ampify Solves
 
-![MainView Dashboard](docs/images/dashboard.png)
-MainView overview with all modules in one place.
-![Skills Manager](docs/images/skills.png)
-Skills library with search, tags, preview, and inject.
-![Commands Manager](docs/images/commands.png)
-Commands library with create, preview, and apply.
-![Git Sync](docs/images/gitsync.png)
-Git Share sync and diff preview for skills/commands.
-![Model Proxy](docs/images/modelProxy.png)
-Local proxy with models, stats, and recent logs.
-![Settings](docs/images/settings.png)
-Settings panel with root directory and language.
+- Keep cross-tool workflow in one Activity Bar panel (`dashboard`, `accountCenter`, `skills`, `commands`, `gitshare`, `modelProxy`, `settings`)
+- Reference code precisely in chat/review via copied `` `path:line` `` or `` `path:start-end` ``
+- Manage reusable AI assets (Skills and Commands) with Git-backed storage and project injection
+- Operate OpenCode credentials, Oh-My snapshots, and managed opencode sessions from one place
+- Expose VS Code models through OpenAI/Anthropic-compatible HTTP endpoints for local integrations
 
-## Usage
+## Core Modules
 
-### Copy Path & Line
+| Module | Purpose | Typical Actions |
+|---|---|---|
+| Dashboard | Health and quick actions across modules | open section, quick sync, quick import, proxy quick actions |
+| Account Center | GitHub Launcher + OpenCode domain operations | switch credential, import/apply Oh-My snapshot, start/kill sessions |
+| Skills Manager | Manage `SKILL.md`-based skills library | create/import/search/filter/preview/apply/sync AGENTS index |
+| Commands Manager | Manage markdown command files | create/import/search/filter/preview/apply/remove |
+| Git Share | Version and sync reusable assets | sync/pull/push/commit/show diff/open repo folder |
+| Model Proxy | OpenAI/Anthropic-compatible local proxy | start/stop, add key binding, route model, inspect logs |
+| Settings | Extension-wide runtime/storage options | set root dir, language, inject targets, proxy host/port |
 
-- Copy relative path + line: `Ctrl+Alt+C` (Windows/macOS)
-- Copy absolute path + line: `Ctrl+Alt+V` (Windows/macOS)
+## Screenshot Walkthrough (Updated)
 
-### Multi-Account Launcher
+### Main Entry
 
-- Open **Ampify** in the Activity Bar and switch to **Launcher**
-- Add or edit instances, then launch with a dedicated user data directory
+![Dashboard](docs/images-en/dashboard.png)
 
-### OpenCode Copilot Auth
+`dashboard` is the default landing section. It shows module health, quick actions, and high-signal runtime stats so you can jump to the next operation without leaving MainView.
 
-- Switch to **OpenCode Auth** in MainView
-- Add, import, rename, delete, or switch credentials
-- Use **Switch Next** for fast cycling
+### Account Center
 
-### Skills Manager
+![Account Center - GitHub Launcher](docs/images-en/account-center/account-center-github-launcher.png)
 
-- Switch to **Skills** in MainView
-- Create or import Skills (must include **SKILL.md** frontmatter)
-- Search, filter by tag, preview, and apply skills to a workspace
-- Use the cards/list toggle to switch view modes
-- Auto-generate a hierarchical **SKILLS.md** index and reference it from **AGENTS.md**
+Launcher tab for GitHub-domain instances. You can create and manage isolated VS Code launch profiles and switch contexts fast.
 
-### Commands Manager
+![Account Center - OpenCode Auth](docs/images-en/account-center/opencode-auth.png)
 
-- Switch to **Commands** in MainView
-- Create or import commands, then preview and apply to the project
-- Use the cards/list toggle to switch view modes
-- Inject target can be customized via `ampify.commands.injectTarget`
+Credential tab for provider-based OpenCode auth management: add/import/rename/delete/apply/unapply credentials.
 
-### Git Share
+![Account Center - Oh-My Config](docs/images-en/account-center/oh-my-config.png)
 
-- Switch to **Git Sync** in MainView
-- Sync, show changes, and manage the shared repository for skills/commands
+Oh-My tab for snapshot import/apply. It helps you persist and restore `oh-my-opencode.json` model/category profile sets.
 
-### Model Proxy
+![Account Center - Session Monitor](docs/images-en/account-center/session-monitor.png)
 
-- Switch to **Model Proxy** in MainView and start/stop the server
-- Copy the **Base URL** and **API Key** from the panel
-- Select a default model and monitor recent logs
-- Optional: set `ampify.modelProxy.bindAddress` to `0.0.0.0` for external access
+Sessions tab for managed opencode sessions, with refresh/open terminal/kill lifecycle operations and provider snapshot visibility.
 
-### Settings
+### Skills and Commands
 
-- Update root directory or language in **Settings**, then click **Apply & Reload**
+![Skills - Card View](docs/images-en/skills/card.png)
 
-> Global data root defaults to `~/.vscode-ampify/` and can be changed via `ampify.rootDir`.
+Skills card view focuses on discoverability: descriptions, tags, and action buttons are optimized for browsing and quick apply.
+
+![Skills - List View](docs/images-en/skills/list.png)
+
+Skills list view is optimized for dense management workflows: compact scanning, filtering, and file-level operations.
+
+![Commands - List View](docs/images-en/commands/list.png)
+
+Commands manager stores one command per markdown file and supports preview/apply/remove with tag filtering.
+
+### Git Sync, Proxy, Settings
+
+![Git Sync](docs/images-en/git-sync/image.png)
+
+Git Share panel for sync/pull/push/commit/diff against shared repositories that host skills and commands.
+
+![Model Proxy](docs/images-en/model-proxy/model-proxy.png)
+
+Model Proxy panel provides connection info, API key bindings, model mapping, and recent request logs for local API consumers.
+
+![Settings](docs/images-en/settings/settings.png)
+
+Settings panel centralizes language, storage root, inject targets, and Model Proxy bind/port configuration.
+
+## Installation
+
+1. Open VS Code.
+2. Install extension: `Ampify` (publisher: `NAMEWTA`).
+3. Reload window if prompted.
+4. Open Activity Bar -> **Ampify**.
+
+## Quick Start
+
+### Copy Path + Line
+
+- Relative: `Ctrl+Alt+C`
+- Absolute: `Ctrl+Alt+V`
+- Output format: single line `` `path:line` ``, range `` `path:start-end` ``
+
+### Account Center Flow
+
+1. Open `accountCenter`.
+2. In `auth`, import or add credentials, then apply one.
+3. In `ohmy`, import/apply snapshot if needed.
+4. In `sessions`, start and monitor managed opencode sessions.
+
+### Skills / Commands Flow
+
+1. Import or create assets in `skills` / `commands`.
+2. Preview, search, and filter by tags.
+3. Apply into your project target directory:
+   - Skills default: `.agents/skills/`
+   - Commands default: `.agents/commands/`
+
+### Git Share Flow
+
+1. Open `gitshare`.
+2. Run sync/pull/push/commit operations.
+3. Use diff preview before commit/push when needed.
+
+### Model Proxy Flow
+
+1. Open `modelProxy` and start service.
+2. Copy Base URL / API key binding.
+3. Connect any OpenAI/Anthropic-compatible client to local endpoint.
+
+## Command Groups
+
+### Copy
+
+- `ampify.copy-relative-path-line`
+- `ampify.copy-absolute-path-line`
+
+### Account Center (Launcher / Auth / Oh-My / Sessions)
+
+- Launcher: `ampify.launcher.add`, `ampify.launcher.refresh`, `ampify.launcher.editConfig`, `ampify.launcher.launch`, `ampify.launcher.switchNext`, `ampify.launcher.delete`
+- OpenCode Auth: `ampify.opencodeAuth.add`, `ampify.opencodeAuth.import`, `ampify.opencodeAuth.apply`, `ampify.opencodeAuth.switch`, `ampify.opencodeAuth.switchNext`, `ampify.opencodeAuth.rename`, `ampify.opencodeAuth.delete`, `ampify.opencodeAuth.clear`, `ampify.opencodeAuth.openAuthJson`, `ampify.opencodeAuth.zeroConfig`
+- Oh-My: `ampify.opencode.ohmy.import`, `ampify.opencode.ohmy.apply`, `ampify.opencode.ohmy.openConfig`
+- Sessions: `ampify.opencode.session.start`, `ampify.opencode.session.open`, `ampify.opencode.session.kill`, `ampify.opencode.session.refresh`, `ampify.opencode.session.openConfig`
+
+### Skills
+
+- `ampify.skills.refresh`, `ampify.skills.search`, `ampify.skills.filterByTag`, `ampify.skills.clearFilter`, `ampify.skills.create`, `ampify.skills.import`, `ampify.skills.importFromUris`, `ampify.skills.apply`, `ampify.skills.preview`, `ampify.skills.openFile`, `ampify.skills.openFolder`, `ampify.skills.delete`, `ampify.skills.remove`, `ampify.skills.syncToAgentMd`
+
+### Commands
+
+- `ampify.commands.refresh`, `ampify.commands.search`, `ampify.commands.filterByTag`, `ampify.commands.clearFilter`, `ampify.commands.create`, `ampify.commands.import`, `ampify.commands.apply`, `ampify.commands.preview`, `ampify.commands.openFolder`, `ampify.commands.delete`, `ampify.commands.remove`
+
+### Git Share / Model Proxy / MainView
+
+- Git Share: `ampify.gitShare.refresh`, `ampify.gitShare.sync`, `ampify.gitShare.pull`, `ampify.gitShare.push`, `ampify.gitShare.commit`, `ampify.gitShare.showDiff`, `ampify.gitShare.editConfig`, `ampify.gitShare.openConfigWizard`, `ampify.gitShare.openFolder`
+- Model Proxy: `ampify.modelProxy.toggle`, `ampify.modelProxy.start`, `ampify.modelProxy.stop`, `ampify.modelProxy.copyKey`, `ampify.modelProxy.regenerateKey`, `ampify.modelProxy.copyBaseUrl`, `ampify.modelProxy.selectModel`, `ampify.modelProxy.addBinding`, `ampify.modelProxy.removeBinding`, `ampify.modelProxy.viewLogs`, `ampify.modelProxy.refresh`
+- MainView: `ampify.mainView.refresh`
+
+## Configuration
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `ampify.language` | string | `zh-cn` | UI language (`en` or `zh-cn`) |
+| `ampify.rootDir` | string | empty | Data root (`~/.vscode-ampify/` when empty) |
+| `ampify.skills.injectTarget` | string | `.agents/skills/` | Skills injection target |
+| `ampify.commands.injectTarget` | string | `.agents/commands/` | Commands injection target |
+| `ampify.modelProxy.port` | number | `18080` | Model Proxy HTTP port |
+| `ampify.modelProxy.bindAddress` | string | `127.0.0.1` | Proxy bind address (`0.0.0.0` to expose externally) |
+
+## Data Directory
+
+Default root is `~/.vscode-ampify/`:
+
+```text
+~/.vscode-ampify/
+|- vscodemultilauncher/
+|  |- config.json
+|  |- userdata/
+|  `- shareExtensions/
+|- gitshare/
+|  |- .git/
+|  |- config.json
+|  |- vscodeskillsmanager/
+|  |  |- config.json
+|  |  `- skills/<skill>/SKILL.md
+|  `- vscodecmdmanager/
+|     |- config.json
+|     `- commands/<command>.md
+|- opencode-copilot-auth/
+|  `- config.json
+`- modelproxy/
+   |- config.json
+   `- logs/*.jsonl
+```
+
+## Development
+
+```bash
+npm install
+npm run compile
+npm run lint
+```
+
+- Watch mode: `npm run watch`
+- Extension debug: use `.vscode/launch.json` -> `调试扩展`
+
+## Notes
+
+- Unsaved documents cannot produce path+line output.
+- Model Proxy default bind address is local only (`127.0.0.1`).
+- If exposing proxy externally, secure your environment and key distribution policy first.
 
 ---
 
-# Ampify（多功能实用扩展）
+# 中文说明
 
-Ampify 是一个实用型 VS Code 扩展，将**路径行号复制**、**多账户启动器**、**技能与命令管理**、**Git Share 同步**与**模型反代**统一在一个 MainView 中。
+Ampify 是一个面向日常工程工作的 VS Code 扩展，把路径行号复制、账户中心、Skills/Commands 管理、Git 同步与 Model Proxy 集中在一个 MainView 中。
 
-## 功能
+## 核心能力
 
-- 复制相对/绝对路径与行号范围
-- 多账户启动器（独立用户数据目录）
-- OpenCode Copilot 凭证管理与快速切换
-- Skills Manager：SKILL.md 元数据、搜索、标签过滤、预览与注入
-- Skill Creator 工具：生成新技能的脚本与文档
-- Commands Manager：单文件命令管理与项目注入
-- Skills/Commands 卡片与列表视图切换（紧凑列表布局）
-- Git Share：统一同步与差异预览
-- Model Proxy：本地 HTTP 反代（兼容 OpenAI/Anthropic），支持实例管理、API Key、模型路由与日志
-- 增强的 Anthropic 处理器：工具集成、SSE 支持与改进的请求序列化
-- MainView 统一入口
+- 统一入口：`dashboard`、`accountCenter`、`skills`、`commands`、`gitshare`、`modelProxy`、`settings`
+- 精准引用：复制 `` `path:line` `` 或 `` `path:start-end` ``
+- 资产管理：Skills/Commands 支持搜索、标签过滤、预览、注入和 Git 同步
+- 账户中心：Launcher、OpenCode Auth、Oh-My 快照、Session Monitor 一体化
+- 本地代理：将 VS Code 模型以 OpenAI/Anthropic 兼容接口暴露到本地 HTTP
 
-## 截图
+## 截图（已完整更新到 `docs/images-en`）
 
-![MainView 总览](docs/images/dashboard.png)
-MainView 总览：统一入口与模块导航。
-![Skills 管理](docs/images/skills.png)
-Skills 管理：搜索、标签过滤、预览与注入。
-![Commands 管理](docs/images/commands.png)
-Commands 管理：创建、预览与应用到项目。
-![Git Sync](docs/images/gitsync.png)
-Git Sync：共享仓库同步与差异预览。
-![Model Proxy](docs/images/modelProxy.png)
-Model Proxy：本地反代、模型选择与日志。
-![Settings](docs/images/settings.png)
-Settings：根目录与语言配置。
+### 主入口（Dashboard）
 
-## 使用方法
+![仪表盘](docs/images-en/dashboard.png)
 
-### 复制路径与行号
+默认首页，集中展示模块状态、快捷操作与关键统计，适合快速判断当前工作区状态并跳转到目标模块。
 
-- 复制相对路径 + 行号：`Ctrl+Alt+C`（Windows/macOS）
-- 复制绝对路径 + 行号：`Ctrl+Alt+V`（Windows/macOS）
+### 账户中心（Account Center）
 
-### 多账户启动器
+![账户中心 - GitHub Launcher](docs/images-en/account-center/account-center-github-launcher.png)
 
-- 在 Activity Bar 打开 **Ampify** 并切换到 **Launcher**
-- 新增或编辑实例，并以独立用户目录启动
+GitHub Launcher 子页用于管理多实例启动配置，支持隔离用户目录与快速切换实例。
 
-### OpenCode Copilot 认证
+![账户中心 - OpenCode Auth](docs/images-en/account-center/opencode-auth.png)
 
-- 在 MainView 切换到 **OpenCode Auth**
-- 新增、导入、重命名、删除或切换凭证
-- 使用 **Switch Next** 快速轮换
+OpenCode Auth 子页用于按 provider 管理凭据，支持新增、导入、应用、取消应用、重命名与删除。
 
-### Skills Manager
+![账户中心 - Oh-My Config](docs/images-en/account-center/oh-my-config.png)
 
-- 切换到 **Skills**
-- 创建/导入 Skills（必须包含 **SKILL.md** frontmatter）
-- 搜索、标签过滤、预览并注入项目
-- 使用卡片/列表切换按钮选择视图模式
-- 自动生成层级化 **SKILLS.md** 清单，并在 **AGENTS.md** 中引用
+Oh-My 子页用于导入/应用 `oh-my-opencode.json` 快照，便于维护模型与分类配置方案。
 
-### Commands Manager
+![账户中心 - Session Monitor](docs/images-en/account-center/session-monitor.png)
 
-- 切换到 **Commands**
-- 创建/导入命令并预览与注入
-- 使用卡片/列表切换按钮选择视图模式
-- 注入目标可通过 `ampify.commands.injectTarget` 自定义
+Session Monitor 子页用于管理 opencode 会话生命周期，可执行刷新、打开终端、结束会话等操作。
 
-### Git Share
+### Skills / Commands
 
-- 切换到 **Git Sync**
-- 执行同步、查看差异并管理共享仓库
+![Skills - 卡片视图](docs/images-en/skills/card.png)
 
-### Model Proxy
+Skills 卡片模式强调可发现性，适合浏览技能描述、标签与操作按钮。
 
-- 切换到 **Model Proxy** 并启动/停止代理
-- 复制 **Base URL** 与 **API Key**
-- 选择默认模型并查看最近日志
-- 如需外网访问，可将 `ampify.modelProxy.bindAddress` 设为 `0.0.0.0`
+![Skills - 列表视图](docs/images-en/skills/list.png)
 
-### Settings
+Skills 列表模式强调高密度管理，适合批量筛选、搜索与文件级操作。
 
-- 在 **Settings** 中修改根目录或语言并点击 **Apply & Reload**
+![Commands - 列表视图](docs/images-en/commands/list.png)
 
-> 全局数据根目录默认 `~/.vscode-ampify/`，可通过 `ampify.rootDir` 修改。
+Commands 采用单文件命令定义，支持预览、应用、移除与标签过滤。
+
+### Git Sync / Model Proxy / Settings
+
+![Git Sync](docs/images-en/git-sync/image.png)
+
+Git Share 面板用于对技能与命令共享仓库执行 sync/pull/push/commit/diff 等协作操作。
+
+![Model Proxy](docs/images-en/model-proxy/model-proxy.png)
+
+Model Proxy 面板提供连接信息、API Key 绑定、模型映射与请求日志，便于本地 API 接入与排障。
+
+![Settings](docs/images-en/settings/settings.png)
+
+Settings 面板集中管理语言、数据根目录、注入目标与 Model Proxy 端口/绑定地址配置。
+
+## 常用命令
+
+- 复制路径行号：`ampify.copy-relative-path-line`、`ampify.copy-absolute-path-line`
+- Launcher：`ampify.launcher.*`
+- OpenCode 认证：`ampify.opencodeAuth.*`
+- Oh-My：`ampify.opencode.ohmy.*`
+- Session：`ampify.opencode.session.*`
+- Skills：`ampify.skills.*`
+- Commands：`ampify.commands.*`
+- Git Share：`ampify.gitShare.*`
+- Model Proxy：`ampify.modelProxy.*`
+
+## 配置项
+
+- `ampify.language`
+- `ampify.rootDir`
+- `ampify.skills.injectTarget`
+- `ampify.commands.injectTarget`
+- `ampify.modelProxy.port`
+- `ampify.modelProxy.bindAddress`
+
+## 开发命令
+
+```bash
+npm run compile
+npm run watch
+npm run lint
+```
