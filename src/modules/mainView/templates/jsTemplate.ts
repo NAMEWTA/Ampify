@@ -135,20 +135,8 @@ export function getJs(): string {
             if (tab !== 'sessions') {
                 return;
             }
-            if (hasVisibleInternalSession(accountCenterData)) {
-                return;
-            }
             vscode.postMessage({ type: 'accountCenterAction', tab: 'sessions', actionId: 'refreshSessions' });
         }, ACCOUNT_CENTER_POLL_INTERVAL_MS);
-    }
-
-    function hasVisibleInternalSession(data) {
-        if (!data || data.activeTab !== 'sessions') {
-            return false;
-        }
-        const sections = data.sections || {};
-        const rows = (sections.sessions && sections.sessions.rows) || [];
-        return rows.some((row) => row && row.launchMode === 'internalWeb' && row.internalVisible && row.internalUrl);
     }
 
     // ==================== Message Handling ====================
@@ -1598,27 +1586,6 @@ export function getJs(): string {
             html += '<div class="account-stat-value account-stat-value--text">' + escapeHtml(dashboard.activeOhMyName || '-') + '</div>';
             html += '</div>';
             html += '</div>';
-        }
-
-        if (activeTab === 'sessions') {
-            const internalRow = rows.find((row) => row && row.launchMode === 'internalWeb' && row.internalVisible && row.internalUrl);
-            if (internalRow) {
-                html += '<div class="account-internal-panel">';
-                html += '<div class="account-internal-panel-head">';
-                html += '<div class="account-internal-panel-title-wrap">';
-                html += '<div class="account-internal-panel-title">' + escapeHtml(internalRow.name || 'Internal Opencode') + '</div>';
-                html += '<div class="account-internal-panel-url">' + escapeHtml(internalRow.internalUrl || '') + '</div>';
-                html += '</div>';
-                html += '<button class="account-row-action account-row-action--opencode" data-ac-action="minimizeInternal" data-row-id="' + escapeHtml(internalRow.id || '') + '">';
-                html += '<i class="codicon codicon-chrome-minimize"></i>';
-                html += '<span>' + escapeHtml(labels.minimizeInternalTerminal || 'Minimize') + '</span>';
-                html += '</button>';
-                html += '</div>';
-                html += '<div class="account-internal-panel-body">';
-                html += '<iframe class="account-internal-iframe" src="' + escapeHtml(internalRow.internalUrl || '') + '" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>';
-                html += '</div>';
-                html += '</div>';
-            }
         }
 
         if (activeTab === 'ohmy') {

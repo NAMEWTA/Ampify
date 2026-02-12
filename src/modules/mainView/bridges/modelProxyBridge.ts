@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import { TreeNode, ToolbarAction, ModelProxyDashboardData, ModelProxyModelInfo, ModelProxyLogInfo, ModelProxyLabels, ModelProxyBindingInfo, LogFileInfo, LogQueryResult } from '../protocol';
 import { ProxyConfigManager } from '../../modelProxy/core/proxyConfigManager';
 import { LogManager } from '../../modelProxy/core/logManager';
+import { getModelBridge, getProxyServer } from '../../modelProxy';
 import { I18n } from '../../../common/i18n';
 
 export class ModelProxyBridge {
@@ -26,30 +27,20 @@ export class ModelProxyBridge {
         const bindAddress = this.configManager.getBindAddress();
 
         // 获取运行状态
-        let running = false;
-        try {
-            const { getProxyServer } = require('../../modelProxy/index');
-            const server = getProxyServer();
-            running = server?.running ?? false;
-        } catch {
-            running = false;
-        }
+        const running = getProxyServer()?.running ?? false;
 
         // 模型列表
         let models: ModelProxyModelInfo[] = [];
-        try {
-            const { getModelBridge } = require('../../modelProxy/index');
-            const bridge = getModelBridge();
-            if (bridge) {
-                models = bridge.getAvailableModels().map((m: ModelProxyModelInfo) => ({
-                    id: m.id,
-                    name: m.name,
-                    vendor: m.vendor,
-                    family: m.family,
-                    maxInputTokens: m.maxInputTokens
-                }));
-            }
-        } catch { /* ignore */ }
+        const bridge = getModelBridge();
+        if (bridge) {
+            models = bridge.getAvailableModels().map((m: ModelProxyModelInfo) => ({
+                id: m.id,
+                name: m.name,
+                vendor: m.vendor,
+                family: m.family,
+                maxInputTokens: m.maxInputTokens
+            }));
+        }
 
         // 构建绑定信息列表
         const bindings: ModelProxyBindingInfo[] = config.apiKeyBindings.map(b => {
@@ -157,14 +148,7 @@ export class ModelProxyBridge {
     }
 
     getToolbar(): ToolbarAction[] {
-        let running = false;
-        try {
-            const { getProxyServer } = require('../../modelProxy/index');
-            const server = getProxyServer();
-            running = server?.running ?? false;
-        } catch {
-            running = false;
-        }
+        const running = getProxyServer()?.running ?? false;
 
         return [
             {

@@ -58,7 +58,7 @@ export function getHtml(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}'; frame-src http://127.0.0.1:* http://localhost:*; connect-src ${webview.cspSource} http://127.0.0.1:* ws://127.0.0.1:* http://localhost:* ws://localhost:*;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource};">
     <link rel="stylesheet" href="${codiconCssUri}">
     <style nonce="${nonce}">${css}</style>
 </head>

@@ -301,7 +301,7 @@ export interface CopilotCredential {
 }
 
 export type ManagedSessionStatus = 'running' | 'stopped' | 'unknown';
-export type ManagedSessionLaunchMode = 'externalTerminal' | 'internalWeb';
+export type ManagedSessionLaunchMode = 'externalTerminal';
 
 export interface ManagedOpencodeSession {
     id: string;
@@ -312,9 +312,6 @@ export interface ManagedOpencodeSession {
     command: string;
     status: ManagedSessionStatus;
     workspace?: string;
-    port?: number;
-    internalUrl?: string;
-    minimized?: boolean;
     activeProvidersSnapshot?: string[];
     activeOhMyProfileIdSnapshot?: string;
     activeOhMyNameSnapshot?: string;

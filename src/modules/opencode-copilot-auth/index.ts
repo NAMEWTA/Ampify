@@ -283,17 +283,6 @@ export function registerOpenCodeCopilotAuth(context: vscode.ExtensionContext): v
             }
         }),
 
-        vscode.commands.registerCommand('ampify.opencode.session.startInternal', async () => {
-            try {
-                const session = await sessionManager.startInternalSession();
-                vscode.window.showInformationMessage(I18n.get('opencodeAuth.sessionStartInternalSuccess', session.terminalName));
-                await vscode.commands.executeCommand('ampify.mainView.refresh');
-            } catch (error) {
-                console.error('Start internal opencode session failed:', error);
-                vscode.window.showErrorMessage(I18n.get('opencodeAuth.sessionStartInternalFailed'));
-            }
-        }),
-
         vscode.commands.registerCommand('ampify.opencode.session.open', async (sessionId: string) => {
             if (!sessionId) {
                 return;
@@ -301,33 +290,6 @@ export function registerOpenCodeCopilotAuth(context: vscode.ExtensionContext): v
             const opened = await sessionManager.openManagedSession(sessionId);
             if (!opened) {
                 vscode.window.showWarningMessage(I18n.get('opencodeAuth.sessionOpenUnavailable'));
-            }
-        }),
-
-        vscode.commands.registerCommand('ampify.opencode.session.openInternal', async (sessionId: string) => {
-            if (!sessionId) {
-                return;
-            }
-            const opened = await sessionManager.openInternalSession(sessionId);
-            if (!opened) {
-                vscode.window.showWarningMessage(I18n.get('opencodeAuth.sessionOpenInternalUnavailable'));
-            }
-            await vscode.commands.executeCommand('ampify.mainView.refresh');
-        }),
-
-        vscode.commands.registerCommand('ampify.opencode.session.minimizeInternal', async (sessionId: string) => {
-            if (!sessionId) {
-                return;
-            }
-            try {
-                const minimized = await sessionManager.minimizeInternalSession(sessionId);
-                if (!minimized) {
-                    vscode.window.showWarningMessage(I18n.get('opencodeAuth.sessionMinimizeInternalFailed'));
-                }
-                await vscode.commands.executeCommand('ampify.mainView.refresh');
-            } catch (error) {
-                console.error('Minimize internal opencode session failed:', error);
-                vscode.window.showErrorMessage(I18n.get('opencodeAuth.sessionMinimizeInternalFailed'));
             }
         }),
 

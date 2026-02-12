@@ -126,29 +126,14 @@ export class OpenCodeCopilotAuthConfigManager extends BaseConfigManager<OpenCode
         const managedSessions = config.managedSessions || [];
         config.managedSessions = managedSessions.map((session) => {
             const status = session.status || 'unknown';
-            const launchMode = session.launchMode === 'internalWeb' ? 'internalWeb' : 'externalTerminal';
             const activeProvidersSnapshot = Array.isArray(session.activeProvidersSnapshot)
                 ? session.activeProvidersSnapshot.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
                 : [];
-            const minimized = launchMode === 'internalWeb'
-                ? (typeof session.minimized === 'boolean' ? session.minimized : true)
-                : undefined;
-            const port = typeof session.port === 'number' && Number.isFinite(session.port) && session.port > 0
-                ? session.port
-                : undefined;
-            const internalUrl = launchMode === 'internalWeb'
-                ? (typeof session.internalUrl === 'string' && session.internalUrl.trim()
-                    ? session.internalUrl.trim()
-                    : (port ? `http://127.0.0.1:${port}` : undefined))
-                : undefined;
 
             if (status !== session.status) {
                 changed = true;
             }
-            if (launchMode !== session.launchMode) {
-                changed = true;
-            }
-            if (launchMode === 'internalWeb' && typeof session.minimized !== 'boolean') {
+            if (session.launchMode !== 'externalTerminal') {
                 changed = true;
             }
             if (activeProvidersSnapshot.length !== (session.activeProvidersSnapshot || []).length) {
@@ -157,17 +142,10 @@ export class OpenCodeCopilotAuthConfigManager extends BaseConfigManager<OpenCode
             return {
                 ...session,
                 status,
-                launchMode,
-                command: session.command || (launchMode === 'internalWeb' && port
-                    ? `opencode serve --hostname 127.0.0.1 --port ${port}`
-                    : 'opencode --port 0'),
+                launchMode: 'externalTerminal',
+                command: session.command || 'opencode --port 0',
                 startedAt: session.startedAt || Date.now(),
-                terminalName: session.terminalName || (launchMode === 'internalWeb'
-                    ? `opencode-internal-${session.id}`
-                    : `opencode-${session.id}`),
-                minimized,
-                port,
-                internalUrl,
+                terminalName: session.terminalName || `opencode-${session.id}`,
                 activeProvidersSnapshot,
                 activeOhMyProfileIdSnapshot: typeof session.activeOhMyProfileIdSnapshot === 'string'
                     ? session.activeOhMyProfileIdSnapshot
@@ -462,46 +440,6 @@ export class OpenCodeCopilotAuthConfigManager extends BaseConfigManager<OpenCode
         const config = this.getConfig();
         config.managedSessions = [...sessions];
         this.saveConfig(config);
-    }
-
-    setInternalSessionMinimized(sessionId: string, minimized: boolean): boolean {
-        const config = this.getConfig();
-        const session = (config.managedSessions || []).find((item) => item.id === sessionId && item.launchMode === 'internalWeb');
-        if (!session) {
-            return false;
-        }
-        session.minimized = minimized;
-        this.saveConfig(config);
-        return true;
-    }
-
-    minimizeOtherInternalSessions(exceptSessionId: string): void {
-        const config = this.getConfig();
-        const sessions = config.managedSessions || [];
-        let changed = false;
-        for (const session of sessions) {
-            if (session.launchMode !== 'internalWeb') {
-                continue;
-            }
-            if (session.id === exceptSessionId) {
-                continue;
-            }
-            if (session.minimized !== true) {
-                session.minimized = true;
-                changed = true;
-            }
-        }
-        if (changed) {
-            this.saveConfig(config);
-        }
-    }
-
-    getVisibleInternalSession(): ManagedOpencodeSession | undefined {
-        const sessions = this.getManagedSessions();
-        const visible = sessions
-            .filter((session) => session.launchMode === 'internalWeb' && session.minimized === false)
-            .sort((a, b) => b.startedAt - a.startedAt);
-        return visible[0];
     }
 }
 

@@ -376,24 +376,9 @@
         "icon": "$(play)"
       },
       {
-        "command": "ampify.opencode.session.startInternal",
-        "title": "Start Internal Opencode Session",
-        "icon": "$(browser)"
-      },
-      {
         "command": "ampify.opencode.session.open",
         "title": "Open Managed Opencode Terminal",
         "icon": "$(terminal)"
-      },
-      {
-        "command": "ampify.opencode.session.openInternal",
-        "title": "Open Internal Opencode Session",
-        "icon": "$(browser)"
-      },
-      {
-        "command": "ampify.opencode.session.minimizeInternal",
-        "title": "Minimize Internal Opencode Session",
-        "icon": "$(chrome-minimize)"
       },
       {
         "command": "ampify.opencode.session.kill",
