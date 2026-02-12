@@ -1,37 +1,28 @@
-# Commands Manager 模块
+﻿# Commands Manager 模块
 
 ## 模块概述
-Commands Manager 管理全局命令库，每个命令对应一个 `.md` 文件，使用 frontmatter 描述元数据，并支持导入、创建、应用与移除。
+Commands Manager 管理 Git Share 中的命令库。每个命令对应一个 Markdown 文件，文件名必须与 frontmatter `command` 字段一致。
 
 ## 目录结构
-- src/modules/commands/index.ts
-- src/modules/commands/core/commandConfigManager.ts
-- src/modules/commands/core/commandCreator.ts
-- src/modules/commands/core/commandImporter.ts
-- src/modules/commands/core/commandApplier.ts
-- src/modules/commands/templates/commandMdTemplate.ts
+- `src/modules/commands/index.ts`
+- `src/modules/commands/core/commandConfigManager.ts`
+- `src/modules/commands/core/commandCreator.ts`
+- `src/modules/commands/core/commandImporter.ts`
+- `src/modules/commands/core/commandApplier.ts`
+- `src/modules/commands/templates/commandMdTemplate.ts`
 
 ## 数据存储
-- Git Share 目录：`~/.vscode-ampify/gitshare/vscodecmdmanager/`
-  - `config.json`
-  - `commands/{command-name}.md`
-
-## 关键职责
-- `CommandConfigManager`：单例，加载命令列表，验证命令名与文件名一致
-- `CommandCreator`：交互式创建 Command
-- `CommandImporter`：导入 `.md` 文件，校验 frontmatter
-- `CommandApplier`：注入到项目 `.claude/commands/`
-
-## 业务流程
-
-```mermaid
-flowchart TD
-    A[loadAllCommands] --> B[扫描 commands/ 下 .md]
-    B --> C[parseCommandMd]
-    C --> D{文件名==command?}
-    D -- 否 --> E[丢弃并警告]
-    D -- 是 --> F[LoadedCommand]
+```text
+~/.vscode-ampify/gitshare/vscodecmdmanager/
+├── config.json
+└── commands/{command-name}.md
 ```
+
+## 核心职责
+- `CommandConfigManager`：单例；扫描 commands 目录并校验文件名一致性。
+- `CommandCreator`：创建命令文件。
+- `CommandImporter`：导入命令 Markdown。
+- `CommandApplier`：将命令以软链方式注入项目目录。
 
 ## 注册命令
 - `ampify.commands.refresh`
@@ -47,10 +38,11 @@ flowchart TD
 - `ampify.commands.delete`
 - `ampify.commands.remove`
 
-## 与 MainView 的交互
-- CommandsBridge 负责 TreeNode 适配与过滤状态
-- 拖拽导入由 Webview drop 事件触发
+## 注入策略
+- 默认注入目录：`.agents/commands/`
+- 若配置为 `.claude/...`，会自动规范化为 `.agents/...`
+- 注入方式：文件软链（`fs.symlinkSync`）
 
-## 注意点
-- 命令名校验规则：小写字母/数字/连字符，长度 1-64
-- Commands Manager 不继承 `BaseConfigManager`，其配置与数据均存放在 Git Share 目录，便于同步
+## 关键约束
+- 命令名校验：`^[a-z0-9-]+$` 且长度 `1..64`
+- 文件名与 frontmatter `command` 不一致时，条目会被忽略

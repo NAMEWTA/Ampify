@@ -1,94 +1,50 @@
----
+﻿---
 name: ampify-dev-guide
-description: Ampify VS Code 扩展开发规范指南。用于新建功能模块、扩展 MainView Webview、添加命令、调整配置与存储结构、理解技能与命令数据的 Git Share 同步逻辑。当用户提到 Ampify 开发、架构、模块实现、数据流、Webview 协议或项目结构时使用。
+description: Ampify VS Code 扩展开发指南。用于实现/重构 src 模块、同步 MainView Webview 与 Bridge、维护 Skills/Commands 注入链路、处理 Git Share 同步、OpenCode 账号中心、Model Proxy 绑定与日志。用户提到 Ampify 架构、命令注册、数据存储、Webview 协议、模块扩展或排障时使用。
 ---
 
-# Ampify 开发规范指南
+# Ampify 开发指南（与当前 src 对齐）
 
-本 Skill 提供 Ampify 扩展的开发指引与模块化说明。先阅读本文快速建立全局结构，再按需进入各 `references/` 文档获取详细流程与 Mermaid 图。
+先按以下顺序读取，再动手改代码：
+1. `src/extension.ts`：确认模块注册顺序与激活边界。
+2. 目标模块 `src/modules/<module>/index.ts` + `core/*`：确认命令、配置、存储目录。
+3. `src/modules/mainView/AmpifyViewProvider.ts` + `src/modules/mainView/protocol.ts`：确认 Webview section、消息协议、Bridge 路由。
+4. `package.json`：对齐 contributes 的命令与配置项（仅用户可见命令必须声明）。
 
-## 项目速览（8 大模块）
-1. Copier：复制文件路径与行号
-2. Launcher：VS Code 多实例启动器
-3. Skills Manager：Skill 仓库管理与注入
-4. Commands Manager：Command 仓库管理与注入
-5. Git Share：Git 同步与差异预览
-6. OpenCode Copilot Auth：多凭证管理与快速切换
-7. Model Proxy：本地 HTTP 反代理与日志
-8. MainView：统一 Webview 视图与 Bridge
+## 当前架构快照
+- 激活顺序：MainView → Copier → Launcher → Git Share → Skills → Commands → OpenCode Copilot Auth → Model Proxy。
+- MainView 主 section：`dashboard`、`accountCenter`、`skills`、`commands`、`gitshare`、`modelProxy`、`settings`。
+- `accountCenter` 子 tab：`launcher`、`auth`、`ohmy`、`sessions`。
+- 兼容 section：`launcher` / `opencodeAuth` 会被 `normalizeSection()` 映射到 `accountCenter`。
 
-## 目录结构（真实结构）
+## 模块职责速览
+1. Copier：复制 `` `path:line` `` / `` `path:start-end` ``。
+2. Launcher：多实例启动、共享扩展目录、实例身份文件 `.ampify-instance-key`。
+3. Skills Manager：Git Share 中的 skills 仓库扫描、导入、应用、同步 `AGENTS.md`。
+4. Commands Manager：Git Share 中的 commands 仓库扫描、导入、应用。
+5. Git Share：`gitshare/` 初始化、pull/push/sync、冲突自动处理、diff 预览。
+6. OpenCode Copilot Auth：多 provider 凭证、`auth.json` 应用、oh-my 配置快照、opencode 会话管理。
+7. Model Proxy：本地 HTTP 代理，OpenAI/Anthropic 兼容，按 API Key 绑定模型。
+8. MainView：统一 Webview，Bridge 适配 Tree/Card/Account Center 数据。
 
-```
-Ampify/
-├── src/
-│   ├── extension.ts
-│   ├── common/
-│   │   ├── baseConfigManager.ts
-│   │   ├── i18n.ts
-│   │   ├── paths.ts
-│   │   ├── types/
-│   │   │   └── index.ts
-│   │   └── git/
-│   │       ├── gitManager.ts
-│   │       ├── diffViewer.ts
-│   │       └── index.ts
-│   └── modules/
-│       ├── copier/
-│       ├── launcher/
-│       │   └── core/
-│       ├── skills/
-│       │   ├── core/
-│       │   └── templates/
-│       ├── commands/
-│       │   ├── core/
-│       │   └── templates/
-│       ├── gitShare/
-│       ├── opencode-copilot-auth/
-│       │   └── core/
-│       ├── modelProxy/
-│       │   └── core/
-│       └── mainView/
-│           ├── bridges/
-│           ├── templates/
-│           └── protocol.ts
-├── package.json
-├── tsconfig.json
-├── eslint.config.js
-└── .vscode/
-```
+## 开发落地清单
+1. 新增或调整命令：在模块 `index.ts` 注册；若用户可见，再同步 `package.json` `contributes.commands`。
+2. 新增配置：在 `package.json` `contributes.configuration` 声明，并在 `SettingsBridge` 或对应模块读取。
+3. 新增 MainView section 或交互：同步 `protocol.ts` 类型、`AmpifyViewProvider.ts` 路由、`templates/jsTemplate.ts` 渲染。
+4. 涉及 Skills/Commands 注入：遵循 `.agents/*` 目标目录约定，并兼容 `.claude` 到 `.agents` 迁移逻辑。
+5. 涉及本地持久化：优先 `BaseConfigManager`；Git 可共享数据写入 `gitshare/` 子目录。
+6. 涉及 i18n：所有用户可见文本走 `I18n.get()`，同步 `en` / `zh-cn`。
 
-## 新增功能的标准流程
-1. 创建模块目录与入口 `index.ts`
-2. 定义类型（如需共享）到 `common/types/index.ts`
-3. 如果需要本地配置，继承 `BaseConfigManager<T>`；如果需要 Git 同步，存储到 `gitshare/` 目录并自建 config
-4. 添加 i18n 键到 `common/i18n.ts`
-5. 在 `package.json` 声明命令或配置
-6. 在 `extension.ts` 注册模块
-7. 如需要 UI，接入 MainView：创建 Bridge，实现 `getTreeData()` / `getToolbar()` / `executeAction()`
-
-## 公共能力速查
-
-### 路径工具
-使用 `common/paths.ts` 的 `getRootDir()`、`getModuleDir()`、`getGitShareDir()` 统一管理数据目录。
-
-### 配置基类
-`BaseConfigManager<T>` 适用于本地模块配置（非 Git Share）。
-
-### 国际化
-所有用户可见文本必须通过 `I18n.get()`，新增键时同步维护 `en` 与 `zh-cn`。
-
-## 参考文档导航（按需阅读）
-
-- 总体架构与数据流：references/architecture.md
-- Dashboard（数据聚合与快捷操作）：references/module-dashboard.md
-- Copier 模块：references/module-copier.md
-- Launcher 模块：references/module-launcher.md
-- Skills Manager 模块：references/module-skills.md
-- Commands Manager 模块：references/module-commands.md
-- Git Share 模块：references/module-gitshare.md
-- MainView 模块（含 Bridge TreeNode 结构流图）：references/module-mainview.md
-- Settings（配置面板与写入策略）：references/module-settings.md
-- Model Proxy 模块（HTTP 反代理、双格式兼容、日志）：references/module-modelproxy.md
-- OpenCode Copilot Auth 模块：references/module-opencode-copilot-auth.md
-- 编码规范与开发流程：references/coding-conventions.md
+## references 导航（按需加载）
+- 总体架构与数据流：`references/architecture.md`
+- Dashboard 聚合逻辑：`references/module-dashboard.md`
+- MainView 与协议：`references/module-mainview.md`
+- Copier：`references/module-copier.md`
+- Launcher：`references/module-launcher.md`
+- Skills Manager：`references/module-skills.md`
+- Commands Manager：`references/module-commands.md`
+- Git Share：`references/module-gitshare.md`
+- OpenCode Copilot Auth：`references/module-opencode-copilot-auth.md`
+- Model Proxy：`references/module-modelproxy.md`
+- Settings：`references/module-settings.md`
+- 编码规范：`references/coding-conventions.md`

@@ -1661,7 +1661,18 @@ export function getJs(): string {
                     html += '<div class="account-row-subtitle" title="' + escapeHtml(row.subtitle) + '">' + escapeHtml(row.subtitle) + '</div>';
                 }
 
-                if (row.metaLines && row.metaLines.length > 0) {
+                if (row.metaItems && row.metaItems.length > 0) {
+                    html += '<div class="account-row-kv-list">';
+                    for (const item of row.metaItems) {
+                        const itemFullClass = item && item.full ? ' account-row-kv-item--full' : '';
+                        const valueMonoClass = item && item.mono ? ' account-row-kv-value--mono' : '';
+                        html += '<div class="account-row-kv-item' + itemFullClass + '">';
+                        html += '<span class="account-row-kv-label">' + escapeHtml((item && item.label) || '-') + '</span>';
+                        html += '<span class="account-row-kv-value' + valueMonoClass + '" title="' + escapeHtml((item && item.value) || '-') + '">' + escapeHtml((item && item.value) || '-') + '</span>';
+                        html += '</div>';
+                    }
+                    html += '</div>';
+                } else if (row.metaLines && row.metaLines.length > 0) {
                     html += '<div class="account-row-meta-list">';
                     for (const line of row.metaLines) {
                         html += '<div class="account-row-meta" title="' + escapeHtml(line || '') + '">' + escapeHtml(line || '') + '</div>';

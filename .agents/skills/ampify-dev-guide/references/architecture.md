@@ -1,28 +1,20 @@
-# Ampify 总体架构与数据流
-
-## 目录
-- 架构总览
-- 扩展激活与注册顺序
-- Webview 消息流
-- Git Share 同步流程
-- 数据存储结构
-- 配置层级
+﻿# Ampify 总体架构与数据流
 
 ## 架构总览
 
 ```mermaid
 flowchart TB
-    subgraph Extension
+    subgraph Extension Host
         EXT[extension.ts]
         COMMON[common/*]
-        MV[mainView]
         COP[copier]
         LAU[launcher]
         SKI[skills]
         CMD[commands]
         GIT[gitShare]
-        OPA[opencodeAuth]
+        OPA[opencode-copilot-auth]
         MP[modelProxy]
+        MV[mainView]
     end
 
     EXT --> MV
@@ -42,117 +34,87 @@ flowchart TB
     GIT --> COMMON
     OPA --> COMMON
     MP --> COMMON
-
-    MV --> SKI
-    MV --> CMD
-    MV --> LAU
-    MV --> GIT
-    MV --> OPA
-    MV --> MP
 ```
 
-## 扩展激活与注册顺序
+## 激活与注册顺序
 
 ```mermaid
 sequenceDiagram
     participant VS as VS Code
     participant EXT as extension.ts
-    participant MV as MainView
-    participant COP as Copier
-    participant LAU as Launcher
-    participant GIT as GitShare
-    participant SKI as Skills
-    participant CMD as Commands
-    participant OPA as OpenCode Auth
-    participant MP as Model Proxy
-
     VS->>EXT: onStartupFinished
-    EXT->>MV: registerMainView()
-    EXT->>COP: registerCopier()
-    EXT->>LAU: registerLauncher()
-    EXT->>GIT: registerGitShare()
-    EXT->>SKI: registerSkillManager() (try)
-    EXT->>CMD: registerCommandManager() (try)
-    EXT->>OPA: registerOpenCodeCopilotAuth() (try)
-    EXT->>MP: registerModelProxy() (try)
+    EXT->>EXT: detectInstanceKey()
+    EXT->>EXT: registerMainView()
+    EXT->>EXT: registerCopier()
+    EXT->>EXT: registerLauncher()
+    EXT->>EXT: registerGitShare()
+    EXT->>EXT: registerSkillManager() (try)
+    EXT->>EXT: registerCommandManager() (try)
+    EXT->>EXT: registerOpenCodeCopilotAuth() (try)
+    EXT->>EXT: registerModelProxy() (try)
 ```
+
+## MainView Section 路由
+- 主 section：`dashboard`、`accountCenter`、`skills`、`commands`、`gitshare`、`modelProxy`、`settings`
+- 兼容 section：`launcher` / `opencodeAuth` 会被 `AmpifyViewProvider.normalizeSection()` 映射到 `accountCenter`
+- `accountCenter` tab：`launcher`、`auth`、`ohmy`、`sessions`
 
 ## Webview 消息流
 
 ```mermaid
 sequenceDiagram
-    participant UI as Webview UI
+    participant UI as Webview
     participant VP as AmpifyViewProvider
     participant BR as Bridge
     participant CMD as vscode.commands
 
     UI->>VP: postMessage(WebviewMessage)
-    VP->>BR: executeAction()/getTreeData()
+    VP->>BR: getData/getTreeData/executeAction
     BR->>CMD: executeCommand(...)
     CMD-->>BR: result
-    BR-->>VP: TreeNode[] / ToolbarAction[]
-    VP-->>UI: postMessage(ExtensionMessage)
+    BR-->>VP: SectionData
+    VP-->>UI: ExtensionMessage
 ```
 
-补充的 Bridge TreeNode 结构流图请参见：references/module-mainview.md
-
-## Git Share 同步流程
+## Git Share 同步主链路
 
 ```mermaid
 flowchart TD
-    A[gitManager.sync] --> B[ensureInit]
+    A[sync] --> B[ensureInit]
     B --> C[stashIfNeeded]
     C --> D[pullWithRebase]
-    D -->|rebase ok| E[popStash]
-    D -->|rebase conflict| F[abort rebase]
-    F --> G[merge]
-    G --> H[resolve with theirs]
-    H --> E
-    E --> I[commit]
-    I --> J[push to remotes]
+    D -->|冲突| E[abort rebase + merge]
+    D -->|成功| F[pop stash]
+    E --> F
+    F --> G[commit if needed]
+    G --> H[push all remotes]
 ```
 
 ## 数据存储结构
 
-```
+```text
 ~/.vscode-ampify/
 ├── vscodemultilauncher/
 │   ├── config.json
 │   ├── userdata/
 │   └── shareExtensions/
+├── gitshare/
+│   ├── .git/
+│   ├── config.json
+│   ├── vscodeskillsmanager/
+│   │   ├── config.json
+│   │   └── skills/{skill-name}/SKILL.md
+│   └── vscodecmdmanager/
+│       ├── config.json
+│       └── commands/{command-name}.md
 ├── opencode-copilot-auth/
 │   └── config.json
-├── modelproxy/
-│   ├── config.json
-│   └── logs/
-│       ├── 2026-02-06.jsonl
-│       └── ...
-└── gitshare/
-    ├── .git/
-    ├── .gitignore
+└── modelproxy/
     ├── config.json
-    ├── vscodeskillsmanager/
-    │   ├── config.json
-    │   └── skills/{skill-name}/SKILL.md
-    └── vscodecmdmanager/
-        ├── config.json
-        └── commands/{command-name}.md
+    └── logs/{instanceKey}/YYYY-MM-DD.jsonl
 ```
 
 ## 配置层级
-
-```mermaid
-flowchart LR
-    VS[VS Code Settings]
-    GIT[gitshare/config.json]
-    MOD[模块 config.json]
-
-    VS -->|ampify.*| MOD
-    VS -->|ampify.rootDir| GIT
-    GIT -->|gitConfig| MV
-```
-
-- VS Code Settings 负责 `ampify.*` 配置
-- Git Share 配置集中存放于 `gitshare/config.json`
-- Skills/Commands 模块配置分别位于 `gitshare/vscodeskillsmanager/config.json` 与 `gitshare/vscodecmdmanager/config.json`
-- 其他本地模块配置位于 `~/.vscode-ampify/<module>/config.json`（如 `opencode-copilot-auth`、`modelproxy`）
+- VS Code Settings：`ampify.*`（如 `rootDir`、`skills.injectTarget`、`modelProxy.port`）
+- Git Share 配置：`~/.vscode-ampify/gitshare/config.json`
+- 模块本地配置：`~/.vscode-ampify/<module>/config.json`

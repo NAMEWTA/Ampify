@@ -3551,6 +3551,55 @@ html, body {
     overflow-wrap: anywhere;
 }
 
+.account-row-kv-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 10px;
+    border: 1px dashed color-mix(in srgb, var(--ac-opencode-accent) 25%, var(--vscode-panel-border, #2b2b2b) 75%);
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--ac-opencode-soft) 24%, var(--vscode-editor-background, #1e1e1e) 76%);
+    padding: 6px 8px;
+}
+
+.account-row-kv-item {
+    min-width: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.account-row-kv-item--full {
+    grid-column: 1 / -1;
+}
+
+.account-row-kv-label {
+    flex: 0 0 auto;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--vscode-descriptionForeground, #717171);
+}
+
+.account-row-kv-value {
+    min-width: 0;
+    flex: 1 1 auto;
+    font-size: 11px;
+    color: var(--vscode-foreground, #cccccc);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.account-row-kv-item--full .account-row-kv-value {
+    white-space: normal;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.account-row-kv-value--mono {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 10px;
+}
+
 .account-row-meta-list {
     display: flex;
     flex-direction: column;
@@ -3630,6 +3679,10 @@ html, body {
     .account-row-desc {
         justify-self: start;
         text-align: left;
+    }
+
+    .account-row-kv-list {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 

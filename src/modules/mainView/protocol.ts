@@ -251,12 +251,20 @@ export interface AccountCenterRowAction {
     disabled?: boolean;
 }
 
+export interface AccountCenterMetaItem {
+    label: string;
+    value: string;
+    mono?: boolean;
+    full?: boolean;
+}
+
 export interface AccountCenterRow {
     id: string;
     name: string;
     description: string;
     subtitle?: string;
     metaLines?: string[];
+    metaItems?: AccountCenterMetaItem[];
     badges?: string[];
     status?: 'running' | 'stopped' | 'active' | 'inactive';
     domain?: 'github' | 'opencode';

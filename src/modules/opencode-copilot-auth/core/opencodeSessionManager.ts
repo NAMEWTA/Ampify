@@ -15,6 +15,7 @@ export interface OpencodeSessionView {
     pid: number;
     command: string;
     startedAt?: number;
+    workspace?: string;
     status: 'running' | 'stopped';
     openable: boolean;
     managedSessionId?: string;
@@ -84,17 +85,7 @@ export class OpencodeSessionManager {
         const internalUrl = `http://${INTERNAL_HOST}:${port}`;
         const snapshots = this.buildSessionSnapshots();
 
-        const child = cp.spawn(getOpencodeExecutable(), [
-            'serve',
-            '--hostname',
-            INTERNAL_HOST,
-            '--port',
-            String(port)
-        ], {
-            cwd: workspace,
-            windowsHide: true,
-            stdio: 'ignore'
-        });
+        const child = spawnInternalServeProcess(port, workspace);
 
         const pid = await waitForSpawnedPid(child);
         child.unref();
@@ -277,6 +268,7 @@ export class OpencodeSessionManager {
                 pid: resolvedPid || 0,
                 command: resolvedCommand,
                 startedAt: resolvedStartedAt,
+                workspace: session.workspace,
                 status: 'running',
                 openable: terminalAlive,
                 managedSessionId: session.id,
@@ -345,37 +337,25 @@ export class OpencodeSessionManager {
     }
 
     private scanWindowsProcesses(): RunningProcessInfo[] {
-        const command = [
-            'powershell',
-            '-NoProfile',
-            '-Command',
-            `Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and ($_.CommandLine -match '(?i)\\bopencode(\\.cmd|\\.exe)?\\b') -and ($_.CommandLine -notmatch 'Get-CimInstance Win32_Process') } | Select-Object ProcessId,CommandLine,CreationDate | ConvertTo-Json -Compress`
-        ].join(' ');
+        const cimScript = [
+            '$ErrorActionPreference = "Stop"',
+            '$rows = @(Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and ($_.CommandLine -match "(?i)\\bopencode(\\.cmd|\\.exe)?\\b") })',
+            'if ($rows.Count -eq 0) { "[]" } else { $rows | Select-Object ProcessId,CommandLine,CreationDate | ConvertTo-Json -Compress }'
+        ].join('; ');
 
-        const output = cp.execSync(command, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-        if (!output) {
-            return [];
+        try {
+            const output = runPowerShell(cimScript);
+            return parseWindowsProcessRows(output);
+        } catch {
+            // Some environments disable CIM; fallback to Get-Process to avoid log spam.
+            const fallbackScript = [
+                '$ErrorActionPreference = "Stop"',
+                '$rows = @(Get-Process | Where-Object { $_.ProcessName -match "(?i)opencode" })',
+                'if ($rows.Count -eq 0) { "[]" } else { $rows | Select-Object Id,ProcessName,StartTime | ConvertTo-Json -Compress }'
+            ].join('; ');
+            const output = runPowerShell(fallbackScript);
+            return parseWindowsFallbackRows(output);
         }
-
-        const parsed = JSON.parse(output) as Record<string, unknown> | Array<Record<string, unknown>>;
-        const rows = Array.isArray(parsed) ? parsed : [parsed];
-
-        const result: RunningProcessInfo[] = [];
-        for (const row of rows) {
-            const pid = Number(row.ProcessId);
-            const cmd = typeof row.CommandLine === 'string' ? row.CommandLine : '';
-            if (!Number.isFinite(pid) || pid <= 0 || !isOpencodeCommand(cmd)) {
-                continue;
-            }
-            const startedAt = typeof row.CreationDate === 'string' ? Date.parse(row.CreationDate) : undefined;
-            result.push({
-                pid,
-                command: cmd,
-                startedAt: Number.isFinite(startedAt || NaN) ? startedAt : undefined
-            });
-        }
-
-        return dedupeByPid(result);
     }
 
     private scanUnixProcesses(): RunningProcessInfo[] {
@@ -617,8 +597,88 @@ function probeHttp(url: string): Promise<boolean> {
     });
 }
 
-function getOpencodeExecutable(): string {
-    return process.platform === 'win32' ? 'opencode.cmd' : 'opencode';
+function spawnInternalServeProcess(port: number, workspace?: string): cp.ChildProcess {
+    const spawnOptions: cp.SpawnOptions = {
+        windowsHide: true,
+        stdio: 'ignore'
+    };
+    if (workspace) {
+        spawnOptions.cwd = workspace;
+    }
+
+    if (process.platform === 'win32') {
+        // .cmd is not directly executable via spawn on Windows without a shell.
+        const command = `opencode serve --hostname ${INTERNAL_HOST} --port ${port}`;
+        return cp.spawn(command, {
+            ...spawnOptions,
+            shell: true
+        });
+    }
+
+    return cp.spawn('opencode', [
+        'serve',
+        '--hostname',
+        INTERNAL_HOST,
+        '--port',
+        String(port)
+    ], spawnOptions);
+}
+
+function runPowerShell(script: string): string {
+    return cp.execFileSync('powershell', ['-NoProfile', '-Command', script], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore']
+    }).trim();
+}
+
+function parseWindowsProcessRows(output: string): RunningProcessInfo[] {
+    if (!output) {
+        return [];
+    }
+    const parsed = JSON.parse(output) as Record<string, unknown> | Array<Record<string, unknown>> | null;
+    const rows = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
+    const result: RunningProcessInfo[] = [];
+
+    for (const row of rows) {
+        const pid = Number(row.ProcessId);
+        const cmd = typeof row.CommandLine === 'string' ? row.CommandLine : '';
+        if (!Number.isFinite(pid) || pid <= 0 || !isOpencodeCommand(cmd)) {
+            continue;
+        }
+        const startedAt = typeof row.CreationDate === 'string' ? Date.parse(row.CreationDate) : undefined;
+        result.push({
+            pid,
+            command: cmd,
+            startedAt: Number.isFinite(startedAt || NaN) ? startedAt : undefined
+        });
+    }
+
+    return dedupeByPid(result);
+}
+
+function parseWindowsFallbackRows(output: string): RunningProcessInfo[] {
+    if (!output) {
+        return [];
+    }
+    const parsed = JSON.parse(output) as Record<string, unknown> | Array<Record<string, unknown>> | null;
+    const rows = Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
+    const result: RunningProcessInfo[] = [];
+
+    for (const row of rows) {
+        const pid = Number(row.Id);
+        const processName = typeof row.ProcessName === 'string' ? row.ProcessName : '';
+        if (!Number.isFinite(pid) || pid <= 0 || !/opencode/i.test(processName)) {
+            continue;
+        }
+        const startedAt = typeof row.StartTime === 'string' ? Date.parse(row.StartTime) : undefined;
+        result.push({
+            pid,
+            command: processName,
+            startedAt: Number.isFinite(startedAt || NaN) ? startedAt : undefined
+        });
+    }
+
+    return dedupeByPid(result);
 }
 
 function delay(ms: number): Promise<void> {

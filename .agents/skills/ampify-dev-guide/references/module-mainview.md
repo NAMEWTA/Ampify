@@ -1,97 +1,72 @@
-# MainView 模块
+﻿# MainView 模块
 
 ## 模块概述
-MainView 使用单一 `WebviewViewProvider` 统一渲染 8 个业务模块的视图（dashboard、launcher、skills、commands、gitshare、modelProxy、opencodeAuth、settings）。TreeView 方案已弃用。
+MainView 使用单一 `WebviewViewProvider`（`AmpifyViewProvider`）承载全部界面。当前主导航为 7 个 section：
+- `dashboard`
+- `accountCenter`
+- `skills`
+- `commands`
+- `gitshare`
+- `modelProxy`
+- `settings`
+
+其中 `accountCenter` 聚合了原来的 `launcher` 与 `opencodeAuth` 入口，并扩展了 `ohmy`、`sessions`。
 
 ## 目录结构
-- src/modules/mainView/index.ts
-- src/modules/mainView/AmpifyViewProvider.ts
-- src/modules/mainView/protocol.ts
-- src/modules/mainView/bridges/*.ts
-- src/modules/mainView/templates/*.ts
+- `src/modules/mainView/index.ts`
+- `src/modules/mainView/AmpifyViewProvider.ts`
+- `src/modules/mainView/protocol.ts`
+- `src/modules/mainView/bridges/*.ts`
+- `src/modules/mainView/templates/*.ts`
 
-## 架构关系
+## 核心 Bridge
+- `DashboardBridge`
+- `AccountCenterBridge`
+- `LauncherBridge`（兼容旧 section）
+- `SkillsBridge`
+- `CommandsBridge`
+- `GitShareBridge`
+- `ModelProxyBridge`
+- `OpenCodeAuthBridge`（兼容旧 section）
+- `SettingsBridge`
 
-```mermaid
-flowchart TB
-    VP[AmpifyViewProvider]
-    PRO[protocol.ts]
-    BR[Bridges]
-    HTML[htmlTemplate]
-    CSS[cssTemplate]
-    JS[jsTemplate]
+## Section 兼容与归一化
+- `normalizeSection()` 将 `launcher`、`opencodeAuth` 统一映射到 `accountCenter`
+- 当来自旧入口时，通过 `getAccountCenterTabBySection()` 自动切换到对应 tab
 
-    VP --> PRO
-    VP --> BR
-    VP --> HTML
-    HTML --> CSS
-    HTML --> JS
-```
+## 协议重点（`protocol.ts`）
+### Webview -> Extension
+- 通用：`ready`、`switchSection`、`toolbarAction`、`treeItemAction`、`quickAction`
+- Account Center：`accountCenterTabChange`、`accountCenterAction`
+- Settings：`changeSetting`、`settingsAction`
+- Model Proxy：`proxyAction`、`addProxyBinding`、`removeProxyBinding`、`queryLogs`
 
-## Webview 消息协议
-- Webview → Extension：`switchSection`、`executeCommand`、`treeItemClick`、`treeItemAction`、`toolbarAction`、`dropFiles`、`changeSetting`
-- Extension → Webview：`updateSection`、`updateDashboard`、`updateSettings`、`showNotification`、`setActiveSection`
-
-## Bridge 设计
-
-```mermaid
-flowchart LR
-    subgraph Bridges
-        DB[DashboardBridge]
-        LB[LauncherBridge]
-        SB[SkillsBridge]
-        CB[CommandsBridge]
-        GB[GitShareBridge]
-        MP[ModelProxyBridge]
-        OA[OpenCodeAuthBridge]
-        ST[SettingsBridge]
-    end
-
-    VP[AmpifyViewProvider] --> Bridges
-```
-
-- Bridge 输出统一 `TreeNode[]` 与 `ToolbarAction[]`
-- `executeAction(actionId, nodeId)` 统一调用命令或内部逻辑
-- DashboardBridge 聚合多个模块数据（实例数、skills 数、commands 数、git 状态）
-
-## Bridge 内部 TreeNode 结构流
-
-```mermaid
-flowchart TD
-    A[模块原始数据] --> B[Bridge.getTreeData()]
-    B --> C{是否有过滤条件}
-    C -- 是 --> D[过滤/排序/聚合]
-    C -- 否 --> E[直接映射]
-    D --> F[构建 TreeNode[]]
-    E --> F
-    F --> G[附加 actions/command/tooltip]
-    G --> H[返回 TreeNode[]]
-```
-
-## TreeNode 结构示意
-
-```mermaid
-flowchart LR
-    N[TreeNode]
-    N --> ID[id]
-    N --> L[label]
-    N --> DESC[description]
-    N --> ICON[iconId/iconColor]
-    N --> COL[collapsible/expanded]
-    N --> CHILD[children[]]
-    N --> ACT[contextActions/inlineActions]
-    N --> CMD[command/commandArgs]
-    N --> META[nodeType/tooltip]
-```
-
-## 模板职责
-- `htmlTemplate.ts`：拼接 HTML、注入 CSP nonce、加载 codicons
-- `cssTemplate.ts`：布局样式、导航栏、树节点、表单、上下文菜单
-- `jsTemplate.ts`：渲染 Tree、消息分发、状态持久化、拖拽
+### Extension -> Webview
+- `updateDashboard`
+- `updateAccountCenter`
+- `updateSection`
+- `updateSettings`
+- `updateModelProxy`
+- `setActiveSection`
+- `showOverlay` / `showConfirm`
 
 ## 关键行为
-- Webview 可见时触发 `gitManager.sync()`（30s 节流）
-- `ampify.mainView.refresh` 触发当前 section 刷新
+1. Webview `ready` 时，先推送 Dashboard，再预加载 Account Center 数据。
+2. 可见时触发 `gitManager.sync()`，并做 30 秒节流。
+3. `ampify.mainView.refresh` 刷新当前 section。
+4. `settingsAction=reloadWindow` 可重载窗口；`restartProxy` 可重启 Model Proxy。
 
-## 注册命令
-- `ampify.mainView.refresh`
+## Account Center 结构
+- tab：`launcher`、`auth`、`ohmy`、`sessions`
+- `AccountCenterBridge.getData()` 返回：
+  - `tabs`
+  - `dashboard`（provider、oh-my、models 摘要）
+  - `sections[tab].rows`
+  - `toolbar`
+
+## 扩展 MainView 的最小步骤
+1. 在 `protocol.ts` 增加类型（section/消息/数据结构）。
+2. 新增 Bridge，提供 `getTreeData/getToolbar/executeAction` 或 `getData`。
+3. 在 `AmpifyViewProvider.sendSectionData()` 与消息路由中接入。
+4. 在 `templates/jsTemplate.ts` 增加渲染逻辑。
+5. 在 `templates/htmlTemplate.ts` 加入导航项（如需要）。

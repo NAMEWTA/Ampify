@@ -1,53 +1,30 @@
-# Skills Manager 模块
+﻿# Skills Manager 模块
 
 ## 模块概述
-Skills Manager 管理全局 Skills 库，解析 `SKILL.md` frontmatter，并支持创建、导入、应用到项目以及同步 `AGENTS.md`。
+Skills Manager 管理 Git Share 中的技能库，支持创建、导入、应用到项目，并同步生成 `SKILLS.md` 与更新 `AGENTS.md` 引用。
 
 ## 目录结构
-- src/modules/skills/index.ts
-- src/modules/skills/core/skillConfigManager.ts
-- src/modules/skills/core/skillCreator.ts
-- src/modules/skills/core/skillImporter.ts
-- src/modules/skills/core/skillApplier.ts
-- src/modules/skills/core/agentMdManager.ts
-- src/modules/skills/templates/skillMdTemplate.ts
+- `src/modules/skills/index.ts`
+- `src/modules/skills/core/skillConfigManager.ts`
+- `src/modules/skills/core/skillCreator.ts`
+- `src/modules/skills/core/skillImporter.ts`
+- `src/modules/skills/core/skillApplier.ts`
+- `src/modules/skills/core/agentMdManager.ts`
+- `src/modules/skills/templates/skillMdTemplate.ts`
 
 ## 数据存储
-- Git Share 目录：`~/.vscode-ampify/gitshare/vscodeskillsmanager/`
-  - `config.json`
-  - `skills/{skill-name}/SKILL.md`
-
-## 关键职责
-- `SkillConfigManager`：单例，读取/保存配置，递归扫描 Skills 目录，解析 frontmatter
-- `SkillCreator`：交互式创建 Skill 目录与 SKILL.md
-- `SkillImporter`：导入已有 Skill 目录，验证名称与 frontmatter
-- `SkillApplier`：注入 Skill 到项目 `.agents/skills/`
-- `AgentMdManager`：扫描注入目录，生成 `.claude/SKILLS.md`，更新 `AGENTS.md`
-
-## 解析与扫描逻辑
-
-```mermaid
-flowchart TD
-    A[loadAllSkills] --> B[loadSkillsRecursive]
-    B --> C{目录含 SKILL.md?}
-    C -- 是 --> D[parseSkillMetaFromMarkdown]
-    D --> E[生成 LoadedSkill]
-    E --> F[递归子目录]
-    C -- 否 --> G[继续向下搜索]
-    G --> B
+```text
+~/.vscode-ampify/gitshare/vscodeskillsmanager/
+├── config.json
+└── skills/{skill-name}/SKILL.md
 ```
 
-## Skill 应用流程
-
-```mermaid
-flowchart TD
-    A[apply(skill)] --> B[检查工作区]
-    B --> C[检查前置依赖]
-    C -- 失败 --> D[提示并终止]
-    C -- 通过 --> E[复制到 injectTarget]
-    E --> F[AgentMdManager.scanAndSync]
-    F --> G[提示成功]
-```
+## 核心职责
+- `SkillConfigManager`：单例；扫描 `skills/`（支持层级 skill）；解析 frontmatter。
+- `SkillCreator`：创建 skill 目录与 `SKILL.md`。
+- `SkillImporter`：对话框或 URI 批量导入（支持拖拽）。
+- `SkillApplier`：将 skill 以软链方式注入项目。
+- `AgentMdManager`：扫描注入目录，生成 `.agents/SKILLS.md`，并更新 `AGENTS.md` 中 `<ampify><include .../></ampify>`。
 
 ## 注册命令
 - `ampify.skills.refresh`
@@ -65,10 +42,13 @@ flowchart TD
 - `ampify.skills.remove`
 - `ampify.skills.syncToAgentMd`
 
-## 与 MainView 的交互
-- SkillsBridge 负责 TreeNode 适配与过滤状态
-- 搜索与标签过滤状态由 Bridge 持有，命令仅触发刷新
+## 注入与兼容策略
+- 默认注入目录：`.agents/skills/`
+- 若配置为 `.claude/...`，会自动规范化为 `.agents/...`
+- 注入方式：目录软链（Windows 使用 `junction`）
 
-## 注意点
-- Skills Manager 不继承 `BaseConfigManager`，其配置与数据均存放在 Git Share 目录，便于跨机器同步
-- `allowedTools` 与 `allowed-tools` 同时兼容
+## 应用流程
+1. 解析 skill 元数据。
+2. 检查 `prerequisites`（`checkCommand` / manual）。
+3. 用户确认后注入 skill。
+4. 同步 `SKILLS.md` 与 `AGENTS.md`。
