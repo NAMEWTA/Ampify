@@ -1,5 +1,9 @@
 # Change Log
 
+## 3.2.0 - 2026-02-12
+### Changed
+- chore(release): bump version to 3.2.0
+
 ## 3.1.2 - 2026-02-11
 ### Added
 - feat(skill-creator): 新增技能创建工具脚本和文档
