@@ -1,5 +1,10 @@
 # Change Log
 
+## 3.2.1 - 2026-02-12
+### Changed
+- docs(readme): refresh bilingual product guide
+- readme.md writer
+
 ## 3.2.0 - 2026-02-12
 ### Changed
 - chore(release): bump version to 3.2.0
