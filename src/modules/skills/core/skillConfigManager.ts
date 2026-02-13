@@ -1,8 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { SkillsManagerConfig, SkillMeta, LoadedSkill } from '../../../common/types';
+import { SkillsManagerConfig, SkillMeta, LoadedSkill, AiTaggingConfig } from '../../../common/types';
 import { parse as parseYaml } from 'yaml';
 import { getGitShareModuleDir, ensureDir } from '../../../common/paths';
+import { updateFrontmatterTags } from '../../../common/frontmatter';
+import { normalizeTagLibrary } from '../../../common/tagLibrary';
 
 /**
  * Skills Manager 配置管理器
@@ -44,7 +46,46 @@ export class SkillConfigManager {
      */
     protected getDefaultConfig(): SkillsManagerConfig {
         return {
-            injectTarget: '.agents/skills/'
+            injectTarget: '.agents/skills/',
+            aiTagging: this.getDefaultAiTaggingConfig()
+        };
+    }
+
+    private getDefaultAiTaggingConfig(): AiTaggingConfig {
+        return {
+            provider: 'vscode-chat',
+            vscodeModelId: '',
+            openaiBaseUrl: '',
+            openaiApiKey: '',
+            openaiModel: '',
+            tagLibrary: [
+                { name: '笔记', description: '专指碎片化记录，避免与报告混淆' },
+                { name: '报告', description: '与 PRD（需求）/ 设计（UI）严格区分' },
+                { name: '前端', description: '前端代码开发与实现' },
+                { name: '后端', description: '后端代码开发与实现' },
+                { name: '代码检查', description: '独立于代码开发，聚焦审核过程' },
+                { name: 'prd', description: '产品需求文档（PRD）标准缩写' },
+                { name: '头脑风暴', description: '会议讨论扩散与创意发散' },
+                { name: '项目计划', description: '项目管理核心输出' },
+                { name: 'data', description: '数据处理、可视化、统计分析' },
+                { name: 'ai', description: '机器学习、深度学习、AI 应用' },
+                { name: 'design', description: 'UI/UX 设计、平面设计、Figma/Sketch 等工具' },
+                { name: 'tool', description: '技术工具（如 Git、Docker、Excel）' },
+                { name: 'plan', description: '内容主题规划与发布日历' },
+                { name: 'seminar', description: '行业研讨会与学习分享' }
+            ]
+        };
+    }
+
+    private normalizeAiTaggingConfig(config?: AiTaggingConfig): AiTaggingConfig {
+        const defaults = this.getDefaultAiTaggingConfig();
+        return {
+            provider: config?.provider === 'openai-compatible' ? 'openai-compatible' : 'vscode-chat',
+            vscodeModelId: (config?.vscodeModelId || '').trim(),
+            openaiBaseUrl: (config?.openaiBaseUrl || '').trim(),
+            openaiApiKey: (config?.openaiApiKey || '').trim(),
+            openaiModel: (config?.openaiModel || '').trim(),
+            tagLibrary: normalizeTagLibrary(config?.tagLibrary, defaults.tagLibrary)
         };
     }
 
@@ -73,8 +114,17 @@ export class SkillConfigManager {
             const config = JSON.parse(content) as SkillsManagerConfig;
             const fallback = this.getDefaultConfig().injectTarget ?? '.agents/skills/';
             const normalized = this.normalizeInjectTarget(config.injectTarget ?? fallback);
+            const aiTagging = this.normalizeAiTaggingConfig(config.aiTagging);
+            let changed = false;
             if (normalized !== config.injectTarget) {
                 config.injectTarget = normalized;
+                changed = true;
+            }
+            if (JSON.stringify(aiTagging) !== JSON.stringify(config.aiTagging || {})) {
+                config.aiTagging = aiTagging;
+                changed = true;
+            }
+            if (changed) {
                 this.saveConfig(config);
             }
             return config;
@@ -88,7 +138,37 @@ export class SkillConfigManager {
      * 保存配置
      */
     public saveConfig(config: SkillsManagerConfig): void {
+        config.aiTagging = this.normalizeAiTaggingConfig(config.aiTagging);
         fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf8');
+    }
+
+    public getAiTaggingConfig(): AiTaggingConfig {
+        const config = this.getConfig();
+        return this.normalizeAiTaggingConfig(config.aiTagging);
+    }
+
+    public updateAiTaggingConfig(partial: Partial<AiTaggingConfig>): AiTaggingConfig {
+        const config = this.getConfig();
+        const next = this.normalizeAiTaggingConfig({
+            ...this.getAiTaggingConfig(),
+            ...partial
+        });
+        config.aiTagging = next;
+        this.saveConfig(config);
+        return next;
+    }
+
+    public updateSkillTags(skillMdPath: string, tags: string[]): boolean {
+        if (!fs.existsSync(skillMdPath)) {
+            return false;
+        }
+        const content = fs.readFileSync(skillMdPath, 'utf8');
+        const updated = updateFrontmatterTags(content, tags);
+        if (!updated) {
+            return false;
+        }
+        fs.writeFileSync(skillMdPath, updated, 'utf8');
+        return true;
     }
 
     private normalizeInjectTarget(target: string): string {

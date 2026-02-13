@@ -1,13 +1,19 @@
 ---
 name: technical-writer
-description: |
-  Creates clear documentation, API references, guides, and technical content for developers and users.
-  Use when: writing documentation, creating README files, documenting APIs, writing tutorials,
-  creating user guides, or when user mentions documentation, technical writing, or needs help
+description: >
+  Creates clear documentation, API references, guides, and technical content for
+  developers and users.
+
+  Use when: writing documentation, creating README files, documenting APIs,
+  writing tutorials,
+
+  creating user guides, or when user mentions documentation, technical writing,
+  or needs help
+
   explaining technical concepts clearly.
 tags:
-  - writer
-  - readme
+  - 前端
+  - 后端
 ---
 
 # Technical Writer

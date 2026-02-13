@@ -3,6 +3,10 @@ import { I18n } from '../../../common/i18n';
 import * as path from 'path';
 import { GitManager } from '../../../common/git';
 import { getModuleDir, getRootDir } from '../../../common/paths';
+import { SkillConfigManager } from '../../skills/core/skillConfigManager';
+import { CommandConfigManager } from '../../commands/core/commandConfigManager';
+import { AiTaggingConfig } from '../../../common/types';
+import { parseTagLibraryText, stringifyTagLibraryText } from '../../../common/tagLibrary';
 import {
     SettingsData,
     SettingsSection,
@@ -11,10 +15,16 @@ import {
 
 export class SettingsBridge {
     private gitManager: GitManager;
+    private skillConfigManager: SkillConfigManager;
+    private commandConfigManager: CommandConfigManager;
 
     constructor() {
         this.gitManager = new GitManager();
         this.gitManager.ensureInit();
+        this.skillConfigManager = SkillConfigManager.getInstance();
+        this.commandConfigManager = CommandConfigManager.getInstance();
+        this.skillConfigManager.ensureInit();
+        this.commandConfigManager.ensureInit();
     }
 
     public getSettingsData(): SettingsData {
@@ -27,6 +37,8 @@ export class SettingsBridge {
         const rootDir = getRootDir();
         const opencodeAuthDir = getModuleDir('opencode-copilot-auth');
         const opencodeAuthRelative = path.relative(rootDir, opencodeAuthDir).replace(/\\/g, '/');
+        const skillAi = this.skillConfigManager.getAiTaggingConfig();
+        const commandAi = this.commandConfigManager.getAiTaggingConfig();
 
         const sections: SettingsSection[] = [
             {
@@ -150,6 +162,118 @@ export class SettingsBridge {
                     },
 
                 ]
+            },
+            {
+                id: 'aiTagging',
+                title: I18n.get('settings.section.aiTagging'),
+                fields: [
+                    {
+                        key: 'aiTagging.provider',
+                        label: I18n.get('settings.skillsAi.provider.label'),
+                        description: I18n.get('settings.skillsAi.provider.desc'),
+                        value: skillAi.provider,
+                        kind: 'select',
+                        scope: 'skills',
+                        options: [
+                            { label: I18n.get('aiTagging.provider.vscodeChat'), value: 'vscode-chat' },
+                            { label: I18n.get('aiTagging.provider.openaiCompatible'), value: 'openai-compatible' }
+                        ]
+                    },
+                    {
+                        key: 'aiTagging.vscodeModelId',
+                        label: I18n.get('settings.skillsAi.vscodeModelId.label'),
+                        description: I18n.get('settings.skillsAi.vscodeModelId.desc'),
+                        value: skillAi.vscodeModelId || '',
+                        kind: 'text',
+                        scope: 'skills'
+                    },
+                    {
+                        key: 'aiTagging.openaiBaseUrl',
+                        label: I18n.get('settings.skillsAi.openaiBaseUrl.label'),
+                        description: I18n.get('settings.skillsAi.openaiBaseUrl.desc'),
+                        value: skillAi.openaiBaseUrl || '',
+                        kind: 'text',
+                        scope: 'skills',
+                        placeholder: 'https://api.openai.com/v1'
+                    },
+                    {
+                        key: 'aiTagging.openaiApiKey',
+                        label: I18n.get('settings.skillsAi.openaiApiKey.label'),
+                        description: I18n.get('settings.skillsAi.openaiApiKey.desc'),
+                        value: skillAi.openaiApiKey || '',
+                        kind: 'text',
+                        scope: 'skills'
+                    },
+                    {
+                        key: 'aiTagging.openaiModel',
+                        label: I18n.get('settings.skillsAi.openaiModel.label'),
+                        description: I18n.get('settings.skillsAi.openaiModel.desc'),
+                        value: skillAi.openaiModel || '',
+                        kind: 'text',
+                        scope: 'skills'
+                    },
+                    {
+                        key: 'aiTagging.tagLibrary',
+                        label: I18n.get('settings.skillsAi.tagLibrary.label'),
+                        description: I18n.get('settings.skillsAi.tagLibrary.desc'),
+                        value: stringifyTagLibraryText(skillAi.tagLibrary || []),
+                        kind: 'textarea',
+                        scope: 'skills'
+                    },
+                    {
+                        key: 'aiTagging.provider',
+                        label: I18n.get('settings.commandsAi.provider.label'),
+                        description: I18n.get('settings.commandsAi.provider.desc'),
+                        value: commandAi.provider,
+                        kind: 'select',
+                        scope: 'commands',
+                        options: [
+                            { label: I18n.get('aiTagging.provider.vscodeChat'), value: 'vscode-chat' },
+                            { label: I18n.get('aiTagging.provider.openaiCompatible'), value: 'openai-compatible' }
+                        ]
+                    },
+                    {
+                        key: 'aiTagging.vscodeModelId',
+                        label: I18n.get('settings.commandsAi.vscodeModelId.label'),
+                        description: I18n.get('settings.commandsAi.vscodeModelId.desc'),
+                        value: commandAi.vscodeModelId || '',
+                        kind: 'text',
+                        scope: 'commands'
+                    },
+                    {
+                        key: 'aiTagging.openaiBaseUrl',
+                        label: I18n.get('settings.commandsAi.openaiBaseUrl.label'),
+                        description: I18n.get('settings.commandsAi.openaiBaseUrl.desc'),
+                        value: commandAi.openaiBaseUrl || '',
+                        kind: 'text',
+                        scope: 'commands',
+                        placeholder: 'https://api.openai.com/v1'
+                    },
+                    {
+                        key: 'aiTagging.openaiApiKey',
+                        label: I18n.get('settings.commandsAi.openaiApiKey.label'),
+                        description: I18n.get('settings.commandsAi.openaiApiKey.desc'),
+                        value: commandAi.openaiApiKey || '',
+                        kind: 'text',
+                        scope: 'commands'
+                    },
+                    {
+                        key: 'aiTagging.openaiModel',
+                        label: I18n.get('settings.commandsAi.openaiModel.label'),
+                        description: I18n.get('settings.commandsAi.openaiModel.desc'),
+                        value: commandAi.openaiModel || '',
+                        kind: 'text',
+                        scope: 'commands'
+                    },
+                    {
+                        key: 'aiTagging.tagLibrary',
+                        label: I18n.get('settings.commandsAi.tagLibrary.label'),
+                        description: I18n.get('settings.commandsAi.tagLibrary.desc'),
+                        value: stringifyTagLibraryText(commandAi.tagLibrary || []),
+                        kind: 'textarea',
+                        scope: 'commands'
+                    }
+                ]
             }
         ];
 
@@ -165,6 +289,31 @@ export class SettingsBridge {
             const trimmed = value.trim();
             const finalValue = trimmed.length > 0 ? trimmed : undefined;
             await config.update(key, finalValue, vscode.ConfigurationTarget.Global);
+            return;
+        }
+
+        if (scope === 'skills' || scope === 'commands') {
+            const trimmed = value.trim();
+            const patch: Partial<AiTaggingConfig> = {};
+            if (key === 'aiTagging.tagLibrary') {
+                patch.tagLibrary = parseTagLibraryText(trimmed);
+            } else if (key === 'aiTagging.provider') {
+                patch.provider = trimmed === 'openai-compatible' ? 'openai-compatible' : 'vscode-chat';
+            } else if (key === 'aiTagging.vscodeModelId') {
+                patch.vscodeModelId = trimmed;
+            } else if (key === 'aiTagging.openaiBaseUrl') {
+                patch.openaiBaseUrl = trimmed;
+            } else if (key === 'aiTagging.openaiApiKey') {
+                patch.openaiApiKey = trimmed;
+            } else if (key === 'aiTagging.openaiModel') {
+                patch.openaiModel = trimmed;
+            }
+
+            if (scope === 'skills') {
+                this.skillConfigManager.updateAiTaggingConfig(patch);
+            } else {
+                this.commandConfigManager.updateAiTaggingConfig(patch);
+            }
             return;
         }
 

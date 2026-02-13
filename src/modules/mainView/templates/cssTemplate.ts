@@ -19,6 +19,10 @@ html, body {
     font-family: var(--vscode-font-family);
     font-size: var(--vscode-font-size);
     line-height: 1.4;
+    --ampify-space-sm: 6px;
+    --ampify-space-lg: 12px;
+    --ampify-border-panel-strong: var(--vscode-panel-border, #2b2b2b);
+    --ampify-border-panel-contrast: var(--vscode-panel-border, #454545);
 }
 
 /* ==================== Layout ==================== */
@@ -232,49 +236,117 @@ html, body {
 }
 
 /* ==================== Toolbar ==================== */
-.toolbar {
-    display: flex;
-    align-items: center;
-    height: 30px;
-    padding: 0 8px;
-    border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, var(--vscode-panel-border, rgba(128,128,128,0.2)));
-    flex-shrink: 0;
-    gap: 2px;
-    background: var(--vscode-sideBar-background);
+
+.ai-tagging-progress {
+    margin: 10px 10px 8px;
+    padding: 12px;
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.2));
+    border-radius: 10px;
+    background: linear-gradient(
+        160deg,
+        color-mix(in srgb, var(--vscode-editor-background) 92%, var(--vscode-focusBorder) 8%),
+        var(--vscode-editor-background)
+    );
 }
 
-.toolbar-title {
-    font-size: 11px;
+.ai-tagging-progress-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.ai-tagging-progress-title {
+    font-size: 12px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    opacity: 0.8;
-    margin-right: auto;
-    white-space: nowrap;
+}
+
+.ai-tagging-progress-meta {
+    font-size: 11px;
+    opacity: 0.75;
+}
+
+.ai-tagging-progress-bar {
+    width: 100%;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--vscode-editorWidget-background, rgba(255,255,255,0.06));
+    overflow: hidden;
+}
+
+.ai-tagging-progress-bar span {
+    display: block;
+    height: 100%;
+    background: #6a9bcc;
+    transition: width 0.2s ease;
+}
+
+.ai-tagging-progress-list {
+    margin-top: 10px;
+    max-height: 180px;
+    overflow: auto;
+    border-top: 1px dashed var(--vscode-panel-border, rgba(128,128,128,0.25));
+    padding-top: 6px;
+}
+
+.ai-tagging-progress-item {
+    display: grid;
+    grid-template-columns: 10px minmax(80px, 1fr) minmax(80px, 1fr);
+    gap: 8px;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 11px;
+}
+
+.ai-tagging-progress-item .state {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--vscode-descriptionForeground, rgba(204,204,204,0.7));
+}
+
+.ai-tagging-progress-item .state.run {
+    background: #6a9bcc;
+}
+
+.ai-tagging-progress-item .state.ok {
+    background: #788c5d;
+}
+
+.ai-tagging-progress-item .state.err {
+    background: #d97757;
+}
+
+.ai-tagging-progress-item .name,
+.ai-tagging-progress-item .meta {
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.toolbar-btn {
+.ai-tagging-progress-item .meta {
+    opacity: 0.72;
+}
+
+.ai-tagging-progress-actions {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border: none;
-    border-radius: 3px;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+
+.ai-tagging-progress-close {
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.3));
     background: transparent;
     color: var(--vscode-foreground);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
     cursor: pointer;
-    opacity: 0.7;
-    transition: all 0.12s ease;
-    font-size: 14px;
-    flex-shrink: 0;
 }
 
-.toolbar-btn:hover {
+.ai-tagging-progress-close:hover {
     background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
-    opacity: 1;
 }
 
 /* ==================== Content Body ==================== */
@@ -639,32 +711,10 @@ html, body {
 }
 
 /* ==================== Tree ==================== */
-.tree-container {
-    padding: 2px 0;
-}
 
 .tree-node {
     display: flex;
     flex-direction: column;
-}
-
-.tree-row {
-    display: flex;
-    align-items: center;
-    height: 22px;
-    padding-right: 8px;
-    cursor: pointer;
-    transition: background 0.08s ease;
-    position: relative;
-}
-
-.tree-row:hover {
-    background: var(--vscode-list-hoverBackground);
-}
-
-.tree-row.selected {
-    background: var(--vscode-list-activeSelectionBackground);
-    color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground));
 }
 
 .tree-indent {
@@ -1864,6 +1914,7 @@ html, body {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
     z-index: 2000;
     display: flex;
     align-items: flex-start;
@@ -1885,29 +1936,36 @@ html, body {
 .overlay-panel {
     background: var(--vscode-editor-background, var(--vscode-sideBar-background));
     border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border, rgba(128,128,128,0.3)));
-    border-radius: 8px;
+    border-radius: 12px;
     width: 92%;
     max-width: 380px;
     max-height: 75vh;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
     animation: overlay-slidein 0.15s ease;
     overflow: hidden;
+}
+
+.overlay-panel--ai-tagging {
+    width: 96%;
+    max-width: 980px;
+    max-height: 90vh;
 }
 
 .overlay-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 14px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.2));
     flex-shrink: 0;
 }
 
 .overlay-title {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
+    letter-spacing: 0.2px;
 }
 
 .overlay-close {
@@ -1931,11 +1989,18 @@ html, body {
 }
 
 .overlay-body {
-    padding: 12px 14px;
+    padding: 14px 16px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
+}
+
+.overlay-body--grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px 12px;
+    align-items: start;
 }
 
 .overlay-body::-webkit-scrollbar {
@@ -1950,12 +2015,17 @@ html, body {
 .overlay-field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 6px;
+}
+
+.overlay-field--full {
+    grid-column: 1 / -1;
 }
 
 .overlay-field-label {
     font-size: 12px;
     font-weight: 600;
+    letter-spacing: 0.2px;
 }
 
 .overlay-field-label .required {
@@ -1967,8 +2037,8 @@ html, body {
     background: var(--vscode-input-background);
     color: var(--vscode-input-foreground);
     border: 1px solid var(--vscode-input-border, rgba(128,128,128,0.3));
-    border-radius: 4px;
-    padding: 6px 8px;
+    border-radius: 6px;
+    padding: 7px 10px;
     font-size: 12px;
     font-family: var(--vscode-font-family);
     width: 100%;
@@ -1979,7 +2049,7 @@ html, body {
 }
 
 .overlay-field-input.textarea {
-    min-height: 60px;
+    min-height: 96px;
     resize: vertical;
 }
 
@@ -2044,6 +2114,69 @@ html, body {
 
 .overlay-check-tag input[type="checkbox"] {
     display: none;
+}
+
+.overlay-dropdown-select {
+    position: relative;
+}
+
+.overlay-dropdown-trigger {
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--vscode-input-border, rgba(128,128,128,0.3));
+    background: var(--vscode-input-background);
+    color: var(--vscode-input-foreground, var(--vscode-foreground));
+    border-radius: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: var(--vscode-font-family);
+}
+
+.overlay-dropdown-options {
+    display: none;
+    margin-top: 8px;
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.25));
+    border-radius: 8px;
+    background: var(--vscode-editor-background, var(--vscode-sideBar-background));
+    max-height: 58vh;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.overlay-dropdown-options.open {
+    display: block;
+}
+
+.overlay-dropdown-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.overlay-dropdown-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 6px;
+}
+
+.overlay-dropdown-clear {
+    border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.3));
+    background: transparent;
+    color: var(--vscode-foreground);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.overlay-dropdown-clear:hover {
+    background: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground));
+}
+
+.overlay-dropdown-grid .overlay-check-tag {
+    min-width: 0;
+    justify-content: flex-start;
 }
 
 /* Tags input */
@@ -2196,15 +2329,15 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 6px 12px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    padding: var(--ampify-space-sm) var(--ampify-space-lg);
+    border-bottom: 1px solid var(--ampify-border-panel-strong);
     min-height: 32px;
 }
 
 .toolbar-title {
     font-size: 11px;
     font-weight: 600;
-    text-transform: uppercase;
+    text-transform: none;
     color: var(--vscode-foreground, #cccccc);
     letter-spacing: 0.5px;
 }
@@ -2238,7 +2371,23 @@ html, body {
 .toolbar-btn-text {
     font-size: 10px;
     letter-spacing: 0.3px;
-    text-transform: uppercase;
+    text-transform: none;
+}
+
+.nav-item:focus-visible,
+.nav-toggle:focus-visible,
+.toolbar-btn:focus-visible,
+.item-card:focus-visible,
+.tree-row:focus-visible,
+.file-tree-row:focus-visible,
+.context-menu-item:focus-visible,
+.settings-action-btn:focus-visible,
+.proxy-conn-btn:focus-visible,
+.proxy-logs-folder-btn:focus-visible,
+.tag-chip:focus-visible,
+.card-action-btn:focus-visible {
+    outline: 1px solid var(--vscode-focusBorder, #d97757);
+    outline-offset: 1px;
 }
 
 .toolbar-btn:hover {
@@ -2259,8 +2408,8 @@ html, body {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
-    padding: 6px 12px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    padding: var(--ampify-space-sm) var(--ampify-space-lg);
+    border-bottom: 1px solid var(--ampify-border-panel-strong);
 }
 
 .tag-chip {
@@ -2268,7 +2417,7 @@ html, body {
     align-items: center;
     gap: 3px;
     padding: 2px 8px;
-    border: 1px solid var(--vscode-panel-border, #454545);
+    border: 1px solid var(--ampify-border-panel-contrast);
     background: transparent;
     color: var(--vscode-foreground, #cccccc);
     font-size: 11px;
@@ -2699,7 +2848,7 @@ html, body {
     align-items: center;
     gap: 5px;
     padding: 4px 10px;
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     background: var(--vscode-editor-background, #1e1e1e);
     color: var(--vscode-foreground, #cccccc);
     border-radius: 16px;
@@ -2737,7 +2886,7 @@ html, body {
     gap: 10px;
     padding: 10px 12px;
     background: var(--vscode-editor-background, #1e1e1e);
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     border-radius: 6px;
     text-align: left;
     color: inherit;
@@ -2793,7 +2942,7 @@ html, body {
     gap: 8px;
     padding: 8px 12px;
     background: var(--vscode-editor-background, #1e1e1e);
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     border-radius: 6px;
     font-size: 12px;
 }
@@ -2872,7 +3021,7 @@ html, body {
     gap: 12px;
     padding: 8px 12px;
     background: var(--vscode-editor-background, #1e1e1e);
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     border-radius: 6px;
     font-size: 12px;
     flex-wrap: wrap;
@@ -2930,7 +3079,7 @@ html, body {
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     background: var(--vscode-editor-background, #1e1e1e);
     color: var(--vscode-foreground, #cccccc);
     cursor: pointer;
@@ -2951,7 +3100,7 @@ html, body {
 
 .recent-logs-table {
     background: var(--vscode-editor-background, #1e1e1e);
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     border-radius: 6px;
     overflow: hidden;
 }
@@ -2961,7 +3110,7 @@ html, body {
     align-items: center;
     padding: 4px 10px;
     font-size: 11px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--ampify-border-panel-strong);
 }
 
 .log-row:last-of-type {
@@ -3005,7 +3154,7 @@ html, body {
     text-align: center;
     background: none;
     border: none;
-    border-top: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-top: 1px solid var(--ampify-border-panel-strong);
     color: var(--vscode-textLink-foreground, #3794ff);
     cursor: pointer;
     font-size: 11px;
@@ -3016,7 +3165,7 @@ html, body {
 }
 
 .recent-logs-empty {
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     border-radius: 6px;
     background: var(--vscode-editor-background, #1e1e1e);
 }
@@ -3029,7 +3178,7 @@ html, body {
 
 .next-up-card {
     background: var(--vscode-editor-background, #1e1e1e);
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     border-radius: 6px;
     padding: 10px 12px;
     display: flex;
@@ -3069,7 +3218,7 @@ html, body {
     gap: 6px;
     padding: 4px 10px;
     border-radius: 4px;
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     background: transparent;
     color: var(--vscode-foreground, #cccccc);
     cursor: pointer;
@@ -3096,7 +3245,7 @@ html, body {
     width: 420px;
     max-height: 70vh;
     background: var(--vscode-editorWidget-background, #252526);
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     border-radius: 6px;
     overflow: hidden;
     display: flex;
@@ -3108,7 +3257,7 @@ html, body {
     align-items: center;
     justify-content: space-between;
     padding: 10px 12px;
-    border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border-bottom: 1px solid var(--ampify-border-panel-strong);
     font-size: 12px;
     font-weight: 600;
 }
@@ -3181,7 +3330,7 @@ html, body {
 }
 
 .account-stat-card {
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     background: var(--vscode-editor-background, #1e1e1e);
     border-radius: 6px;
     padding: 8px 10px;
@@ -3218,7 +3367,7 @@ html, body {
 }
 
 .account-models-panel {
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     border-radius: 6px;
     background: var(--vscode-editor-background, #1e1e1e);
     padding: 8px 10px;
@@ -3245,7 +3394,7 @@ html, body {
 }
 
 .account-model-chip {
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     border-radius: 10px;
     background: var(--vscode-editor-background, #1e1e1e);
     color: var(--vscode-descriptionForeground, #717171);
@@ -3261,7 +3410,7 @@ html, body {
 }
 
 .account-domain-strip {
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     border-radius: 7px;
     padding: 6px 9px;
     display: inline-flex;
@@ -3315,7 +3464,7 @@ html, body {
 }
 
 .account-tab-btn {
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     background: var(--vscode-editor-background, #1e1e1e);
     color: var(--vscode-foreground, #cccccc);
     border-radius: 6px;
@@ -3328,11 +3477,11 @@ html, body {
 }
 
 .account-tab-btn--github {
-    border-color: color-mix(in srgb, var(--ac-github-accent) 38%, var(--vscode-panel-border, #2b2b2b) 62%);
+    border-color: color-mix(in srgb, var(--ac-github-accent) 38%, var(--ampify-border-panel-strong) 62%);
 }
 
 .account-tab-btn--opencode {
-    border-color: color-mix(in srgb, var(--ac-opencode-accent) 38%, var(--vscode-panel-border, #2b2b2b) 62%);
+    border-color: color-mix(in srgb, var(--ac-opencode-accent) 38%, var(--ampify-border-panel-strong) 62%);
 }
 
 .account-tab-btn.active.account-tab-btn--github {
@@ -3367,7 +3516,7 @@ html, body {
 }
 
 .account-toolbar-btn {
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     background: var(--vscode-editor-background, #1e1e1e);
     color: var(--vscode-foreground, #cccccc);
     border-radius: 6px;
@@ -3384,11 +3533,11 @@ html, body {
 }
 
 .account-toolbar-btn--github {
-    border-color: color-mix(in srgb, var(--ac-github-accent) 35%, var(--vscode-panel-border, #2b2b2b) 65%);
+    border-color: color-mix(in srgb, var(--ac-github-accent) 35%, var(--ampify-border-panel-strong) 65%);
 }
 
 .account-toolbar-btn--opencode {
-    border-color: color-mix(in srgb, var(--ac-opencode-accent) 35%, var(--vscode-panel-border, #2b2b2b) 65%);
+    border-color: color-mix(in srgb, var(--ac-opencode-accent) 35%, var(--ampify-border-panel-strong) 65%);
 }
 
 .account-toolbar-btn--github:hover {
@@ -3408,7 +3557,7 @@ html, body {
 }
 
 .account-row {
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     background: var(--vscode-editor-background, #1e1e1e);
     border-radius: 6px;
     padding: 8px 10px;
@@ -3418,11 +3567,11 @@ html, body {
 }
 
 .account-row--github {
-    border-color: color-mix(in srgb, var(--ac-github-accent) 28%, var(--vscode-panel-border, #2b2b2b) 72%);
+    border-color: color-mix(in srgb, var(--ac-github-accent) 28%, var(--ampify-border-panel-strong) 72%);
 }
 
 .account-row--opencode {
-    border-color: color-mix(in srgb, var(--ac-opencode-accent) 28%, var(--vscode-panel-border, #2b2b2b) 72%);
+    border-color: color-mix(in srgb, var(--ac-opencode-accent) 28%, var(--ampify-border-panel-strong) 72%);
 }
 
 .account-row--active.account-row--github {
@@ -3501,7 +3650,7 @@ html, body {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px 10px;
-    border: 1px dashed color-mix(in srgb, var(--ac-opencode-accent) 25%, var(--vscode-panel-border, #2b2b2b) 75%);
+    border: 1px dashed color-mix(in srgb, var(--ac-opencode-accent) 25%, var(--ampify-border-panel-strong) 75%);
     border-radius: 6px;
     background: color-mix(in srgb, var(--ac-opencode-soft) 24%, var(--vscode-editor-background, #1e1e1e) 76%);
     padding: 6px 8px;
@@ -3512,7 +3661,7 @@ html, body {
     display: flex;
     flex-direction: column;
     gap: 3px;
-    border: 1px solid color-mix(in srgb, var(--ac-opencode-accent) 22%, var(--vscode-panel-border, #2b2b2b) 78%);
+    border: 1px solid color-mix(in srgb, var(--ac-opencode-accent) 22%, var(--ampify-border-panel-strong) 78%);
     border-radius: 5px;
     padding: 6px 8px;
     background: color-mix(in srgb, var(--ac-opencode-soft) 18%, var(--vscode-editor-background, #1e1e1e) 82%);
@@ -3583,7 +3732,7 @@ html, body {
 }
 
 .account-row-action {
-    border: 1px solid var(--vscode-panel-border, #2b2b2b);
+    border: 1px solid var(--ampify-border-panel-strong);
     background: transparent;
     color: var(--vscode-foreground, #cccccc);
     border-radius: 4px;
@@ -3600,11 +3749,11 @@ html, body {
 }
 
 .account-row-action--github {
-    border-color: color-mix(in srgb, var(--ac-github-accent) 35%, var(--vscode-panel-border, #2b2b2b) 65%);
+    border-color: color-mix(in srgb, var(--ac-github-accent) 35%, var(--ampify-border-panel-strong) 65%);
 }
 
 .account-row-action--opencode {
-    border-color: color-mix(in srgb, var(--ac-opencode-accent) 35%, var(--vscode-panel-border, #2b2b2b) 65%);
+    border-color: color-mix(in srgb, var(--ac-opencode-accent) 35%, var(--ampify-border-panel-strong) 65%);
 }
 
 .account-row-action--github:hover {

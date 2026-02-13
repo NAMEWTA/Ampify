@@ -53,9 +53,33 @@ export function getHtml(
     `).join('');
 
     const js = getJs();
+    const configuredLang = vscode.workspace.getConfiguration('ampify').get<'en' | 'zh-cn'>('language') || 'zh-cn';
+    const htmlLang = configuredLang === 'zh-cn' ? 'zh-CN' : 'en';
+    const i18nMap = {
+        sectionDashboard: I18n.get('nav.dashboard'),
+        sectionAccountCenter: I18n.get('nav.accountCenter'),
+        sectionLauncher: I18n.get('dashboard.launcher'),
+        sectionSkills: I18n.get('nav.skills'),
+        sectionCommands: I18n.get('nav.commands'),
+        sectionGitShare: I18n.get('nav.gitShare'),
+        sectionModelProxy: I18n.get('nav.modelProxy'),
+        sectionOpenCodeAuth: I18n.get('dashboard.opencode'),
+        sectionSettings: I18n.get('nav.settings'),
+        viewList: I18n.get('common.list'),
+        viewCards: I18n.get('common.cards'),
+        viewListTitle: I18n.get('common.listView'),
+        viewCardsTitle: I18n.get('common.cardView'),
+        emptySkills: I18n.get('mainView.empty.skillsTitle'),
+        emptyCommands: I18n.get('mainView.empty.commandsTitle'),
+        emptySkillsHint: I18n.get('mainView.empty.skillsHint'),
+        emptyCommandsHint: I18n.get('mainView.empty.commandsHint'),
+        noFiles: I18n.get('common.noFiles'),
+        noData: I18n.get('common.noData'),
+        requiredSuffix: I18n.get('common.requiredSuffix')
+    };
 
     return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${htmlLang}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -83,7 +107,7 @@ export function getHtml(
         </nav>
         <div class="content">
             <div class="toolbar">
-                <span class="toolbar-title">${I18n.get('nav.dashboard').toUpperCase()}</span>
+                <span class="toolbar-title">${I18n.get('nav.dashboard')}</span>
             </div>
             <div class="content-body">
                 <div class="empty-state">
@@ -93,6 +117,7 @@ export function getHtml(
             </div>
         </div>
     </div>
+    <script nonce="${nonce}">window.__ampifyI18n=${JSON.stringify(i18nMap)};</script>
     <script nonce="${nonce}">${js}</script>
 </body>
 </html>`;

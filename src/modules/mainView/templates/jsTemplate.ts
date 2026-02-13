@@ -26,8 +26,21 @@ export function getJs(): string {
     let compactListMode = false;
     let dashboardData = null;
     let accountCenterData = null;
+    let aiTaggingProgressMap = { skills: null, commands: null };
+    let aiTaggingDismissedMap = { skills: false, commands: false };
     let accountCenterPollTimer = null;
     const ACCOUNT_CENTER_POLL_INTERVAL_MS = 5000;
+    const I18N = window.__ampifyI18n || {};
+
+    function t(key, fallback) {
+        const value = I18N[key];
+        return typeof value === 'string' && value.trim() ? value : fallback;
+    }
+
+    function getSectionTitle(section) {
+        const nav = document.querySelector('.nav-item[data-section="' + section + '"]');
+        return (nav && nav.getAttribute('title')) || section;
+    }
 
     // Restore persisted state
     const persistedState = vscode.getState();
@@ -191,6 +204,17 @@ export function getJs(): string {
             case 'showConfirm':
                 showConfirmDialog(msg.data);
                 break;
+            case 'updateAiTaggingProgress':
+                if (msg.data && (msg.data.target === 'skills' || msg.data.target === 'commands')) {
+                    aiTaggingProgressMap[msg.data.target] = msg.data;
+                    if (msg.data.running) {
+                        aiTaggingDismissedMap[msg.data.target] = false;
+                    }
+                    if (currentSection === msg.data.target) {
+                        renderAiTaggingProgressPanel(msg.data.target);
+                    }
+                }
+                break;
         }
     });
 
@@ -201,7 +225,7 @@ export function getJs(): string {
         const L = data.labels || {};
 
         hideDropOverlay();
-        toolbar.innerHTML = '<span class="toolbar-title">DASHBOARD</span>';
+        toolbar.innerHTML = '<span class="toolbar-title">' + escapeHtml(getSectionTitle('dashboard')) + '</span>';
 
         let html = '<div class="dashboard-view"><div class="dashboard-content">';
 
@@ -531,7 +555,7 @@ export function getJs(): string {
         const body = document.querySelector('.content-body');
         const toolbar = document.querySelector('.toolbar');
 
-        toolbar.innerHTML = '<span class="toolbar-title">SETTINGS</span>';
+        toolbar.innerHTML = '<span class="toolbar-title">' + escapeHtml(getSectionTitle('settings')) + '</span>';
 
         let html = '<div class="settings">';
         for (const section of data.sections || []) {
@@ -574,6 +598,7 @@ export function getJs(): string {
         const inputs = body.querySelectorAll('.settings-input');
         inputs.forEach(input => {
             let timer = null;
+            const isTextarea = input.tagName === 'TEXTAREA';
             const sendChange = () => {
                 if (input.disabled) { return; }
                 const key = input.dataset.key;
@@ -590,7 +615,9 @@ export function getJs(): string {
                 if (timer) { clearTimeout(timer); }
                 timer = setTimeout(sendChange, 400);
             };
-            input.addEventListener('input', debounce);
+            if (!isTextarea) {
+                input.addEventListener('input', debounce);
+            }
             input.addEventListener('change', sendChange);
             input.addEventListener('blur', sendChange);
         });
@@ -1198,15 +1225,15 @@ export function getJs(): string {
     function renderToolbar(section, actions, titleOverride) {
         const toolbar = document.querySelector('.toolbar');
         const titles = {
-            dashboard: 'DASHBOARD',
-            accountCenter: 'ACCOUNT CENTER',
-            launcher: 'LAUNCHER',
-            skills: 'SKILLS',
-            commands: 'COMMANDS',
-            gitshare: 'GIT SYNC',
-            modelProxy: 'MODEL PROXY',
-            opencodeAuth: 'OPENCODE AUTH',
-            settings: 'SETTINGS'
+            dashboard: t('sectionDashboard', 'Dashboard'),
+            accountCenter: t('sectionAccountCenter', 'Account Center'),
+            launcher: t('sectionLauncher', 'Launcher'),
+            skills: t('sectionSkills', 'Skills'),
+            commands: t('sectionCommands', 'Commands'),
+            gitshare: t('sectionGitShare', 'Git Sync'),
+            modelProxy: t('sectionModelProxy', 'Model Proxy'),
+            opencodeAuth: t('sectionOpenCodeAuth', 'OpenCode'),
+            settings: t('sectionSettings', 'Settings')
         };
         
         const title = titleOverride || titles[section] || section.toUpperCase();
@@ -1226,8 +1253,8 @@ export function getJs(): string {
         if (section === 'skills' || section === 'commands') {
             const mode = getViewMode(section);
             const icon = mode === 'cards' ? 'list-unordered' : 'dashboard';
-            const title = mode === 'cards' ? 'List View' : 'Card View';
-            const label = mode === 'cards' ? 'List' : 'Cards';
+            const title = mode === 'cards' ? t('viewListTitle', 'List View') : t('viewCardsTitle', 'Card View');
+            const label = mode === 'cards' ? t('viewList', 'List') : t('viewCards', 'Cards');
             actionButtons.push(\`
                 <button class="toolbar-btn toolbar-btn--view-toggle" title="\${title}" data-action-type="local" data-action-id="toggleView">
                     <i class="codicon codicon-\${icon}"></i>
@@ -1293,6 +1320,8 @@ export function getJs(): string {
         hideDropOverlay();
         body.innerHTML = '';
 
+        appendAiTaggingProgress(body, section);
+
         if (tags && tags.length > 0) {
             body.appendChild(renderTagChips(tags, activeTags || []));
         }
@@ -1305,11 +1334,11 @@ export function getJs(): string {
             empty.className = 'empty-state';
             const icon = section === 'skills' ? 'library' : 'terminal';
             const message = section === 'skills'
-                ? 'No skills found. Create or import a skill to get started.'
-                : 'No commands found. Create or import a command to get started.';
+                ? t('emptySkills', 'No skills found. Create or import a skill to get started.')
+                : t('emptyCommands', 'No commands found. Create or import a command to get started.');
             const hint = section === 'skills'
-                ? 'You can also drag & drop skill folders here.'
-                : 'You can also drag & drop command files here.';
+                ? t('emptySkillsHint', 'You can also drag & drop skill folders here.')
+                : t('emptyCommandsHint', 'You can also drag & drop command files here.');
             empty.innerHTML = \`
                 <i class="codicon codicon-\${icon}"></i>
                 <p>\${message}</p>
@@ -1332,12 +1361,23 @@ export function getJs(): string {
         const el = document.createElement('div');
         el.className = 'item-card';
         el.title = card.description || '';
+        el.setAttribute('role', 'button');
+        el.setAttribute('tabindex', '0');
+        el.setAttribute('aria-label', card.name || 'item');
 
-        el.addEventListener('click', () => {
+        const openCard = () => {
             activeCardId = card.id;
             vscode.postMessage({ type: 'cardClick', section: currentSection, cardId: card.id });
             if (card.fileTree && card.fileTree.length > 0) {
                 showFileTreeDialog(card.name, card.fileTree);
+            }
+        };
+
+        el.addEventListener('click', openCard);
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openCard();
             }
         });
 
@@ -1421,7 +1461,7 @@ export function getJs(): string {
         if (!files || files.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'empty-state';
-            empty.innerHTML = '<i class="codicon codicon-folder"></i><p>No files</p>';
+            empty.innerHTML = '<i class="codicon codicon-folder"></i><p>' + escapeHtml(t('noFiles', 'No files')) + '</p>';
             body.appendChild(empty);
         } else {
             for (const node of files) {
@@ -1456,6 +1496,9 @@ export function getJs(): string {
         const row = document.createElement('div');
         row.className = 'file-tree-row' + (!node.isDirectory ? ' file-tree-row--clickable' : '');
         row.style.paddingLeft = (depth * 16 + 8) + 'px';
+        row.setAttribute('role', 'button');
+        row.setAttribute('tabindex', '0');
+        row.setAttribute('aria-expanded', node.isDirectory ? String(depth < 1) : 'false');
 
         const chevron = document.createElement('span');
         const chevronIcon = document.createElement('i');
@@ -1494,15 +1537,24 @@ export function getJs(): string {
             wrapper.appendChild(childrenEl);
         }
 
-        row.addEventListener('click', () => {
+        const onActivateRow = () => {
             if (node.isDirectory) {
                 if (childrenEl) {
                     const isOpen = childrenEl.style.display !== 'none';
                     childrenEl.style.display = isOpen ? 'none' : 'block';
                     chevronIcon.className = 'codicon ' + (isOpen ? 'codicon-chevron-right' : 'codicon-chevron-down');
+                    row.setAttribute('aria-expanded', String(!isOpen));
                 }
             } else {
                 vscode.postMessage({ type: 'cardFileClick', section: currentSection, cardId: activeCardId, filePath: node.id });
+            }
+        };
+
+        row.addEventListener('click', onActivateRow);
+        row.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onActivateRow();
             }
         });
 
@@ -1525,7 +1577,7 @@ export function getJs(): string {
         const labels = (data && data.labels) || {};
 
         if (!data) {
-            body.innerHTML = '<div class="empty-state"><i class="codicon codicon-info"></i><p>' + escapeHtml(labels.emptyData || 'No data') + '</p></div>';
+            body.innerHTML = '<div class="empty-state"><i class="codicon codicon-info"></i><p>' + escapeHtml(labels.emptyData || t('noData', 'No data')) + '</p></div>';
             return;
         }
 
@@ -1607,7 +1659,7 @@ export function getJs(): string {
         if (!rows.length) {
             html += '<div class="empty-state">';
             html += '<i class="codicon codicon-info"></i>';
-            html += '<p>' + escapeHtml((activeSection && activeSection.emptyText) || labels.emptyData || 'No data') + '</p>';
+            html += '<p>' + escapeHtml((activeSection && activeSection.emptyText) || labels.emptyData || t('noData', 'No data')) + '</p>';
             html += '</div>';
         } else {
             for (const row of rows) {
@@ -1718,12 +1770,14 @@ export function getJs(): string {
             }
             const empty = document.createElement('div');
             empty.className = 'empty-state';
-            empty.innerHTML = '<i class="codicon codicon-info"></i><p>No data</p>';
+            empty.innerHTML = '<i class="codicon codicon-info"></i><p>' + escapeHtml(t('noData', 'No data')) + '</p>';
             body.appendChild(empty);
             return;
         }
 
         body.innerHTML = '';
+
+        appendAiTaggingProgress(body, currentSection);
 
         // Tag chips bar (inline filter)
         if (tags && tags.length > 0) {
@@ -1741,6 +1795,78 @@ export function getJs(): string {
 
         if (compactListMode) {
             requestAnimationFrame(() => applyCompactLayout(container));
+        }
+    }
+
+    function renderAiTaggingProgressPanel(section) {
+        const body = document.querySelector('.content-body');
+        if (!body) {
+            return;
+        }
+
+        const existing = body.querySelector('.ai-tagging-progress');
+        if (existing) {
+            existing.remove();
+        }
+
+        appendAiTaggingProgress(body, section, true);
+    }
+
+    function appendAiTaggingProgress(container, section, prepend = false) {
+        if (section !== 'skills' && section !== 'commands') {
+            return;
+        }
+        const progress = aiTaggingProgressMap[section];
+        if (!progress) {
+            return;
+        }
+        if (!progress.running && aiTaggingDismissedMap[section]) {
+            return;
+        }
+
+        const panel = document.createElement('div');
+        panel.className = 'ai-tagging-progress';
+
+        const title = section === 'skills' ? 'Skills AI Tagging' : 'Commands AI Tagging';
+        const runningText = progress.running ? 'Running' : 'Finished';
+
+        panel.innerHTML = 
+            '<div class="ai-tagging-progress-head">'
+                + '<span class="ai-tagging-progress-title">' + escapeHtml(title) + '</span>'
+                + '<span class="ai-tagging-progress-meta">' + escapeHtml(runningText + ' · ' + progress.completed + '/' + progress.total + ' · ' + progress.percent + '%') + '</span>'
+            + '</div>'
+            + '<div class="ai-tagging-progress-bar"><span style="width:' + progress.percent + '%"></span></div>'
+            + (!progress.running
+                ? '<div class="ai-tagging-progress-actions"><button class="ai-tagging-progress-close" type="button">Close</button></div>'
+                : '')
+            + '<div class="ai-tagging-progress-list">'
+            + progress.items.map(item => {
+                const stateClass = item.status === 'success' ? 'ok' : item.status === 'failed' ? 'err' : item.status === 'running' ? 'run' : 'pending';
+                const meta = item.status === 'success'
+                    ? (item.tags && item.tags.length > 0 ? item.tags.join(', ') : 'done')
+                    : (item.error || item.status);
+                return '<div class="ai-tagging-progress-item">'
+                    + '<span class="state ' + stateClass + '"></span>'
+                    + '<span class="name" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</span>'
+                    + '<span class="meta" title="' + escapeHtml(meta || '') + '">' + escapeHtml(meta || '') + '</span>'
+                + '</div>';
+            }).join('')
+            + '</div>';
+
+        if (prepend && container.firstChild) {
+            container.insertBefore(panel, container.firstChild);
+        } else {
+            container.appendChild(panel);
+        }
+
+        if (!progress.running) {
+            const closeBtn = panel.querySelector('.ai-tagging-progress-close');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', () => {
+                    aiTaggingDismissedMap[section] = true;
+                    panel.remove();
+                });
+            }
         }
     }
 
@@ -1782,6 +1908,8 @@ export function getJs(): string {
 
         const row = document.createElement('div');
         row.className = 'tree-row';
+        row.setAttribute('role', 'button');
+        row.setAttribute('tabindex', '0');
         const useMultiLine = !compactListMode && (node.layout === 'twoLine' || node.layout === 'threeLine');
         if (compactListMode) {
             row.classList.add('tree-row--compact');
@@ -1795,6 +1923,7 @@ export function getJs(): string {
 
         const hasChildren = node.collapsible || (node.children && node.children.length > 0);
         const isExpanded = node.expanded || expandedNodes.has(node.id);
+        row.setAttribute('aria-expanded', hasChildren ? String(isExpanded) : 'false');
 
         const chevron = document.createElement('span');
         if (hasChildren) {
@@ -1967,6 +2096,7 @@ export function getJs(): string {
                 if (hasChildren) {
                     chevron.innerHTML = \`<i class="codicon codicon-\${expandedNodes.has(node.id) ? 'chevron-down' : 'chevron-right'}"></i>\`;
                 }
+                row.setAttribute('aria-expanded', String(expandedNodes.has(node.id)));
                 saveState();
             } else {
                 document.querySelectorAll('.tree-row.selected').forEach(r => r.classList.remove('selected'));
@@ -1977,6 +2107,13 @@ export function getJs(): string {
                     nodeId: node.id,
                     section: currentSection
                 });
+            }
+        });
+
+        row.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                row.click();
             }
         });
 
@@ -2020,6 +2157,8 @@ export function getJs(): string {
         for (const action of node.contextActions) {
             const item = document.createElement('div');
             item.className = 'context-menu-item' + (action.danger ? ' danger' : '');
+            item.setAttribute('role', 'menuitem');
+            item.setAttribute('tabindex', '0');
             item.innerHTML = \`
                 <i class="codicon codicon-\${action.iconId || 'circle-outline'}"></i>
                 <span>\${action.label}</span>
@@ -2032,6 +2171,12 @@ export function getJs(): string {
                     actionId: action.id,
                     section: currentSection
                 });
+            });
+            item.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    item.click();
+                }
             });
             menu.appendChild(item);
         }
@@ -2153,12 +2298,13 @@ export function getJs(): string {
 
     function showOverlayPanel(data) {
         hideOverlayPanel();
+        const isAiTaggingOverlay = data.overlayId === 'skills-ai-tagging' || data.overlayId === 'commands-ai-tagging';
 
         const backdrop = document.createElement('div');
         backdrop.className = 'overlay-backdrop';
 
         const panel = document.createElement('div');
-        panel.className = 'overlay-panel';
+        panel.className = 'overlay-panel' + (isAiTaggingOverlay ? ' overlay-panel--ai-tagging' : '');
 
         // Header
         const header = document.createElement('div');
@@ -2171,13 +2317,22 @@ export function getJs(): string {
 
         // Body
         const body = document.createElement('div');
-        body.className = 'overlay-body';
+        body.className = 'overlay-body' + (isAiTaggingOverlay ? ' overlay-body--grid' : '');
 
         const fieldElements = {};
+        const fieldContainers = {};
 
         for (const field of data.fields) {
             const fieldEl = document.createElement('div');
             fieldEl.className = 'overlay-field';
+            fieldEl.dataset.key = field.key;
+
+            if (isAiTaggingOverlay) {
+                const fullWidthKeys = new Set(['provider', 'tagLibrary', 'targets']);
+                if (fullWidthKeys.has(field.key)) {
+                    fieldEl.classList.add('overlay-field--full');
+                }
+            }
 
             // Label
             const labelEl = document.createElement('label');
@@ -2232,6 +2387,87 @@ export function getJs(): string {
                     container.appendChild(tag);
                 }
                 fieldEl.appendChild(container);
+                fieldElements[field.key] = { el: container, kind: 'multi-select' };
+            } else if (field.kind === 'multi-select-dropdown') {
+                const container = document.createElement('div');
+                container.className = 'overlay-dropdown-select';
+                container.dataset.key = field.key;
+
+                const selectedValues = (field.value || '').split(',').filter(Boolean);
+
+                const trigger = document.createElement('button');
+                trigger.type = 'button';
+                trigger.className = 'overlay-dropdown-trigger';
+
+                const optionsWrap = document.createElement('div');
+                optionsWrap.className = 'overlay-dropdown-options';
+
+                const actions = document.createElement('div');
+                actions.className = 'overlay-dropdown-actions';
+
+                const clearBtn = document.createElement('button');
+                clearBtn.type = 'button';
+                clearBtn.className = 'overlay-dropdown-clear';
+                clearBtn.textContent = 'Clear';
+                clearBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const checked = grid.querySelectorAll('input[type="checkbox"]:checked');
+                    checked.forEach((cb) => {
+                        cb.checked = false;
+                        const label = cb.closest('.overlay-check-tag');
+                        if (label) {
+                            label.classList.remove('checked');
+                        }
+                    });
+                    updateTrigger();
+                });
+                actions.appendChild(clearBtn);
+
+                const grid = document.createElement('div');
+                grid.className = 'overlay-dropdown-grid';
+
+                const updateTrigger = () => {
+                    const checked = grid.querySelectorAll('input[type="checkbox"]:checked').length;
+                    trigger.textContent = checked > 0 ? (checked + ' selected') : (field.placeholder || 'Select items');
+                };
+
+                for (const opt of (field.options || [])) {
+                    const tag = document.createElement('label');
+                    tag.className = 'overlay-check-tag' + (selectedValues.includes(opt.value) ? ' checked' : '');
+                    const cb = document.createElement('input');
+                    cb.type = 'checkbox';
+                    cb.value = opt.value;
+                    cb.checked = selectedValues.includes(opt.value);
+                    cb.addEventListener('change', () => {
+                        tag.classList.toggle('checked', cb.checked);
+                        updateTrigger();
+                    });
+                    tag.appendChild(cb);
+                    tag.appendChild(document.createTextNode(opt.label));
+                    grid.appendChild(tag);
+                }
+
+                optionsWrap.appendChild(actions);
+                optionsWrap.appendChild(grid);
+
+                if (field.key === 'targets') {
+                    optionsWrap.classList.add('open');
+                }
+
+                trigger.addEventListener('click', () => {
+                    optionsWrap.classList.toggle('open');
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (!container.contains(e.target)) {
+                        optionsWrap.classList.remove('open');
+                    }
+                });
+
+                container.appendChild(trigger);
+                container.appendChild(optionsWrap);
+                fieldEl.appendChild(container);
+                updateTrigger();
                 fieldElements[field.key] = { el: container, kind: 'multi-select' };
             } else if (field.kind === 'tags') {
                 const container = document.createElement('div');
@@ -2309,9 +2545,38 @@ export function getJs(): string {
             fieldEl.appendChild(errEl);
 
             body.appendChild(fieldEl);
+            fieldContainers[field.key] = fieldEl;
         }
 
         panel.appendChild(body);
+
+        if (isAiTaggingOverlay) {
+            const applyProviderVisibility = () => {
+                const provider = getFieldValue(fieldElements.provider);
+                const isVsCode = provider === 'vscode-chat';
+                const openaiKeys = ['openaiBaseUrl', 'openaiApiKey', 'openaiModel'];
+                const vscodeKeys = ['vscodeModelId'];
+
+                openaiKeys.forEach(key => {
+                    const el = fieldContainers[key];
+                    if (el) {
+                        el.style.display = isVsCode ? 'none' : '';
+                    }
+                });
+                vscodeKeys.forEach(key => {
+                    const el = fieldContainers[key];
+                    if (el) {
+                        el.style.display = isVsCode ? '' : 'none';
+                    }
+                });
+            };
+
+            const providerField = fieldElements.provider;
+            if (providerField && providerField.el) {
+                providerField.el.addEventListener('change', applyProviderVisibility);
+                applyProviderVisibility();
+            }
+        }
 
         // Footer
         const footer = document.createElement('div');
@@ -2356,7 +2621,7 @@ export function getJs(): string {
                 const errEl = panel.querySelector('.overlay-field-error[data-key="' + field.key + '"]');
                 const val = getFieldValue(fe);
                 if (field.required && !val) {
-                    if (errEl) { errEl.textContent = field.label + ' is required'; errEl.classList.add('visible'); }
+                    if (errEl) { errEl.textContent = field.label + t('requiredSuffix', ' is required'); errEl.classList.add('visible'); }
                     valid = false;
                 } else {
                     if (errEl) { errEl.classList.remove('visible'); }

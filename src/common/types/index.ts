@@ -69,6 +69,24 @@ export interface GitConfig {
 export interface SkillsManagerConfig {
     /** 默认注入目标目录 */
     injectTarget?: string;
+    /** AI 打标配置 */
+    aiTagging?: AiTaggingConfig;
+}
+
+export type AiTaggingProvider = 'vscode-chat' | 'openai-compatible';
+
+export interface AiTagLibraryItem {
+    name: string;
+    description: string;
+}
+
+export interface AiTaggingConfig {
+    provider: AiTaggingProvider;
+    vscodeModelId?: string;
+    openaiBaseUrl?: string;
+    openaiApiKey?: string;
+    openaiModel?: string;
+    tagLibrary: AiTagLibraryItem[];
 }
 
 /**
@@ -153,6 +171,8 @@ export interface CommandMeta {
 export interface CommandsManagerConfig {
     /** 默认注入目标目录 */
     injectTarget?: string;
+    /** AI 打标配置 */
+    aiTagging?: AiTaggingConfig;
 }
 
 /**

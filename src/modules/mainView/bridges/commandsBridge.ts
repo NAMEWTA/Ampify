@@ -27,9 +27,9 @@ export class CommandsBridge {
                 label: I18n.get('commands.filterActive', filterText),
                 iconId: 'filter',
                 nodeType: 'filterInfo',
-                tooltip: 'Click to clear filter',
+                tooltip: I18n.get('common.clickClearFilter'),
                 inlineActions: [
-                    { id: 'clearFilter', label: 'Clear Filter', iconId: 'close' }
+                    { id: 'clearFilter', label: I18n.get('common.clearFilter'), iconId: 'close' }
                 ]
             });
         }
@@ -67,11 +67,12 @@ export class CommandsBridge {
 
     getToolbar(): ToolbarAction[] {
         return [
-            { id: 'search', label: 'Search', iconId: 'search', command: '', action: 'overlay' },
-            { id: 'refresh', label: 'Refresh', iconId: 'refresh', command: 'ampify.commands.refresh' },
-            { id: 'create', label: 'Create', iconId: 'add', command: '', action: 'overlay' },
-            { id: 'import', label: 'Import', iconId: 'folder-library', command: 'ampify.commands.import' },
-            { id: 'openFolder', label: 'Open Folder', iconId: 'folder-opened', command: 'ampify.commands.openFolder' }
+            { id: 'search', label: I18n.get('common.search'), iconId: 'search', command: '', action: 'overlay' },
+            { id: 'refresh', label: I18n.get('common.refresh'), iconId: 'refresh', command: 'ampify.commands.refresh' },
+            { id: 'aiTagging', label: 'AI Tagging', iconId: 'sparkle', command: '', action: 'overlay' },
+            { id: 'create', label: I18n.get('common.create'), iconId: 'add', command: '', action: 'overlay' },
+            { id: 'import', label: I18n.get('common.import'), iconId: 'folder-library', command: 'ampify.commands.import' },
+            { id: 'openFolder', label: I18n.get('common.openFolder'), iconId: 'folder-opened', command: 'ampify.commands.openFolder' }
         ];
     }
 

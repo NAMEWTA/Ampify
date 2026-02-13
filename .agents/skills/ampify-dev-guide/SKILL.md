@@ -1,6 +1,12 @@
 ﻿---
 name: ampify-dev-guide
-description: Ampify VS Code 扩展开发指南。用于实现/重构 src 模块、同步 MainView Webview 与 Bridge、维护 Skills/Commands 注入链路、处理 Git Share 同步、OpenCode 账号中心、Model Proxy 绑定与日志。用户提到 Ampify 架构、命令注册、数据存储、Webview 协议、模块扩展或排障时使用。
+description: Ampify VS Code 扩展开发指南。用于实现/重构 src 模块、同步 MainView Webview 与
+  Bridge、维护 Skills/Commands 注入链路、处理 Git Share 同步、OpenCode 账号中心、Model Proxy
+  绑定与日志。用户提到 Ampify 架构、命令注册、数据存储、Webview 协议、模块扩展或排障时使用。
+tags:
+  - 前端
+  - tool
+  - 笔记
 ---
 
 # Ampify 开发指南（与当前 src 对齐）

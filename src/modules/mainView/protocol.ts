@@ -291,7 +291,7 @@ export interface AccountCenterData {
 
 // ==================== Overlay Panel ====================
 
-export type OverlayFieldKind = 'text' | 'select' | 'textarea' | 'multi-select' | 'tags';
+export type OverlayFieldKind = 'text' | 'select' | 'textarea' | 'multi-select' | 'multi-select-dropdown' | 'tags';
 
 export interface OverlayField {
     key: string;
@@ -324,7 +324,24 @@ export interface ConfirmData {
 // ==================== Settings ====================
 
 export type SettingsFieldKind = 'text' | 'select' | 'textarea';
-export type SettingsScope = 'vscode' | 'git';
+export type SettingsScope = 'vscode' | 'git' | 'skills' | 'commands';
+
+export interface AiTaggingProgressItem {
+    id: string;
+    name: string;
+    status: 'pending' | 'running' | 'success' | 'failed';
+    tags?: string[];
+    error?: string;
+}
+
+export interface AiTaggingProgressData {
+    target: 'skills' | 'commands';
+    running: boolean;
+    total: number;
+    completed: number;
+    percent: number;
+    items: AiTaggingProgressItem[];
+}
 
 // ==================== Model Proxy Dashboard ====================
 
@@ -580,4 +597,5 @@ export type ExtensionMessage =
     | { type: 'showConfirm'; data: ConfirmData }
     | { type: 'updateModelProxy'; data: ModelProxyDashboardData }
     | { type: 'updateLogFiles'; files: LogFileInfo[] }
-    | { type: 'updateLogQuery'; result: LogQueryResult; date: string; statusFilter: string; keyword?: string };
+    | { type: 'updateLogQuery'; result: LogQueryResult; date: string; statusFilter: string; keyword?: string }
+    | { type: 'updateAiTaggingProgress'; data: AiTaggingProgressData };

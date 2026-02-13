@@ -13,7 +13,8 @@ import {
     ToolbarAction,
     OverlayData,
     OverlayField,
-    ConfirmData
+    ConfirmData,
+    AiTaggingProgressData
 } from './protocol';
 import { DashboardBridge } from './bridges/dashboardBridge';
 import { LauncherBridge } from './bridges/launcherBridge';
@@ -28,6 +29,9 @@ import { GitManager } from '../../common/git';
 import { I18n } from '../../common/i18n';
 import { SkillConfigManager } from '../skills/core/skillConfigManager';
 import { CommandConfigManager } from '../commands/core/commandConfigManager';
+import { SkillAiTagger } from '../skills/core/skillAiTagger';
+import { CommandAiTagger } from '../commands/core/commandAiTagger';
+import { parseTagLibraryText, stringifyTagLibraryText } from '../../common/tagLibrary';
 import { instanceKey } from '../../extension';
 
 export class AmpifyViewProvider implements vscode.WebviewViewProvider {
@@ -49,6 +53,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
 
     /** Pending overlay/confirm callbacks keyed by overlayId/confirmId */
     private pendingCallbacks = new Map<string, (values?: Record<string, string>) => Promise<void>>();
+    private aiTaggingProgress = new Map<'skills' | 'commands', AiTaggingProgressData>();
 
     constructor(private readonly _extensionUri: vscode.Uri) {
         this.dashboardBridge = new DashboardBridge();
@@ -382,6 +387,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 const skillTags = this.skillsBridge.getAllTags();
                 const skillActiveTags = this.skillsBridge.getActiveTags();
                 this.postMessage({ type: 'updateSection', section, tree, toolbar, tags: skillTags, activeTags: skillActiveTags, cards: skillCards });
+                this.sendAiTaggingProgress('skills');
                 return;
             }
             case 'commands': {
@@ -391,6 +397,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 const cmdTags = this.commandsBridge.getAllTags();
                 const cmdActiveTags = this.commandsBridge.getActiveTags();
                 this.postMessage({ type: 'updateSection', section, tree, toolbar, tags: cmdTags, activeTags: cmdActiveTags, cards: cmdCards });
+                this.sendAiTaggingProgress('commands');
                 return;
             }
             case 'gitshare':
@@ -656,7 +663,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         }
 
         if (validUris.length === 0) {
-            vscode.window.showWarningMessage('No valid file paths found in the dropped items.');
+            vscode.window.showWarningMessage(I18n.get('mainView.drop.invalidUris'));
             return;
         }
 
@@ -668,7 +675,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             }
         } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
-            vscode.window.showErrorMessage(`Import failed: ${msg}`);
+            vscode.window.showErrorMessage(I18n.get('common.importFailed', msg));
         }
         await this.refresh();
     }
@@ -738,9 +745,9 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 }];
                 this.showOverlay({
                     overlayId: 'skills-search',
-                    title: 'Search Skills',
+                    title: I18n.get('skills.searchTitle'),
                     fields,
-                    submitLabel: 'Search',
+                    submitLabel: I18n.get('common.search'),
                     cancelLabel: I18n.get('skills.cancel')
                 }, async (values) => {
                     const keyword = values?.keyword?.trim();
@@ -755,6 +762,9 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             }
             case 'create':
                 await this.showSkillCreateOverlay();
+                break;
+            case 'aiTagging':
+                await this.showSkillAiTaggingOverlay();
                 break;
             case 'import':
                 await vscode.commands.executeCommand('ampify.skills.import');
@@ -776,14 +786,14 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         const fields: OverlayField[] = [
             { key: 'name', label: I18n.get('skills.inputSkillName'), kind: 'text', required: true, placeholder: 'my-awesome-skill' },
             { key: 'description', label: I18n.get('skills.inputSkillDesc'), kind: 'textarea', required: true, placeholder: 'What this skill does. Use when...' },
-            { key: 'tags', label: I18n.get('skills.selectTags'), kind: 'tags', options: tagOptions, placeholder: 'Type and press Enter...' }
+            { key: 'tags', label: I18n.get('skills.selectTags'), kind: 'tags', options: tagOptions, placeholder: I18n.get('common.typeAndEnter') }
         ];
 
         this.showOverlay({
             overlayId: 'skills-create',
             title: I18n.get('dashboard.quickCreateSkill'),
             fields,
-            submitLabel: 'Create',
+            submitLabel: I18n.get('common.create'),
             cancelLabel: I18n.get('skills.cancel')
         }, async (values) => {
             if (!values) { return; }
@@ -825,6 +835,130 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         });
     }
 
+    private async showSkillAiTaggingOverlay(): Promise<void> {
+        const configManager = SkillConfigManager.getInstance();
+        const skills = configManager.loadAllSkills().filter(skill => !!skill.skillMdPath);
+        if (skills.length === 0) {
+            vscode.window.showWarningMessage(I18n.get('skills.noSkills'));
+            return;
+        }
+
+        const aiConfig = configManager.getAiTaggingConfig();
+        const chatModels = await vscode.lm.selectChatModels();
+        const modelOptions = chatModels.map(model => ({
+            label: model.name,
+            value: model.id
+        }));
+        const defaultModelId = aiConfig.vscodeModelId || (chatModels[0]?.id || '');
+        const fields: OverlayField[] = [
+            {
+                key: 'provider',
+                label: I18n.get('aiTagging.provider'),
+                kind: 'select',
+                value: aiConfig.provider,
+                options: [
+                    { label: I18n.get('aiTagging.provider.vscodeChat'), value: 'vscode-chat' },
+                    { label: I18n.get('aiTagging.provider.openaiCompatible'), value: 'openai-compatible' }
+                ]
+            },
+            {
+                key: 'vscodeModelId',
+                label: I18n.get('aiTagging.vscodeModelId'),
+                kind: 'select',
+                value: defaultModelId,
+                options: modelOptions
+            },
+            {
+                key: 'openaiBaseUrl',
+                label: I18n.get('aiTagging.openaiBaseUrl'),
+                kind: 'text',
+                value: aiConfig.openaiBaseUrl || '',
+                placeholder: 'https://api.openai.com/v1'
+            },
+            {
+                key: 'openaiApiKey',
+                label: I18n.get('aiTagging.openaiApiKey'),
+                kind: 'text',
+                value: aiConfig.openaiApiKey || ''
+            },
+            {
+                key: 'openaiModel',
+                label: I18n.get('aiTagging.openaiModel'),
+                kind: 'text',
+                value: aiConfig.openaiModel || ''
+            },
+            {
+                key: 'tagLibrary',
+                label: I18n.get('aiTagging.tagLibrary'),
+                kind: 'textarea',
+                description: I18n.get('aiTagging.tagLibraryFormatHint'),
+                value: stringifyTagLibraryText(aiConfig.tagLibrary || [])
+            },
+            {
+                key: 'targets',
+                label: I18n.get('aiTagging.selectTargetsSkills'),
+                kind: 'multi-select-dropdown',
+                required: true,
+                placeholder: I18n.get('aiTagging.selectTargetsSkills'),
+                value: skills.map(skill => skill.meta.name).join(','),
+                options: skills.map(skill => ({
+                    label: skill.meta.name,
+                    value: skill.meta.name
+                }))
+            }
+        ];
+
+        this.showOverlay({
+            overlayId: 'skills-ai-tagging',
+            title: I18n.get('aiTagging.runSkillsTitle'),
+            fields,
+            submitLabel: I18n.get('aiTagging.runNow'),
+            cancelLabel: I18n.get('skills.cancel')
+        }, async (values) => {
+            if (!values) {
+                return;
+            }
+
+            const selected = (values.targets || '').split(',').map(item => item.trim()).filter(Boolean);
+            if (selected.length === 0) {
+                vscode.window.showWarningMessage(I18n.get('aiTagging.noTargets'));
+                return;
+            }
+
+            configManager.updateAiTaggingConfig({
+                provider: values.provider === 'openai-compatible' ? 'openai-compatible' : 'vscode-chat',
+                vscodeModelId: (values.vscodeModelId || '').trim(),
+                openaiBaseUrl: (values.openaiBaseUrl || '').trim(),
+                openaiApiKey: (values.openaiApiKey || '').trim(),
+                openaiModel: (values.openaiModel || '').trim(),
+                tagLibrary: parseTagLibraryText(values.tagLibrary || '')
+            });
+
+            this.updateAiTaggingProgress('skills', {
+                running: true,
+                total: selected.length,
+                completed: 0,
+                percent: 0,
+                items: selected.map(name => ({ id: name, name, status: 'pending' }))
+            });
+
+            const tagger = new SkillAiTagger(configManager);
+            try {
+                await tagger.run(selected, async (snapshot) => {
+                    this.updateAiTaggingProgress('skills', snapshot);
+                    if (this._activeSection === 'skills') {
+                        await this.sendSectionData('skills');
+                    }
+                });
+                await this.sendSectionData('skills');
+                vscode.window.showInformationMessage(I18n.get('aiTagging.completed', String(selected.length)));
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(I18n.get('aiTagging.failed', message));
+            }
+        });
+    }
+
     // ==================== Commands Toolbar Actions ====================
 
     private async handleCommandsToolbarAction(actionId: string): Promise<void> {
@@ -840,9 +974,9 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 }];
                 this.showOverlay({
                     overlayId: 'commands-search',
-                    title: 'Search Commands',
+                    title: I18n.get('commands.searchTitle'),
                     fields,
-                    submitLabel: 'Search',
+                    submitLabel: I18n.get('common.search'),
                     cancelLabel: I18n.get('skills.cancel')
                 }, async (values) => {
                     const keyword = values?.keyword?.trim();
@@ -857,6 +991,9 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             }
             case 'create':
                 await this.showCommandCreateOverlay();
+                break;
+            case 'aiTagging':
+                await this.showCommandAiTaggingOverlay();
                 break;
             case 'import':
                 await vscode.commands.executeCommand('ampify.commands.import');
@@ -876,14 +1013,14 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         const fields: OverlayField[] = [
             { key: 'name', label: I18n.get('commands.inputCommandName'), kind: 'text', required: true, placeholder: 'my-command' },
             { key: 'description', label: I18n.get('commands.inputCommandDesc'), kind: 'textarea', required: true, placeholder: 'A command that...' },
-            { key: 'tags', label: I18n.get('commands.selectTags'), kind: 'tags', options: tagOptions, placeholder: 'Type and press Enter...' }
+            { key: 'tags', label: I18n.get('commands.selectTags'), kind: 'tags', options: tagOptions, placeholder: I18n.get('common.typeAndEnter') }
         ];
 
         this.showOverlay({
             overlayId: 'commands-create',
             title: I18n.get('dashboard.quickCreateCommand'),
             fields,
-            submitLabel: 'Create',
+            submitLabel: I18n.get('common.create'),
             cancelLabel: I18n.get('skills.cancel')
         }, async (values) => {
             if (!values) { return; }
@@ -914,6 +1051,130 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             const filePath = vscode.Uri.file(`${configMgr.getCommandsDir()}/${name}.md`);
             const doc = await vscode.workspace.openTextDocument(filePath);
             await vscode.window.showTextDocument(doc);
+        });
+    }
+
+    private async showCommandAiTaggingOverlay(): Promise<void> {
+        const configManager = CommandConfigManager.getInstance();
+        const commands = configManager.loadAllCommands();
+        if (commands.length === 0) {
+            vscode.window.showWarningMessage(I18n.get('commands.noCommands'));
+            return;
+        }
+
+        const aiConfig = configManager.getAiTaggingConfig();
+        const chatModels = await vscode.lm.selectChatModels();
+        const modelOptions = chatModels.map(model => ({
+            label: model.name,
+            value: model.id
+        }));
+        const defaultModelId = aiConfig.vscodeModelId || (chatModels[0]?.id || '');
+        const fields: OverlayField[] = [
+            {
+                key: 'provider',
+                label: I18n.get('aiTagging.provider'),
+                kind: 'select',
+                value: aiConfig.provider,
+                options: [
+                    { label: I18n.get('aiTagging.provider.vscodeChat'), value: 'vscode-chat' },
+                    { label: I18n.get('aiTagging.provider.openaiCompatible'), value: 'openai-compatible' }
+                ]
+            },
+            {
+                key: 'vscodeModelId',
+                label: I18n.get('aiTagging.vscodeModelId'),
+                kind: 'select',
+                value: defaultModelId,
+                options: modelOptions
+            },
+            {
+                key: 'openaiBaseUrl',
+                label: I18n.get('aiTagging.openaiBaseUrl'),
+                kind: 'text',
+                value: aiConfig.openaiBaseUrl || '',
+                placeholder: 'https://api.openai.com/v1'
+            },
+            {
+                key: 'openaiApiKey',
+                label: I18n.get('aiTagging.openaiApiKey'),
+                kind: 'text',
+                value: aiConfig.openaiApiKey || ''
+            },
+            {
+                key: 'openaiModel',
+                label: I18n.get('aiTagging.openaiModel'),
+                kind: 'text',
+                value: aiConfig.openaiModel || ''
+            },
+            {
+                key: 'tagLibrary',
+                label: I18n.get('aiTagging.tagLibrary'),
+                kind: 'textarea',
+                description: I18n.get('aiTagging.tagLibraryFormatHint'),
+                value: stringifyTagLibraryText(aiConfig.tagLibrary || [])
+            },
+            {
+                key: 'targets',
+                label: I18n.get('aiTagging.selectTargetsCommands'),
+                kind: 'multi-select-dropdown',
+                required: true,
+                placeholder: I18n.get('aiTagging.selectTargetsCommands'),
+                value: commands.map(command => command.meta.command).join(','),
+                options: commands.map(command => ({
+                    label: command.meta.command,
+                    value: command.meta.command
+                }))
+            }
+        ];
+
+        this.showOverlay({
+            overlayId: 'commands-ai-tagging',
+            title: I18n.get('aiTagging.runCommandsTitle'),
+            fields,
+            submitLabel: I18n.get('aiTagging.runNow'),
+            cancelLabel: I18n.get('skills.cancel')
+        }, async (values) => {
+            if (!values) {
+                return;
+            }
+
+            const selected = (values.targets || '').split(',').map(item => item.trim()).filter(Boolean);
+            if (selected.length === 0) {
+                vscode.window.showWarningMessage(I18n.get('aiTagging.noTargets'));
+                return;
+            }
+
+            configManager.updateAiTaggingConfig({
+                provider: values.provider === 'openai-compatible' ? 'openai-compatible' : 'vscode-chat',
+                vscodeModelId: (values.vscodeModelId || '').trim(),
+                openaiBaseUrl: (values.openaiBaseUrl || '').trim(),
+                openaiApiKey: (values.openaiApiKey || '').trim(),
+                openaiModel: (values.openaiModel || '').trim(),
+                tagLibrary: parseTagLibraryText(values.tagLibrary || '')
+            });
+
+            this.updateAiTaggingProgress('commands', {
+                running: true,
+                total: selected.length,
+                completed: 0,
+                percent: 0,
+                items: selected.map(name => ({ id: name, name, status: 'pending' }))
+            });
+
+            const tagger = new CommandAiTagger(configManager);
+            try {
+                await tagger.run(selected, async (snapshot) => {
+                    this.updateAiTaggingProgress('commands', snapshot);
+                    if (this._activeSection === 'commands') {
+                        await this.sendSectionData('commands');
+                    }
+                });
+                await this.sendSectionData('commands');
+                vscode.window.showInformationMessage(I18n.get('aiTagging.completed', String(selected.length)));
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                vscode.window.showErrorMessage(I18n.get('aiTagging.failed', message));
+            }
         });
     }
 
@@ -961,7 +1222,7 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             overlayId: 'opencode-add',
             title: I18n.get('opencodeAuth.add'),
             fields,
-            submitLabel: 'Add',
+            submitLabel: I18n.get('common.add'),
             cancelLabel: I18n.get('skills.cancel')
         }, async (values) => {
             if (!values) { return; }
@@ -1243,6 +1504,22 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 break;
             }
         }
+    }
+
+    private sendAiTaggingProgress(target: 'skills' | 'commands'): void {
+        const progress = this.aiTaggingProgress.get(target);
+        if (!progress) {
+            return;
+        }
+        this.postMessage({ type: 'updateAiTaggingProgress', data: progress });
+    }
+
+    private updateAiTaggingProgress(target: 'skills' | 'commands', data: Omit<AiTaggingProgressData, 'target'>): void {
+        this.aiTaggingProgress.set(target, {
+            target,
+            ...data
+        });
+        this.sendAiTaggingProgress(target);
     }
 
     // ==================== 工具 ====================
