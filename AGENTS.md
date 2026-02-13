@@ -20,21 +20,27 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 ## 项目结构
 - [src/](src/)：扩展源代码
   - [src/extension.ts](src/extension.ts)：扩展入口与模块编排
-  - [src/common/](src/common/)：公共能力（i18n、类型、路径、Git）
+  - [src/common/](src/common/)：公共能力（i18n、类型、路径、Git、AI 标签）
     - [src/common/i18n.ts](src/common/i18n.ts)：国际化字典与读取
     - [src/common/paths.ts](src/common/paths.ts)：路径与目录工具
     - [src/common/baseConfigManager.ts](src/common/baseConfigManager.ts)：配置管理基类
     - [src/common/types/index.ts](src/common/types/index.ts)：共享类型定义
+    - [src/common/frontmatter.ts](src/common/frontmatter.ts)：Frontmatter 解析工具
+    - [src/common/tagLibrary.ts](src/common/tagLibrary.ts)：标签库管理
+    - [src/common/ai/](src/common/ai/)：AI 标签引擎
+      - [src/common/ai/aiTaggingEngine.ts](src/common/ai/aiTaggingEngine.ts)：AI 标签生成引擎
     - [src/common/git/](src/common/git/)：Git 管理与 diff 视图
   - [src/modules/](src/modules/)：功能模块
     - [src/modules/copier/](src/modules/copier/)：复制路径与行号
     - [src/modules/launcher/](src/modules/launcher/)：多账户启动器
       - [src/modules/launcher/core/](src/modules/launcher/core/)：配置与进程启动
     - [src/modules/skills/](src/modules/skills/)：Skills Manager
-      - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、创建、AGENTS.md 同步
+      - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、创建、AGENTS.md 同步、AI 标签
+        - [src/modules/skills/core/skillAiTagger.ts](src/modules/skills/core/skillAiTagger.ts)：技能 AI 标签器
       - [src/modules/skills/templates/](src/modules/skills/templates/)：SKILL.md 模板
     - [src/modules/commands/](src/modules/commands/)：Commands Manager
-      - [src/modules/commands/core/](src/modules/commands/core/)：配置、导入、应用、创建
+      - [src/modules/commands/core/](src/modules/commands/core/)：配置、导入、应用、创建、AI 标签
+        - [src/modules/commands/core/commandAiTagger.ts](src/modules/commands/core/commandAiTagger.ts)：命令 AI 标签器
       - [src/modules/commands/templates/](src/modules/commands/templates/)：Command MD 模板
     - [src/modules/gitShare/](src/modules/gitShare/)：Git Share
     - [src/modules/opencode-copilot-auth/](src/modules/opencode-copilot-auth/)：OpenCode Copilot Auth

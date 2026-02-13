@@ -1,5 +1,9 @@
 # Change Log
 
+## 3.3.0 - 2026-02-13
+### Added
+- feat: add AI tagging for commands and skills, refactor mainView UI and templates
+
 ## 3.2.2 - 2026-02-12
 ### Added
 - feat(gitshare): add lifecycle sync recovery and localized main view
