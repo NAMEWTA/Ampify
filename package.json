@@ -123,7 +123,7 @@
       },
       {
         "command": "ampify.skills.apply",
-        "title": "Apply to Project",
+        "title": "Copy to .claude/skills",
         "icon": "$(play)"
       },
       {
@@ -133,7 +133,7 @@
       },
       {
         "command": "ampify.skills.openFolder",
-        "title": "Open Skills Folder",
+        "title": "Open Skill Source Folder",
         "icon": "$(folder-opened)"
       },
       {
@@ -150,11 +150,6 @@
         "command": "ampify.skills.openFile",
         "title": "Open Skill File",
         "icon": "$(file-text)"
-      },
-      {
-        "command": "ampify.skills.syncToAgentMd",
-        "title": "Sync AGENT.md",
-        "icon": "$(book)"
       },
       {
         "command": "ampify.commands.refresh",
@@ -188,7 +183,7 @@
       },
       {
         "command": "ampify.commands.apply",
-        "title": "Apply to Project",
+        "title": "Copy to .claude/commands",
         "icon": "$(play)"
       },
       {
@@ -198,7 +193,7 @@
       },
       {
         "command": "ampify.commands.openFolder",
-        "title": "Open Commands Folder",
+        "title": "Open Command Source Folder",
         "icon": "$(folder-opened)"
       },
       {
@@ -441,12 +436,12 @@
         },
         "ampify.skills.injectTarget": {
           "type": "string",
-          "default": ".agents/skills/",
+          "default": ".claude/skills/",
           "description": "Default target directory to inject skills into projects (默认 Skill 注入目标目录)"
         },
         "ampify.commands.injectTarget": {
           "type": "string",
-          "default": ".agents/commands/",
+          "default": ".claude/commands/",
           "description": "Default target directory to inject commands into projects (默认 Command 注入目标目录)"
         },
         "ampify.modelProxy.port": {

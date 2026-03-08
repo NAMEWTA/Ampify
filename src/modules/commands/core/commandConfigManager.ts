@@ -40,7 +40,7 @@ export class CommandConfigManager {
 
     protected getDefaultConfig(): CommandsManagerConfig {
         return {
-            injectTarget: '.agents/commands/',
+            injectTarget: '.claude/commands/',
             aiTagging: this.getDefaultAiTaggingConfig()
         };
     }
@@ -100,7 +100,7 @@ export class CommandConfigManager {
             }
             const content = fs.readFileSync(this.configPath, 'utf8');
             const config = JSON.parse(content) as CommandsManagerConfig;
-            const fallback = this.getDefaultConfig().injectTarget ?? '.agents/commands/';
+            const fallback = this.getDefaultConfig().injectTarget ?? '.claude/commands/';
             const normalized = this.normalizeInjectTarget(config.injectTarget ?? fallback);
             const aiTagging = this.normalizeAiTaggingConfig(config.aiTagging);
             let changed = false;
@@ -157,8 +157,8 @@ export class CommandConfigManager {
     }
 
     private normalizeInjectTarget(target: string): string {
-        if (/^\.claude([\\/]|$)/.test(target)) {
-            return target.replace(/^\.claude(?=[\\/]|$)/, '.agents');
+        if (/^\.agents([\\/]|$)/.test(target)) {
+            return target.replace(/^\.agents(?=[\\/]|$)/, '.claude');
         }
         return target;
     }

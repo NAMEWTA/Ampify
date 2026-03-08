@@ -26,7 +26,7 @@ export class CommandApplier {
      */
     public getInjectTarget(workspaceRoot: string): string {
         const config = vscode.workspace.getConfiguration('ampify');
-        let target = config.get<string>('commands.injectTarget') || '.agents/commands/';
+        let target = config.get<string>('commands.injectTarget') || '.claude/commands/';
         target = this.normalizeInjectTarget(target);
         return path.join(workspaceRoot, target);
     }
@@ -41,7 +41,7 @@ export class CommandApplier {
 
             const targetPath = path.join(targetDir, `${command.meta.command}.md`);
 
-            this.ensureCommandLink(command.path, targetPath);
+            this.copyCommand(command.path, targetPath);
 
             vscode.window.showInformationMessage(
                 I18n.get('commands.applied', command.meta.command)
@@ -106,31 +106,21 @@ export class CommandApplier {
     }
 
     private normalizeInjectTarget(target: string): string {
-        if (/^\.claude([\\/]|$)/.test(target)) {
-            return target.replace(/^\.claude(?=[\\/]|$)/, '.agents');
+        if (/^\.agents([\\/]|$)/.test(target)) {
+            return target.replace(/^\.agents(?=[\\/]|$)/, '.claude');
         }
         return target;
     }
 
-    private ensureCommandLink(sourcePath: string, targetPath: string): void {
+    private copyCommand(sourcePath: string, targetPath: string): void {
+        if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) {
+            throw new Error(`Command source file not found: ${sourcePath}`);
+        }
+
         if (fs.existsSync(targetPath)) {
-            const stats = fs.lstatSync(targetPath);
-            if (stats.isSymbolicLink()) {
-                const existingTarget = this.normalizeFsPath(fs.realpathSync(targetPath));
-                const desiredTarget = this.normalizeFsPath(fs.realpathSync(sourcePath));
-                if (existingTarget === desiredTarget) {
-                    return;
-                }
-            }
             fs.rmSync(targetPath, { force: true });
         }
 
-        // 使用软链注入命令文件（Windows 需要开启开发者模式或管理员权限）
-        fs.symlinkSync(sourcePath, targetPath, 'file');
-    }
-
-    private normalizeFsPath(value: string): string {
-        const normalized = path.resolve(value);
-        return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+        fs.copyFileSync(sourcePath, targetPath);
     }
 }

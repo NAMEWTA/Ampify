@@ -23,7 +23,7 @@ export class SkillApplier {
      */
     public getInjectTarget(workspaceRoot: string): string {
         const config = vscode.workspace.getConfiguration('ampify');
-        let customTarget = config.get<string>('skills.injectTarget') || '.agents/skills/';
+        let customTarget = config.get<string>('skills.injectTarget') || '.claude/skills/';
         customTarget = this.normalizeInjectTarget(customTarget);
         return path.join(workspaceRoot, customTarget);
     }
@@ -135,7 +135,7 @@ export class SkillApplier {
                 fs.mkdirSync(targetDir, { recursive: true });
             }
 
-            this.ensureSkillLink(skill.path, skillTargetPath);
+            this.copySkill(skill.path, skillTargetPath);
 
             return { success: true };
         } catch (error: unknown) {
@@ -164,31 +164,21 @@ export class SkillApplier {
     }
 
     private normalizeInjectTarget(target: string): string {
-        if (/^\.claude([\\/]|$)/.test(target)) {
-            return target.replace(/^\.claude(?=[\\/]|$)/, '.agents');
+        if (/^\.agents([\\/]|$)/.test(target)) {
+            return target.replace(/^\.agents(?=[\\/]|$)/, '.claude');
         }
         return target;
     }
 
-    private ensureSkillLink(sourcePath: string, targetPath: string): void {
+    private copySkill(sourcePath: string, targetPath: string): void {
+        if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isDirectory()) {
+            throw new Error(`Skill source directory not found: ${sourcePath}`);
+        }
+
         if (fs.existsSync(targetPath)) {
-            const stats = fs.lstatSync(targetPath);
-            if (stats.isSymbolicLink()) {
-                const existingTarget = this.normalizeFsPath(fs.realpathSync(targetPath));
-                const desiredTarget = this.normalizeFsPath(fs.realpathSync(sourcePath));
-                if (existingTarget === desiredTarget) {
-                    return;
-                }
-            }
             fs.rmSync(targetPath, { recursive: true, force: true });
         }
 
-        const linkType = process.platform === 'win32' ? 'junction' : 'dir';
-        fs.symlinkSync(sourcePath, targetPath, linkType);
-    }
-
-    private normalizeFsPath(value: string): string {
-        const normalized = path.resolve(value);
-        return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+        fs.cpSync(sourcePath, targetPath, { recursive: true, force: true });
     }
 }

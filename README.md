@@ -107,9 +107,9 @@ Settings panel centralizes language, storage root, inject targets, and Model Pro
 
 1. Import or create assets in `skills` / `commands`.
 2. Preview, search, and filter by tags.
-3. Apply into your project target directory:
-   - Skills default: `.agents/skills/`
-   - Commands default: `.agents/commands/`
+3. Copy into your project target directory:
+   - Skills default: `.claude/skills/`
+   - Commands default: `.claude/commands/`
 
 ### Git Share Flow
 
@@ -140,7 +140,7 @@ Settings panel centralizes language, storage root, inject targets, and Model Pro
 
 ### Skills
 
-- `ampify.skills.refresh`, `ampify.skills.search`, `ampify.skills.filterByTag`, `ampify.skills.clearFilter`, `ampify.skills.create`, `ampify.skills.import`, `ampify.skills.importFromUris`, `ampify.skills.apply`, `ampify.skills.preview`, `ampify.skills.openFile`, `ampify.skills.openFolder`, `ampify.skills.delete`, `ampify.skills.remove`, `ampify.skills.syncToAgentMd`
+- `ampify.skills.refresh`, `ampify.skills.search`, `ampify.skills.filterByTag`, `ampify.skills.clearFilter`, `ampify.skills.create`, `ampify.skills.import`, `ampify.skills.importFromUris`, `ampify.skills.apply`, `ampify.skills.preview`, `ampify.skills.openFile`, `ampify.skills.openFolder`, `ampify.skills.delete`, `ampify.skills.remove`
 
 ### Commands
 
@@ -158,8 +158,8 @@ Settings panel centralizes language, storage root, inject targets, and Model Pro
 |---|---|---|---|
 | `ampify.language` | string | `zh-cn` | UI language (`en` or `zh-cn`) |
 | `ampify.rootDir` | string | empty | Data root (`~/.vscode-ampify/` when empty) |
-| `ampify.skills.injectTarget` | string | `.agents/skills/` | Skills injection target |
-| `ampify.commands.injectTarget` | string | `.agents/commands/` | Commands injection target |
+| `ampify.skills.injectTarget` | string | `.claude/skills/` | Skills injection target |
+| `ampify.commands.injectTarget` | string | `.claude/commands/` | Commands injection target |
 | `ampify.modelProxy.port` | number | `18080` | Model Proxy HTTP port |
 | `ampify.modelProxy.bindAddress` | string | `127.0.0.1` | Proxy bind address (`0.0.0.0` to expose externally) |
 

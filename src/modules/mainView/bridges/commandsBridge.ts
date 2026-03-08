@@ -156,7 +156,7 @@ export class CommandsBridge {
             iconId: 'terminal',
             primaryFilePath: cmd.path,
             actions: [
-                { id: 'apply', label: 'Apply to Project', iconId: 'play' },
+                { id: 'apply', label: 'Copy to .claude/commands', iconId: 'play' },
                 { id: 'preview', label: 'Preview', iconId: 'open-preview' },
                 { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
             ]
@@ -178,7 +178,7 @@ export class CommandsBridge {
             commandArgs: JSON.stringify({ command: cmd.meta.command }),
             tooltip: cmd.meta.description,
             inlineActions: [
-                { id: 'apply', label: 'Apply to Project', iconId: 'play' },
+                { id: 'apply', label: 'Copy to .claude/commands', iconId: 'play' },
                 { id: 'preview', label: 'Preview', iconId: 'open-preview' }
             ],
             contextActions: [

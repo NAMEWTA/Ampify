@@ -772,9 +772,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             case 'openFolder':
                 await vscode.commands.executeCommand('ampify.skills.openFolder');
                 break;
-            case 'syncAgentMd':
-                await vscode.commands.executeCommand('ampify.skills.syncToAgentMd');
-                break;
         }
     }
 

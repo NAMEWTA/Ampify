@@ -3,7 +3,6 @@ import { SkillConfigManager } from './core/skillConfigManager';
 import { SkillApplier } from './core/skillApplier';
 import { SkillImporter } from './core/skillImporter';
 import { SkillCreator } from './core/skillCreator';
-import { AgentMdManager } from './core/agentMdManager';
 import { LoadedSkill } from '../../common/types';
 import { I18n } from '../../common/i18n';
 
@@ -24,7 +23,6 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
         const applier = new SkillApplier(configManager);
         const importer = new SkillImporter(configManager);
         const creator = new SkillCreator(configManager);
-        const agentMdManager = new AgentMdManager(configManager);
 
         // TreeView 已由 mainView 模块统一管理
 
@@ -118,37 +116,9 @@ export async function registerSkillManager(context: vscode.ExtensionContext): Pr
             const result = await applier.apply(skill, workspaceRoot);
             
             if (result.success) {
-                try {
-                    const config = configManager.getConfig();
-                    const injectTarget = config.injectTarget || '.agents/skills/';
-                    agentMdManager.scanAndSync(workspaceRoot, injectTarget);
-                } catch (error) {
-                    console.error('Failed to sync AGENT.md:', error);
-                }
                 vscode.window.showInformationMessage(I18n.get('skills.applied', skill.meta.name));
             } else if (result.error && result.error !== 'User cancelled due to prerequisites') {
                 vscode.window.showErrorMessage(I18n.get('skills.applyFailed', result.error));
-            }
-        })
-    );
-
-    // 同步 AGENT.md（全量扫�?injectTarget�?
-    context.subscriptions.push(
-        vscode.commands.registerCommand('ampify.skills.syncToAgentMd', () => {
-            const workspaceRoot = getWorkspaceRoot();
-            if (!workspaceRoot) {
-                vscode.window.showErrorMessage(I18n.get('skills.noWorkspace'));
-                return;
-            }
-
-            try {
-                const config = configManager.getConfig();
-                const injectTarget = config.injectTarget || '.agents/skills/';
-                agentMdManager.scanAndSync(workspaceRoot, injectTarget);
-                vscode.window.showInformationMessage(I18n.get('skills.agentMdSynced'));
-            } catch (error) {
-                const message = error instanceof Error ? error.message : String(error);
-                vscode.window.showErrorMessage(I18n.get('skills.applyFailed', message));
             }
         })
     );

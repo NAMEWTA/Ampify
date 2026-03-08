@@ -76,8 +76,7 @@ export class SkillsBridge {
             { id: 'aiTagging', label: 'AI Tagging', iconId: 'sparkle', command: '', action: 'overlay' },
             { id: 'create', label: I18n.get('common.create'), iconId: 'add', command: '', action: 'overlay' },
             { id: 'import', label: I18n.get('common.import'), iconId: 'folder-library', command: 'ampify.skills.import' },
-            { id: 'openFolder', label: I18n.get('common.openFolder'), iconId: 'folder-opened', command: 'ampify.skills.openFolder' },
-            { id: 'syncAgentMd', label: 'Sync AGENT.md', iconId: 'book', command: 'ampify.skills.syncToAgentMd' }
+            { id: 'openFolder', label: I18n.get('common.openFolder'), iconId: 'folder-opened', command: 'ampify.skills.openFolder' }
         ];
     }
 
@@ -193,7 +192,7 @@ export class SkillsBridge {
             commandArgs: JSON.stringify({ name: skill.meta.name }),
             tooltip: skill.meta.description,
             inlineActions: [
-                { id: 'apply', label: 'Apply to Project', iconId: 'play' },
+                { id: 'apply', label: 'Copy to .claude/skills', iconId: 'play' },
                 { id: 'preview', label: 'Preview', iconId: 'open-preview' }
             ],
             contextActions: [
@@ -214,7 +213,7 @@ export class SkillsBridge {
             primaryFilePath: fs.existsSync(skillMdPath) ? skillMdPath : undefined,
             fileTree: this.buildFileTree(skill.path),
             actions: [
-                { id: 'apply', label: 'Apply to Project', iconId: 'play' },
+                { id: 'apply', label: 'Copy to .claude/skills', iconId: 'play' },
                 { id: 'preview', label: 'Preview', iconId: 'open-preview' },
                 { id: 'openFolder', label: 'Open Folder', iconId: 'folder-opened' },
                 { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }

@@ -46,7 +46,7 @@ export class SkillConfigManager {
      */
     protected getDefaultConfig(): SkillsManagerConfig {
         return {
-            injectTarget: '.agents/skills/',
+            injectTarget: '.claude/skills/',
             aiTagging: this.getDefaultAiTaggingConfig()
         };
     }
@@ -112,7 +112,7 @@ export class SkillConfigManager {
             }
             const content = fs.readFileSync(this.configPath, 'utf8');
             const config = JSON.parse(content) as SkillsManagerConfig;
-            const fallback = this.getDefaultConfig().injectTarget ?? '.agents/skills/';
+            const fallback = this.getDefaultConfig().injectTarget ?? '.claude/skills/';
             const normalized = this.normalizeInjectTarget(config.injectTarget ?? fallback);
             const aiTagging = this.normalizeAiTaggingConfig(config.aiTagging);
             let changed = false;
@@ -172,8 +172,8 @@ export class SkillConfigManager {
     }
 
     private normalizeInjectTarget(target: string): string {
-        if (/^\.claude([\\/]|$)/.test(target)) {
-            return target.replace(/^\.claude(?=[\\/]|$)/, '.agents');
+        if (/^\.agents([\\/]|$)/.test(target)) {
+            return target.replace(/^\.agents(?=[\\/]|$)/, '.claude');
         }
         return target;
     }
