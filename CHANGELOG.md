@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.4.0 - 2026-03-08
+### Added
+- Refactor Skills and Commands injection to copy directly into `.claude/skills/` and `.claude/commands/`
+- Update MainView and command palette labels to reflect `.claude` copy behavior and source folders
+
+### Changed
+- Remove AGENTS.md / SKILLS.md sync flow and delete the obsolete AgentMdManager implementation
+- Keep legacy `.agents/...` injection targets compatible by normalizing them to `.claude/...`
+- Refresh README and AGENTS documentation for the new `.claude`-based workflow
+
 ## 3.3.0 - 2026-02-13
 ### Added
 - feat: add AI tagging for commands and skills, refactor mainView UI and templates

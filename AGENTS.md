@@ -4,8 +4,8 @@
 Ampify 是一个 VS Code 扩展，核心能力包括：
 1. 快速复制“文件路径 + 行号”，便于报告与代码评审引用。
 2. 多账户启动器，用于管理与启动不同的用户配置。
-3. Skills Manager：全局 Skills 库管理、SKILL.md 元数据解析、注入项目。
-4. Commands Manager：全局 Commands 库管理、单文件命令管理与项目注入。
+3. Skills Manager：全局 Skills 库管理、SKILL.md 元数据解析、复制到项目 `.claude/skills/`。
+4. Commands Manager：全局 Commands 库管理、单文件命令管理、复制到项目 `.claude/commands/`。
 5. Git Share：Skills/Commands 共享仓库同步与差异预览。
 6. Model Proxy：本地 HTTP 反代理，提供 OpenAI/Anthropic 兼容接口与日志。
 7. OpenCode Copilot Auth：多凭证管理与快速切换。
@@ -35,7 +35,7 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
     - [src/modules/launcher/](src/modules/launcher/)：多账户启动器
       - [src/modules/launcher/core/](src/modules/launcher/core/)：配置与进程启动
     - [src/modules/skills/](src/modules/skills/)：Skills Manager
-      - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、应用、创建、AGENTS.md 同步、AI 标签
+      - [src/modules/skills/core/](src/modules/skills/core/)：配置、导入、复制注入、创建、AI 标签
         - [src/modules/skills/core/skillAiTagger.ts](src/modules/skills/core/skillAiTagger.ts)：技能 AI 标签器
       - [src/modules/skills/templates/](src/modules/skills/templates/)：SKILL.md 模板
     - [src/modules/commands/](src/modules/commands/)：Commands Manager
@@ -88,15 +88,18 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 
 ### Skills Manager 逻辑
 1. [src/modules/skills/core/skillConfigManager.ts](src/modules/skills/core/skillConfigManager.ts) 负责配置与技能扫描
-2. [src/modules/skills/templates/skillMdTemplate.ts](src/modules/skills/templates/skillMdTemplate.ts) 生成 SKILL.md 模板
-3. [src/modules/skills/core/agentMdManager.ts](src/modules/skills/core/agentMdManager.ts) 生成 SKILLS.md 并更新 AGENTS.md
-4. 技能数据存储在 Git Share 目录（可同步）
+2. [src/modules/skills/core/skillApplier.ts](src/modules/skills/core/skillApplier.ts) 将技能目录直接复制到工作区 `.claude/skills/`
+3. [src/modules/skills/templates/skillMdTemplate.ts](src/modules/skills/templates/skillMdTemplate.ts) 生成 SKILL.md 模板
+4. 旧 `.agents/...` 注入目标会自动归一化为 `.claude/...`
+5. 技能数据存储在 Git Share 目录（可同步）
 
 ### Commands Manager 逻辑
 1. [src/modules/commands/core/commandConfigManager.ts](src/modules/commands/core/commandConfigManager.ts) 负责配置与命令扫描
-2. [src/modules/commands/templates/commandMdTemplate.ts](src/modules/commands/templates/commandMdTemplate.ts) 生成命令 MD 模板
-3. 命令采用扁平结构，文件名必须与 frontmatter 的 `command` 字段一致
-4. 命令数据存储在 Git Share 目录（可同步）
+2. [src/modules/commands/core/commandApplier.ts](src/modules/commands/core/commandApplier.ts) 将命令文件直接复制到工作区 `.claude/commands/`
+3. [src/modules/commands/templates/commandMdTemplate.ts](src/modules/commands/templates/commandMdTemplate.ts) 生成命令 MD 模板
+4. 命令采用扁平结构，文件名必须与 frontmatter 的 `command` 字段一致
+5. 旧 `.agents/...` 注入目标会自动归一化为 `.claude/...`
+6. 命令数据存储在 Git Share 目录（可同步）
 
 ### Git Share 逻辑
 1. `GitManager` 负责初始化、拉取、提交、推送与冲突处理
@@ -152,7 +155,7 @@ Ampify 是一个 VS Code 扩展，核心能力包括：
 - MainView 刷新：`ampify.mainView.refresh`
 
 - Launcher：`ampify.launcher.add`、`ampify.launcher.refresh`、`ampify.launcher.editConfig`、`ampify.launcher.launch`、`ampify.launcher.delete`
-- Skills：`ampify.skills.refresh`、`ampify.skills.search`、`ampify.skills.filterByTag`、`ampify.skills.clearFilter`、`ampify.skills.create`、`ampify.skills.import`、`ampify.skills.importFromUris`、`ampify.skills.apply`、`ampify.skills.preview`、`ampify.skills.openFile`、`ampify.skills.openFolder`、`ampify.skills.delete`、`ampify.skills.remove`、`ampify.skills.syncToAgentMd`
+- Skills：`ampify.skills.refresh`、`ampify.skills.search`、`ampify.skills.filterByTag`、`ampify.skills.clearFilter`、`ampify.skills.create`、`ampify.skills.import`、`ampify.skills.importFromUris`、`ampify.skills.apply`、`ampify.skills.preview`、`ampify.skills.openFile`、`ampify.skills.openFolder`、`ampify.skills.delete`、`ampify.skills.remove`
 - Commands：`ampify.commands.refresh`、`ampify.commands.search`、`ampify.commands.filterByTag`、`ampify.commands.clearFilter`、`ampify.commands.create`、`ampify.commands.import`、`ampify.commands.apply`、`ampify.commands.preview`、`ampify.commands.open`、`ampify.commands.openFolder`、`ampify.commands.delete`、`ampify.commands.remove`
 - Git Share：`ampify.gitShare.refresh`、`ampify.gitShare.sync`、`ampify.gitShare.pull`、`ampify.gitShare.push`、`ampify.gitShare.commit`、`ampify.gitShare.showDiff`、`ampify.gitShare.editConfig`、`ampify.gitShare.openConfigWizard`、`ampify.gitShare.openFolder`
 - Model Proxy：`ampify.modelProxy.toggle`、`ampify.modelProxy.start`、`ampify.modelProxy.stop`、`ampify.modelProxy.copyKey`、`ampify.modelProxy.regenerateKey`、`ampify.modelProxy.copyBaseUrl`、`ampify.modelProxy.selectModel`、`ampify.modelProxy.viewLogs`、`ampify.modelProxy.refresh`
@@ -194,5 +197,5 @@ ESLint 规则在 [eslint.config.js](eslint.config.js) 中定义，TypeScript 严
 # AMPIFY
 <ampify>
   <instruction>必须在此处查看可用的 SKILLS 列表</instruction>
-  <include path=".agents/SKILLS.md" />
+  <instruction>当前实现已直接复制 Skills/Commands 到 `.claude/`，不再维护 `.agents/SKILLS.md` 索引。</instruction>
 </ampify>
