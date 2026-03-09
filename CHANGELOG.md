@@ -1,5 +1,10 @@
 # Change Log
 
+## 3.5.0 - 2026-03-09
+### Changed
+- Remove the obsolete Model Proxy module and clean its commands, MainView integration, shared types, and docs
+- Finalize README wording updates for copy-based `.claude` injection and keep docs aligned with the current workflow
+
 ## 3.4.0 - 2026-03-08
 ### Added
 - Refactor Skills and Commands injection to copy directly into `.claude/skills/` and `.claude/commands/`

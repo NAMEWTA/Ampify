@@ -1,5 +1,7 @@
 .vscode/**
 .vscode-test/**
+.agents/**
+.claude/**
 src/**
 .gitignore
 .yarnrc
