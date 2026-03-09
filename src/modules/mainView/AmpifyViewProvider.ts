@@ -21,7 +21,6 @@ import { LauncherBridge } from './bridges/launcherBridge';
 import { SkillsBridge } from './bridges/skillsBridge';
 import { CommandsBridge } from './bridges/commandsBridge';
 import { GitShareBridge } from './bridges/gitShareBridge';
-import { ModelProxyBridge } from './bridges/modelProxyBridge';
 import { SettingsBridge } from './bridges/settingsBridge';
 import { OpenCodeAuthBridge } from './bridges/opencodeAuthBridge';
 import { AccountCenterBridge } from './bridges/accountCenterBridge';
@@ -45,7 +44,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     private skillsBridge: SkillsBridge;
     private commandsBridge: CommandsBridge;
     private gitShareBridge: GitShareBridge;
-    private modelProxyBridge: ModelProxyBridge;
     private settingsBridge: SettingsBridge;
     private opencodeAuthBridge: OpenCodeAuthBridge;
     private accountCenterBridge: AccountCenterBridge;
@@ -61,7 +59,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
         this.skillsBridge = new SkillsBridge();
         this.commandsBridge = new CommandsBridge();
         this.gitShareBridge = new GitShareBridge();
-        this.modelProxyBridge = new ModelProxyBridge();
         this.settingsBridge = new SettingsBridge();
         this.opencodeAuthBridge = new OpenCodeAuthBridge();
         this.accountCenterBridge = new AccountCenterBridge();
@@ -264,55 +261,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 break;
             }
 
-            // --- Model Proxy custom messages ---
-            case 'selectProxyModel': {
-                // Legacy: now handled via addBinding command
-                await vscode.commands.executeCommand('ampify.modelProxy.addBinding');
-                await this.sendModelProxyData();
-                break;
-            }
-
-            case 'addProxyBinding': {
-                await vscode.commands.executeCommand('ampify.modelProxy.addBinding');
-                await this.sendModelProxyData();
-                break;
-            }
-
-            case 'removeProxyBinding': {
-                await this.modelProxyBridge.removeBinding(msg.bindingId);
-                await this.sendModelProxyData();
-                break;
-            }
-
-            case 'copyProxyBindingKey': {
-                await this.modelProxyBridge.copyBindingKey(msg.bindingId);
-                break;
-            }
-
-            case 'proxyAction': {
-                await this.handleProxyAction(msg.actionId);
-                break;
-            }
-
-            case 'requestLogFiles': {
-                const files = this.modelProxyBridge.getLogFiles();
-                this.postMessage({ type: 'updateLogFiles', files });
-                break;
-            }
-
-            case 'queryLogs': {
-                const result = this.modelProxyBridge.queryLogs(
-                    msg.date, msg.page, msg.pageSize, msg.statusFilter, msg.keyword
-                );
-                this.postMessage({
-                    type: 'updateLogQuery',
-                    result,
-                    date: msg.date,
-                    statusFilter: msg.statusFilter,
-                    keyword: msg.keyword
-                });
-                break;
-            }
             case 'cardClick': {
                 const cards = msg.section === 'skills'
                     ? this.skillsBridge.getCardData()
@@ -411,9 +359,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                 this.postMessage({ type: 'updateSection', section, tree, toolbar, cards: authCards });
                 return;
             }
-            case 'modelProxy':
-                await this.sendModelProxyData();
-                return;
             case 'settings':
                 await this.sendSettings();
                 return;
@@ -480,10 +425,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
                         await vscode.commands.executeCommand('ampify.gitShare.editConfig', fieldMap[field]);
                     }
                 }
-                break;
-            }
-            case 'modelProxy': {
-                // Custom rendering handles clicks via proxyAction messages
                 break;
             }
             case 'opencodeAuth': {
@@ -557,9 +498,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             case 'gitshare':
                 await this.gitShareBridge.executeAction(actionId, nodeId);
                 break;
-            case 'modelProxy':
-                await this.modelProxyBridge.executeAction(actionId, nodeId);
-                break;
             case 'opencodeAuth':
                 await this.opencodeAuthBridge.executeAction(actionId, nodeId);
                 break;
@@ -593,9 +531,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             case 'gitshare':
                 await this.handleGitShareToolbarAction(actionId);
                 break;
-            case 'modelProxy':
-                await this.handleModelProxyToolbarAction(actionId);
-                break;
             case 'opencodeAuth':
                 await this.handleOpenCodeAuthToolbarAction(actionId);
                 break;
@@ -603,28 +538,8 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
     }
 
     private async handleSettingsAction(command: string): Promise<void> {
-        switch (command) {
-            case 'reloadWindow':
-                await vscode.commands.executeCommand('workbench.action.reloadWindow');
-                break;
-            case 'restartProxy':
-                try {
-                    // Stop if running
-                    const { getProxyServer } = await import('../modelProxy/index');
-                    const server = getProxyServer();
-                    if (server?.running) {
-                        await vscode.commands.executeCommand('ampify.modelProxy.stop');
-                        // Small delay to ensure port is released
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                    }
-                    await vscode.commands.executeCommand('ampify.modelProxy.start');
-                    vscode.window.showInformationMessage(I18n.get('modelProxy.restartSuccess'));
-                } catch (error) {
-                    const msg = error instanceof Error ? error.message : String(error);
-                    vscode.window.showErrorMessage(I18n.get('modelProxy.restartFailed', msg));
-                }
-                await this.sendModelProxyData();
-                break;
+        if (command === 'reloadWindow') {
+            await vscode.commands.executeCommand('workbench.action.reloadWindow');
         }
     }
 
@@ -1274,62 +1189,6 @@ export class AmpifyViewProvider implements vscode.WebviewViewProvider {
             };
             configManager.saveConfig(config);
         });
-    }
-
-    // ==================== Model Proxy Data ====================
-
-    private async sendModelProxyData(): Promise<void> {
-        const data = this.modelProxyBridge.getDashboardData();
-        const toolbar = this.modelProxyBridge.getToolbar();
-        // Send toolbar via standard updateSection (for toolbar buttons)
-        this.postMessage({ type: 'updateSection', section: 'modelProxy', tree: [], toolbar });
-        // Then send custom dashboard data
-        this.postMessage({ type: 'updateModelProxy', data });
-    }
-
-    private async handleProxyAction(actionId: string): Promise<void> {
-        switch (actionId) {
-            case 'toggle':
-                await vscode.commands.executeCommand('ampify.modelProxy.toggle');
-                break;
-            case 'copyUrl':
-                await vscode.commands.executeCommand('ampify.modelProxy.copyBaseUrl');
-                break;
-            case 'copyKey':
-                await vscode.commands.executeCommand('ampify.modelProxy.copyKey');
-                break;
-            case 'regenerateKey':
-                await vscode.commands.executeCommand('ampify.modelProxy.regenerateKey');
-                break;
-            case 'addBinding':
-                await vscode.commands.executeCommand('ampify.modelProxy.addBinding');
-                break;
-            case 'removeBinding':
-                await vscode.commands.executeCommand('ampify.modelProxy.removeBinding');
-                break;
-            case 'openLogs':
-                await vscode.commands.executeCommand('ampify.modelProxy.viewLogs');
-                break;
-        }
-        await this.sendModelProxyData();
-    }
-
-    // ==================== Model Proxy Toolbar Actions ====================
-
-    private async handleModelProxyToolbarAction(actionId: string): Promise<void> {
-        switch (actionId) {
-            case 'toggle':
-                await vscode.commands.executeCommand('ampify.modelProxy.toggle');
-                await this.sendModelProxyData();
-                break;
-            case 'refresh':
-                await vscode.commands.executeCommand('ampify.modelProxy.refresh');
-                await this.sendModelProxyData();
-                break;
-            case 'openLogs':
-                await vscode.commands.executeCommand('ampify.modelProxy.viewLogs');
-                break;
-        }
     }
 
     // ==================== Git Share Toolbar Actions ====================

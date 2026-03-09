@@ -252,61 +252,6 @@
         "icon": "$(folder-opened)"
       },
       {
-        "command": "ampify.modelProxy.toggle",
-        "title": "Toggle Model Proxy",
-        "icon": "$(radio-tower)"
-      },
-      {
-        "command": "ampify.modelProxy.start",
-        "title": "Start Model Proxy",
-        "icon": "$(play)"
-      },
-      {
-        "command": "ampify.modelProxy.stop",
-        "title": "Stop Model Proxy",
-        "icon": "$(debug-stop)"
-      },
-      {
-        "command": "ampify.modelProxy.copyKey",
-        "title": "Copy API Key",
-        "icon": "$(key)"
-      },
-      {
-        "command": "ampify.modelProxy.regenerateKey",
-        "title": "Regenerate API Key",
-        "icon": "$(refresh)"
-      },
-      {
-        "command": "ampify.modelProxy.copyBaseUrl",
-        "title": "Copy Base URL",
-        "icon": "$(link)"
-      },
-      {
-        "command": "ampify.modelProxy.selectModel",
-        "title": "Add Model Binding",
-        "icon": "$(hubot)"
-      },
-      {
-        "command": "ampify.modelProxy.addBinding",
-        "title": "Add API Key Binding",
-        "icon": "$(add)"
-      },
-      {
-        "command": "ampify.modelProxy.removeBinding",
-        "title": "Remove API Key Binding",
-        "icon": "$(trash)"
-      },
-      {
-        "command": "ampify.modelProxy.viewLogs",
-        "title": "View Proxy Logs",
-        "icon": "$(output)"
-      },
-      {
-        "command": "ampify.modelProxy.refresh",
-        "title": "Refresh Model Proxy",
-        "icon": "$(refresh)"
-      },
-      {
         "command": "ampify.opencodeAuth.add",
         "title": "Add OpenCode Copilot Credential"
       },
@@ -443,16 +388,6 @@
           "type": "string",
           "default": ".claude/commands/",
           "description": "Default target directory to inject commands into projects (默认 Command 注入目标目录)"
-        },
-        "ampify.modelProxy.port": {
-          "type": "number",
-          "default": 18080,
-          "description": "Port for the Model Proxy HTTP server (模型代理 HTTP 服务器端口)"
-        },
-        "ampify.modelProxy.bindAddress": {
-          "type": "string",
-          "default": "127.0.0.1",
-          "description": "Bind address for the Model Proxy server. Use 0.0.0.0 to allow external access (模型代理服务器绑定地址)"
         }
       }
     }

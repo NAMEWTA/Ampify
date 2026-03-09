@@ -9,11 +9,9 @@ import type {
     QuickAction,
     ModuleHealthItem,
     DashboardGitInfo,
-    DashboardProxyInfo,
     DashboardWorkspaceInfo,
     DashboardLabels,
     ModuleHealthStatus,
-    ModelProxyLogInfo,
     DashboardLauncherInfo,
     DashboardOpenCodeInfo
 } from '../protocol';
@@ -21,20 +19,18 @@ import { I18n } from '../../../common/i18n';
 
 export class DashboardBridge {
     async getData(): Promise<DashboardData> {
-        const [stats, moduleHealth, gitInfo, proxyInfo, workspaceInfo, recentLogs, launcher, opencode] =
+        const [stats, moduleHealth, gitInfo, workspaceInfo, launcher, opencode] =
             await Promise.all([
                 this.collectStats(),
                 this.collectModuleHealth(),
                 this.collectGitInfo(),
-                this.collectProxyInfo(),
                 this.collectWorkspaceInfo(),
-                this.collectRecentLogs(),
                 this.getLauncherInfo(),
                 this.getOpenCodeInfo()
             ]);
         const quickActions = this.getQuickActions();
         const labels = this.getLabels();
-        return { stats, quickActions, moduleHealth, gitInfo, proxyInfo, workspaceInfo, recentLogs, labels, launcher, opencode };
+        return { stats, quickActions, moduleHealth, gitInfo, workspaceInfo, labels, launcher, opencode };
     }
 
     private async collectStats(): Promise<DashboardStat[]> {
@@ -94,40 +90,6 @@ export class DashboardBridge {
             stats.push({ label: I18n.get('dashboard.gitStatus'), value: '-', iconId: 'git-merge', targetSection: 'gitshare' });
         }
 
-        // Proxy 状态
-        try {
-            const { ProxyConfigManager } = await import('../../modelProxy/core/proxyConfigManager');
-            const configManager = ProxyConfigManager.getInstance();
-            const port = configManager.getPort();
-            let running = false;
-            try {
-                const { getProxyServer } = await import('../../modelProxy');
-                const server = getProxyServer();
-                running = server?.running ?? false;
-            } catch { /* ignore */ }
-            stats.push({
-                label: I18n.get('dashboard.proxyStatus'),
-                value: running ? `${I18n.get('dashboard.proxyRunning')} :${port}` : I18n.get('dashboard.proxyStopped'),
-                iconId: running ? 'radio-tower' : 'debug-disconnect',
-                color: running ? '#89d185' : '#f48771',
-                targetSection: 'modelProxy'
-            });
-        } catch {
-            stats.push({ label: I18n.get('dashboard.proxyStatus'), value: '-', iconId: 'debug-disconnect', color: '#f48771', targetSection: 'modelProxy' });
-        }
-
-        // 今日 Proxy 请求和 Token
-        try {
-            const { LogManager } = await import('../../modelProxy/core/logManager');
-            const logManager = new LogManager();
-            const todayStats = logManager.getTodayStats();
-            stats.push({ label: I18n.get('dashboard.proxyRequests'), value: todayStats.requests, iconId: 'pulse', color: '#4fc1ff', targetSection: 'modelProxy' });
-            stats.push({ label: I18n.get('dashboard.proxyTokens'), value: todayStats.tokens, iconId: 'symbol-key', color: '#dcdcaa', targetSection: 'modelProxy' });
-        } catch {
-            stats.push({ label: I18n.get('dashboard.proxyRequests'), value: 0, iconId: 'pulse', color: '#4fc1ff', targetSection: 'modelProxy' });
-            stats.push({ label: I18n.get('dashboard.proxyTokens'), value: 0, iconId: 'symbol-key', color: '#dcdcaa', targetSection: 'modelProxy' });
-        }
-
         return stats;
     }
 
@@ -180,19 +142,6 @@ export class DashboardBridge {
             items.push({ moduleId: 'gitshare', label: I18n.get('dashboard.gitShare'), status: 'error', detail: I18n.get('dashboard.error'), iconId: 'git-merge', color: '#f48771' });
         }
 
-        // Model Proxy
-        try {
-            let running = false;
-            try {
-                const { getProxyServer } = await import('../../modelProxy');
-                const server = getProxyServer();
-                running = server?.running ?? false;
-            } catch { /* ignore */ }
-            items.push({ moduleId: 'modelProxy', label: I18n.get('dashboard.modelProxy'), status: running ? 'active' : 'inactive', detail: running ? I18n.get('dashboard.proxyRunning') : I18n.get('dashboard.proxyStopped'), iconId: 'radio-tower', color: running ? '#89d185' : '#717171' });
-        } catch {
-            items.push({ moduleId: 'modelProxy', label: I18n.get('dashboard.modelProxy'), status: 'error', detail: I18n.get('dashboard.error'), iconId: 'radio-tower', color: '#f48771' });
-        }
-
         // OpenCode Auth
         try {
             const { OpenCodeCopilotAuthConfigManager } = await import('../../opencode-copilot-auth/core/configManager');
@@ -230,41 +179,6 @@ export class DashboardBridge {
         }
     }
 
-    private async collectProxyInfo(): Promise<DashboardProxyInfo> {
-        const defaultInfo: DashboardProxyInfo = { running: false, port: 0, baseUrl: '', todayRequests: 0, todayTokens: 0, todayErrors: 0, avgLatencyMs: 0, bindingCount: 0 };
-        try {
-            const { ProxyConfigManager } = await import('../../modelProxy/core/proxyConfigManager');
-            const configManager = ProxyConfigManager.getInstance();
-            const port = configManager.getPort();
-            const bindAddress = configManager.getBindAddress();
-            const config = configManager.getConfig();
-
-            let running = false;
-            try {
-                const { getProxyServer } = await import('../../modelProxy');
-                const server = getProxyServer();
-                running = server?.running ?? false;
-            } catch { /* ignore */ }
-
-            const { LogManager } = await import('../../modelProxy/core/logManager');
-            const logManager = new LogManager();
-            const todayStats = logManager.getTodayStats();
-
-            return {
-                running,
-                port,
-                baseUrl: `http://${bindAddress}:${port}`,
-                todayRequests: todayStats.requests,
-                todayTokens: todayStats.tokens,
-                todayErrors: todayStats.errors,
-                avgLatencyMs: todayStats.avgLatencyMs,
-                bindingCount: config.apiKeyBindings?.length || 0
-            };
-        } catch {
-            return defaultInfo;
-        }
-    }
-
     private async collectWorkspaceInfo(): Promise<DashboardWorkspaceInfo> {
         const defaultInfo: DashboardWorkspaceInfo = { workspaceName: I18n.get('dashboard.noWorkspace') };
         try {
@@ -273,26 +187,6 @@ export class DashboardBridge {
             return { workspaceName: folders[0].name };
         } catch {
             return defaultInfo;
-        }
-    }
-
-    private async collectRecentLogs(): Promise<ModelProxyLogInfo[]> {
-        try {
-            const { LogManager } = await import('../../modelProxy/core/logManager');
-            const logManager = new LogManager();
-            return logManager.getRecentLogs(10).map(log => ({
-                timestamp: log.timestamp,
-                requestId: log.requestId || '',
-                format: log.format,
-                model: log.model || '?',
-                durationMs: log.durationMs,
-                inputTokens: log.inputTokens,
-                outputTokens: log.outputTokens,
-                status: log.status,
-                error: log.error
-            }));
-        } catch {
-            return [];
         }
     }
 
@@ -361,18 +255,11 @@ export class DashboardBridge {
         return {
             moduleHealth: I18n.get('dashboard.moduleHealth'),
             gitInfo: I18n.get('dashboard.gitInfo'),
-            proxyPanel: I18n.get('dashboard.proxyPanel'),
-            proxyRunning: I18n.get('dashboard.proxyRunning'),
             quickActions: I18n.get('dashboard.quickActions'),
             viewDetail: I18n.get('dashboard.viewDetail'),
-            copyBaseUrl: I18n.get('dashboard.copyBaseUrl'),
             gitSync: I18n.get('dashboard.gitSync'),
             gitPull: I18n.get('dashboard.gitPull'),
             gitPush: I18n.get('dashboard.gitPush'),
-            recentLogs: I18n.get('modelProxy.recentLogs'),
-            viewAllLogs: I18n.get('modelProxy.viewAllLogs'),
-            noLogs: I18n.get('modelProxy.noLogs'),
-            logTime: I18n.get('modelProxy.logTime'),
             nextUp: I18n.get('dashboard.nextUp'),
             launcher: I18n.get('dashboard.launcher'),
             opencode: I18n.get('dashboard.opencode'),
@@ -389,7 +276,6 @@ export class DashboardBridge {
             { id: 'createSkill', label: I18n.get('dashboard.quickCreateSkill'), iconId: 'add', action: 'toolbar', section: 'skills', actionId: 'create' },
             { id: 'createCommand', label: I18n.get('dashboard.quickCreateCommand'), iconId: 'add', action: 'toolbar', section: 'commands', actionId: 'create' },
             { id: 'gitSync', label: I18n.get('dashboard.quickGitSync'), iconId: 'sync', command: 'ampify.gitShare.sync', action: 'command' },
-            { id: 'toggleProxy', label: I18n.get('dashboard.quickToggleProxy'), iconId: 'radio-tower', command: 'ampify.modelProxy.toggle', action: 'command' },
         ];
     }
 }

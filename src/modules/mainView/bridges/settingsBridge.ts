@@ -139,31 +139,6 @@ export class SettingsBridge {
                 ]
             },
             {
-                id: 'modelProxy',
-                title: I18n.get('settings.section.modelProxy'),
-                fields: [
-                    {
-                        key: 'modelProxy.port',
-                        label: I18n.get('settings.modelProxy.port.label'),
-                        description: I18n.get('settings.modelProxy.port.desc'),
-                        value: String(config.get<number>('modelProxy.port') || 18080),
-                        kind: 'text',
-                        scope: 'vscode',
-                        placeholder: '18080'
-                    },
-                    {
-                        key: 'modelProxy.bindAddress',
-                        label: I18n.get('settings.modelProxy.bindAddress.label'),
-                        description: I18n.get('settings.modelProxy.bindAddress.desc'),
-                        value: config.get<string>('modelProxy.bindAddress') || '127.0.0.1',
-                        kind: 'text',
-                        scope: 'vscode',
-                        placeholder: '127.0.0.1'
-                    },
-
-                ]
-            },
-            {
                 id: 'aiTagging',
                 title: I18n.get('settings.section.aiTagging'),
                 fields: [

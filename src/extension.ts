@@ -7,7 +7,6 @@ import { registerSkillManager } from './modules/skills';
 import { registerCommandManager } from './modules/commands';
 import { registerMainView } from './modules/mainView';
 import { GitShareLifecycle, registerGitShare } from './modules/gitShare';
-import { registerModelProxy } from './modules/modelProxy';
 import { registerOpenCodeCopilotAuth } from './modules/opencode-copilot-auth';
 
 /**
@@ -106,15 +105,6 @@ export async function activate(context: vscode.ExtensionContext) {
         const message = error instanceof Error ? error.message : String(error);
         console.error('Failed to register OpenCode Copilot Auth module:', message);
         vscode.window.showErrorMessage(`OpenCode Copilot Auth module failed to load: ${message}`);
-    }
-
-    // Register the "Model Proxy" module
-    try {
-        await registerModelProxy(context);
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error('Failed to register Model Proxy module:', message);
-        vscode.window.showErrorMessage(`Model Proxy module failed to load: ${message}`);
     }
 
     console.log('Ampify Extension Activated');

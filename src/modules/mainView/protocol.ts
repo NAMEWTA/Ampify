@@ -5,7 +5,7 @@
 
 // ==================== 导航 Section ====================
 
-export type SectionId = 'dashboard' | 'accountCenter' | 'launcher' | 'skills' | 'commands' | 'gitshare' | 'modelProxy' | 'settings' | 'opencodeAuth';
+export type SectionId = 'dashboard' | 'accountCenter' | 'launcher' | 'skills' | 'commands' | 'gitshare' | 'settings' | 'opencodeAuth';
 
 // ==================== 通用树节点 ====================
 
@@ -68,13 +68,10 @@ export interface DashboardData {
     quickActions: QuickAction[];
     moduleHealth?: ModuleHealthItem[];
     gitInfo?: DashboardGitInfo;
-    proxyInfo?: DashboardProxyInfo;
     workspaceInfo?: DashboardWorkspaceInfo;
-    recentLogs?: ModelProxyLogInfo[];
     launcher?: DashboardLauncherInfo;
     opencode?: DashboardOpenCodeInfo;
     activity?: DashboardActivityItem[];
-    modelProxy?: DashboardModelProxyInfo;
     labels: DashboardLabels;
 }
 
@@ -106,28 +103,14 @@ export interface DashboardActivityItem {
     timestamp: number;
 }
 
-export interface DashboardModelProxyInfo {
-    running: boolean;
-    baseUrl?: string;
-    lastError?: string;
-    lastErrorAt?: number;
-}
-
 export interface DashboardLabels {
     moduleHealth: string;
     gitInfo: string;
-    proxyPanel: string;
-    proxyRunning: string;
     quickActions: string;
     viewDetail: string;
-    copyBaseUrl: string;
     gitSync: string;
     gitPull: string;
     gitPush: string;
-    recentLogs: string;
-    viewAllLogs: string;
-    noLogs: string;
-    logTime: string;
     nextUp: string;
     launcher: string;
     opencode: string;
@@ -176,17 +159,6 @@ export interface DashboardGitInfo {
     unpushedCount: number;
     hasChanges: boolean;
     changedFileCount: number;
-}
-
-export interface DashboardProxyInfo {
-    running: boolean;
-    port: number;
-    baseUrl: string;
-    todayRequests: number;
-    todayTokens: number;
-    todayErrors: number;
-    avgLatencyMs: number;
-    bindingCount: number;
 }
 
 export interface DashboardWorkspaceInfo {
@@ -343,133 +315,6 @@ export interface AiTaggingProgressData {
     items: AiTaggingProgressItem[];
 }
 
-// ==================== Model Proxy Dashboard ====================
-
-export interface ModelProxyDashboardData {
-    /** 是否运行中 */
-    running: boolean;
-    /** 端口号 */
-    port: number;
-    /** 绑定地址 */
-    bindAddress: string;
-    /** 完整 Base URL */
-    baseUrl: string;
-    /** API Key 绑定列表 */
-    bindings: ModelProxyBindingInfo[];
-    /** 今日请求数 */
-    todayRequests: number;
-    /** 今日 Token 数 */
-    todayTokens: number;
-    /** 今日错误数 */
-    todayErrors: number;
-    /** 平均延迟 ms */
-    avgLatencyMs: number;
-    /** 可用模型列表 */
-    models: ModelProxyModelInfo[];
-    /** 最近日志 */
-    recentLogs: ModelProxyLogInfo[];
-    /** i18n 标签 */
-    labels: ModelProxyLabels;
-}
-
-/** API Key 绑定信息（传递给 Webview） */
-export interface ModelProxyBindingInfo {
-    id: string;
-    maskedKey: string;
-    fullKey: string;
-    modelId: string;
-    modelName: string;
-    label: string;
-    createdAt: number;
-}
-
-export interface ModelProxyLabels {
-    statusRunning: string;
-    statusStopped: string;
-    offline: string;
-    requests: string;
-    tokens: string;
-    errorRate: string;
-    avgLatency: string;
-    connection: string;
-    baseUrl: string;
-    apiKey: string;
-    copy: string;
-    regenerate: string;
-    bindings?: string;
-    availableModels: string;
-    noModels: string;
-    addBinding: string;
-    removeBinding: string;
-    noBindings: string;
-    recentLogs: string;
-    tokensMax: string;
-    openLogsFolder: string;
-    logDetailTitle: string;
-    logInput: string;
-    logOutput: string;
-    logError: string;
-    logRequestId: string;
-    logDuration: string;
-    logClose: string;
-    viewAllLogs: string;
-    logViewerTitle: string;
-    logYear: string;
-    logMonth: string;
-    logDay: string;
-    logAll: string;
-    logSuccess: string;
-    logErrors: string;
-    logSearchPlaceholder: string;
-    logSelectDate: string;
-    logNoResults: string;
-    logTotalEntries: string;
-    logTime: string;
-    noLogs: string;
-}
-
-export interface ModelProxyModelInfo {
-    id: string;
-    name: string;
-    vendor: string;
-    family: string;
-    maxInputTokens: number;
-}
-
-export interface ModelProxyLogInfo {
-    timestamp: string;
-    requestId: string;
-    format: string;
-    model: string;
-    durationMs: number;
-    inputTokens: number;
-    outputTokens: number;
-    status: string;
-    error?: string;
-    inputContent?: string;
-    outputContent?: string;
-}
-
-/** 日志文件信息（按日期） */
-export interface LogFileInfo {
-    year: string;
-    month: string;
-    day: string;
-    /** YYYY-MM-DD */
-    date: string;
-    fileSize: number;
-    entryCount: number;
-}
-
-/** 日志查询结果 */
-export interface LogQueryResult {
-    entries: ModelProxyLogInfo[];
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-}
-
 // ==================== Card Item (Skills / Commands grid view) ====================
 
 export interface CardFileNode {
@@ -570,13 +415,6 @@ export type WebviewMessage =
     | { type: 'filterByTags'; section: SectionId; tags: string[] }
     | { type: 'clearFilter'; section: SectionId }
     | { type: 'toggleTag'; section: SectionId; tag: string }
-    | { type: 'selectProxyModel'; modelId: string }
-    | { type: 'proxyAction'; actionId: string }
-    | { type: 'addProxyBinding' }
-    | { type: 'removeProxyBinding'; bindingId: string }
-    | { type: 'copyProxyBindingKey'; bindingId: string }
-    | { type: 'requestLogFiles' }
-    | { type: 'queryLogs'; date: string; page: number; pageSize: number; statusFilter: 'all' | 'success' | 'error'; keyword?: string }
     | { type: 'cardClick'; section: SectionId; cardId: string }
     | { type: 'cardAction'; section: SectionId; cardId: string; actionId: string }
     | { type: 'cardFileClick'; section: SectionId; cardId: string; filePath: string };
@@ -595,7 +433,4 @@ export type ExtensionMessage =
     | { type: 'showOverlay'; data: OverlayData }
     | { type: 'hideOverlay' }
     | { type: 'showConfirm'; data: ConfirmData }
-    | { type: 'updateModelProxy'; data: ModelProxyDashboardData }
-    | { type: 'updateLogFiles'; files: LogFileInfo[] }
-    | { type: 'updateLogQuery'; result: LogQueryResult; date: string; statusFilter: string; keyword?: string }
     | { type: 'updateAiTaggingProgress'; data: AiTaggingProgressData };

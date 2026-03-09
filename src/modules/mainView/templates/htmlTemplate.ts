@@ -40,7 +40,6 @@ export function getHtml(
         { id: 'skills', label: I18n.get('nav.skills'), iconClass: 'codicon-library' },
         { id: 'commands', label: I18n.get('nav.commands'), iconClass: 'codicon-terminal' },
         { id: 'gitshare', label: I18n.get('nav.gitShare'), iconClass: 'codicon-git-merge' },
-        { id: 'modelProxy', label: I18n.get('nav.modelProxy'), iconClass: 'codicon-radio-tower' },
         { id: 'settings', label: I18n.get('nav.settings'), iconClass: 'codicon-settings-gear' },
     ];
 
@@ -62,7 +61,6 @@ export function getHtml(
         sectionSkills: I18n.get('nav.skills'),
         sectionCommands: I18n.get('nav.commands'),
         sectionGitShare: I18n.get('nav.gitShare'),
-        sectionModelProxy: I18n.get('nav.modelProxy'),
         sectionOpenCodeAuth: I18n.get('dashboard.opencode'),
         sectionSettings: I18n.get('nav.settings'),
         viewList: I18n.get('common.list'),
