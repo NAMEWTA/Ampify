@@ -1,5 +1,5 @@
 <template>
-  <el-config-provider namespace="ampify" :locale="locale" size="small" :z-index="4000">
+  <el-config-provider :locale="locale" size="small" :z-index="4000">
     <AppShell>
       <RouterView />
     </AppShell>

@@ -1,0 +1,294 @@
+.shell {
+    display: grid;
+    grid-template-columns: var(--amp-sidebar-expanded) minmax(0, 1fr);
+    height: 100%;
+    transition: grid-template-columns var(--amp-transition);
+}
+
+.shell.is-collapsed {
+    grid-template-columns: var(--amp-sidebar-collapsed) minmax(0, 1fr);
+}
+
+.shell-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px 6px 6px;
+    border-right: 1px solid var(--amp-border);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 20%),
+        linear-gradient(180deg, rgba(217, 119, 87, 0.06), transparent 26%),
+        var(--amp-canvas-2);
+}
+
+.sidebar-brand,
+.sidebar-footer,
+.sidebar-nav__item,
+.shell-topbar,
+.shell-topbar__main,
+.shell-topbar__actions,
+.shell-chip {
+    display: flex;
+    align-items: center;
+}
+
+.sidebar-brand,
+.sidebar-footer,
+.shell-topbar,
+.shell-topbar__main,
+.shell-topbar__actions {
+    gap: 8px;
+}
+
+.sidebar-brand {
+    min-height: 30px;
+    justify-content: center;
+}
+
+.brand-mark,
+.sidebar-nav__icon,
+.shell-icon-button {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.brand-mark {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, var(--amp-accent), var(--amp-accent-strong));
+    color: #20150f;
+    font: 700 11px/1 "Bahnschrift SemiBold", "Segoe UI Variable Display", sans-serif;
+    box-shadow: var(--amp-shadow-soft);
+}
+
+.sidebar-copy {
+    min-width: 0;
+    transition:
+        opacity var(--amp-transition),
+        transform var(--amp-transition),
+        width var(--amp-transition);
+}
+
+.brand-copy strong,
+.instance-chip__copy strong,
+.sidebar-nav__copy strong,
+.shell-topbar__copy strong {
+    display: block;
+    color: var(--amp-text);
+    font-weight: 700;
+}
+
+.brand-copy strong {
+    font: 700 12px/1.1 "Bahnschrift SemiCondensed", "Segoe UI Variable Display", sans-serif;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.brand-copy span,
+.instance-chip__copy small,
+.sidebar-nav__copy small,
+.shell-topbar__copy span,
+.shell-topbar__copy small {
+    color: var(--amp-text-muted);
+}
+
+.brand-copy span,
+.sidebar-nav__copy small,
+.shell-topbar__copy span,
+.shell-topbar__copy small {
+    font-size: 10px;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.sidebar-nav__item {
+    position: relative;
+    justify-content: center;
+    min-height: 30px;
+    padding: 4px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    color: var(--amp-text-soft);
+    text-align: left;
+    cursor: pointer;
+    transition:
+        border-color var(--amp-transition),
+        background var(--amp-transition),
+        color var(--amp-transition),
+        transform var(--amp-transition);
+}
+
+.sidebar-nav__item:hover,
+.sidebar-nav__item.active {
+    border-color: var(--amp-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--amp-text);
+}
+
+.sidebar-nav__indicator {
+    position: absolute;
+    left: 0;
+    top: 7px;
+    bottom: 7px;
+    width: 3px;
+    border-radius: 999px;
+    background: transparent;
+}
+
+.sidebar-nav__item.active .sidebar-nav__indicator {
+    background: linear-gradient(180deg, var(--amp-accent), var(--amp-blue));
+}
+
+.sidebar-nav__icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.04);
+    color: inherit;
+}
+
+.sidebar-nav__icon .codicon,
+.brand-mark,
+.shell-icon-button .codicon {
+    font-size: 12px;
+}
+
+.shell-icon-button {
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--amp-border);
+    border-radius: 8px;
+    color: var(--amp-text-soft);
+    cursor: pointer;
+    transition:
+        border-color var(--amp-transition),
+        background var(--amp-transition),
+        color var(--amp-transition);
+}
+
+.shell-icon-button:hover {
+    border-color: var(--amp-border-strong);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--amp-text);
+}
+
+.sidebar-toggle {
+    align-self: stretch;
+}
+
+.shell-stage {
+    display: grid;
+    grid-template-rows: 38px minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
+}
+
+.shell-topbar {
+    justify-content: space-between;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--amp-border);
+    background: rgba(23, 23, 24, 0.84);
+    backdrop-filter: blur(16px);
+}
+
+.shell-topbar__copy {
+    min-width: 0;
+}
+
+.shell-topbar__copy strong {
+    font: 700 12px/1.2 "Bahnschrift SemiCondensed", "Segoe UI Variable Display", sans-serif;
+}
+
+.shell-chip {
+    justify-content: center;
+    min-width: 42px;
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid var(--amp-border);
+    border-radius: 8px;
+    color: var(--amp-text-soft);
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.shell-refresh-button.el-button {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    padding: 0;
+}
+
+.shell-content,
+.shell-scroll {
+    min-width: 0;
+    min-height: 0;
+}
+
+.shell-content {
+    overflow: hidden;
+}
+
+.shell-scroll {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+}
+
+.shell.is-collapsed .sidebar-copy {
+    width: 0;
+    opacity: 0;
+    transform: translateX(-8px);
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.shell.is-collapsed .sidebar-brand,
+.shell.is-collapsed .sidebar-footer {
+    justify-content: center;
+}
+
+.shell.is-collapsed .sidebar-nav__item {
+    justify-content: center;
+    padding-inline: 0;
+}
+
+@media (max-width: 1180px) {
+    .shell {
+        grid-template-columns: var(--amp-sidebar-expanded) minmax(0, 1fr);
+    }
+
+    .shell.is-collapsed {
+        grid-template-columns: var(--amp-sidebar-collapsed) minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 920px) {
+    .shell {
+        grid-template-columns: var(--amp-sidebar-collapsed) minmax(0, 1fr);
+    }
+
+    .shell-topbar,
+    .shell-topbar__actions {
+        flex-wrap: wrap;
+    }
+
+    .sidebar-brand,
+    .sidebar-footer,
+    .sidebar-nav__item {
+        justify-content: center;
+    }
+
+    .sidebar-nav__item {
+        padding-inline: 0;
+    }
+}

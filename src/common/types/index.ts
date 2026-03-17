@@ -1,17 +1,3 @@
-export interface InstanceConfig {
-    dirName: string;
-    description: string;
-    vscodeArgs: string[];
-    defaultProject?: string;
-    lastUsedAt?: number;
-}
-
-export interface LauncherConfig {
-    instances: Record<string, InstanceConfig>;
-    lastUsedKey?: string;
-    lastUsedAt?: number;
-}
-
 // ==================== Skills Manager Types ====================
 
 /**
@@ -189,58 +175,3 @@ export interface LoadedCommand {
     content?: string;
 }
 
-// ==================== OpenCode Copilot Auth Types ====================
-
-export interface CopilotCredential {
-    id: string;
-    name: string;
-    provider: string;
-    type: string;
-    access: string;
-    refresh: string;
-    expires: number;
-    lastUsedAt?: number;
-    lastImportedAt?: number;
-    /**
-     * Preserve provider-specific fields from auth.json (for example accountId).
-     * These fields will be merged back when applying to auth.json.
-     */
-    raw?: Record<string, unknown>;
-}
-
-export type ManagedSessionStatus = 'running' | 'stopped' | 'unknown';
-export type ManagedSessionLaunchMode = 'externalTerminal';
-
-export interface ManagedOpencodeSession {
-    id: string;
-    terminalName: string;
-    launchMode: ManagedSessionLaunchMode;
-    pid?: number;
-    startedAt: number;
-    command: string;
-    status: ManagedSessionStatus;
-    workspace?: string;
-    activeProvidersSnapshot?: string[];
-    activeOhMyProfileIdSnapshot?: string;
-    activeOhMyNameSnapshot?: string;
-}
-
-export interface OhMyProfile {
-    id: string;
-    name: string;
-    content: string;
-    contentHash: string;
-    importedAt: number;
-    lastAppliedAt?: number;
-}
-
-export interface OpenCodeCopilotAuthConfig {
-    credentials: CopilotCredential[];
-    activeByProvider?: Record<string, string>;
-    ohMyProfiles?: OhMyProfile[];
-    activeOhMyProfileId?: string;
-    managedSessions?: ManagedOpencodeSession[];
-    activeId?: string;
-    lastSwitchedId?: string;
-    lastSwitchedAt?: number;
-}

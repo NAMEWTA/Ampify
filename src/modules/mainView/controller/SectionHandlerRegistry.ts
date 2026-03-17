@@ -22,30 +22,6 @@ class DashboardSectionHandler implements MainViewSectionHandler {
     }
 }
 
-class AccountCenterSectionHandler implements MainViewSectionHandler {
-    readonly section: SectionId = 'accountCenter';
-
-    constructor(private readonly controller: MainViewController) {}
-
-    getViewModel() {
-        return this.controller.buildAccountCenterViewModel();
-    }
-
-    async handleAction(action: SectionActionPayload): Promise<void> {
-        if (action.kind === 'accountTabChange') {
-            await this.controller.handleAccountCenterTabChange(action.tab);
-            return;
-        }
-        if (action.kind === 'accountAction') {
-            await this.controller.handleAccountCenterAction(action.tab, action.actionId, action.rowId);
-            return;
-        }
-        if (action.kind === 'toolbar') {
-            await this.controller.handleToolbarAction('accountCenter', action.actionId);
-        }
-    }
-}
-
 class ResourceSectionHandler implements MainViewSectionHandler {
     constructor(
         public readonly section: SectionId,
@@ -125,12 +101,9 @@ export class SectionHandlerRegistry {
     constructor(controller: MainViewController) {
         const entries: MainViewSectionHandler[] = [
             new DashboardSectionHandler(controller),
-            new AccountCenterSectionHandler(controller),
-            new ResourceSectionHandler('launcher', controller),
             new ResourceSectionHandler('skills', controller),
             new ResourceSectionHandler('commands', controller),
             new ResourceSectionHandler('gitshare', controller),
-            new ResourceSectionHandler('opencodeAuth', controller),
             new SettingsSectionHandler(controller)
         ];
         for (const handler of entries) {

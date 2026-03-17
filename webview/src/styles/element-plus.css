@@ -1,0 +1,199 @@
+.field-full,
+.el-select {
+    width: 100%;
+}
+
+.el-button {
+    border-radius: var(--amp-radius-sm);
+    font-weight: 500;
+    color: var(--amp-text-soft);
+}
+
+.el-button + .el-button {
+    margin-left: 0;
+}
+
+.el-button.is-plain {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--amp-border);
+    color: var(--amp-text);
+}
+
+.el-button.is-plain:hover,
+.el-button.is-plain:focus-visible {
+    border-color: var(--amp-border-strong);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--amp-text);
+}
+
+.el-button.is-text,
+.el-button.is-link {
+    color: var(--amp-text-soft);
+}
+
+.el-button .codicon,
+.el-button span,
+.el-form-item__label,
+.el-dialog__title,
+.el-drawer__title {
+    color: inherit;
+}
+
+.el-button.is-text:hover,
+.el-button.is-link:hover {
+    color: var(--amp-text);
+}
+
+.el-input__wrapper,
+.el-select__wrapper,
+.el-textarea__inner {
+    border: 0;
+    border-radius: var(--amp-radius-sm);
+    background: var(--amp-field);
+    color: var(--amp-text);
+    box-shadow: 0 0 0 1px var(--amp-border) inset !important;
+}
+
+.el-input__wrapper.is-disabled,
+.el-select__wrapper.is-disabled,
+.el-textarea.is-disabled .el-textarea__inner {
+    background: var(--amp-field) !important;
+    color: var(--amp-text-muted) !important;
+    box-shadow: 0 0 0 1px var(--amp-border) inset !important;
+}
+
+.el-input__wrapper:hover,
+.el-select__wrapper:hover,
+.el-textarea__inner:hover {
+    box-shadow: 0 0 0 1px var(--amp-border-strong) inset !important;
+}
+
+.el-input__wrapper.is-focus,
+.el-select__wrapper.is-focused,
+.el-textarea__inner:focus {
+    box-shadow:
+        0 0 0 1px var(--amp-accent) inset,
+        0 0 0 3px rgba(217, 119, 87, 0.14) !important;
+}
+
+.el-input__inner,
+.el-textarea__inner,
+.el-select__selected-item,
+.el-select__placeholder,
+.el-select-dropdown__item {
+    color: var(--amp-text);
+}
+
+.el-select__placeholder,
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder {
+    color: var(--amp-text-muted) !important;
+}
+
+.el-input__inner::placeholder,
+.el-textarea__inner::placeholder {
+    color: var(--amp-text-muted);
+}
+
+.el-textarea__inner {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.el-select-dropdown,
+.el-dropdown-menu,
+.el-picker-panel,
+.el-message,
+.el-dialog,
+.el-drawer {
+    border: 1px solid var(--amp-border);
+    background: var(--amp-panel);
+    color: var(--amp-text);
+}
+
+.el-select-dropdown,
+.el-popper,
+.el-select-dropdown__wrap,
+.el-select-dropdown__list,
+.el-overlay-dialog,
+.el-drawer,
+.el-dialog,
+.el-message-box {
+    background: var(--amp-panel) !important;
+    color: var(--amp-text) !important;
+}
+
+.el-select-dropdown__item.is-hovering,
+.el-select-dropdown__item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.el-select-dropdown__item.is-selected {
+    background: var(--amp-accent-soft);
+    color: var(--amp-text);
+}
+
+.el-dialog {
+    border-radius: var(--amp-radius-lg);
+}
+
+.el-dialog__header,
+.el-drawer__header {
+    margin-right: 0;
+    padding: 18px 20px 10px;
+}
+
+.el-dialog__body,
+.el-drawer__body {
+    padding: 8px 20px 20px;
+}
+
+.el-dialog__footer {
+    padding: 0 20px 20px;
+}
+
+.el-form-item {
+    margin-bottom: 0;
+}
+
+.el-form-item__label {
+    padding-bottom: 8px;
+    color: var(--amp-text);
+    font-weight: 600;
+}
+
+.el-checkbox {
+    color: var(--amp-text-soft);
+}
+
+.el-checkbox__inner {
+    border-color: var(--amp-border-strong);
+    background: var(--amp-field);
+}
+
+.el-checkbox__input.is-checked .el-checkbox__inner,
+.el-checkbox__input.is-indeterminate .el-checkbox__inner {
+    border-color: var(--amp-accent);
+    background: var(--amp-accent);
+}
+
+.el-tag {
+    border-color: rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--amp-text-soft);
+}
+
+.el-progress-bar__outer {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.el-drawer__title,
+.el-dialog__title {
+    color: var(--amp-text);
+    font-weight: 700;
+}
+
+.el-message {
+    box-shadow: var(--amp-shadow-soft);
+}

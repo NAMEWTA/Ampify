@@ -1,0 +1,120 @@
+:root {
+    --amp-canvas: #171718;
+    --amp-canvas-2: #1b1c1f;
+    --amp-panel: #202124;
+    --amp-panel-2: #26282c;
+    --amp-panel-3: #2a2d31;
+    --amp-field: #1a1b1f;
+    --amp-border: #353942;
+    --amp-border-strong: #4b515c;
+    --amp-text: #fff7ed;
+    --amp-text-soft: #f0e4d3;
+    --amp-text-muted: #d0c4b4;
+    --amp-accent: #d97757;
+    --amp-accent-soft: rgba(217, 119, 87, 0.16);
+    --amp-accent-strong: #efb07c;
+    --amp-blue: #6a9bcc;
+    --amp-green: #788c5d;
+    --amp-danger: #d86d70;
+    --amp-radius-lg: 14px;
+    --amp-radius-md: 11px;
+    --amp-radius-sm: 8px;
+    --amp-shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
+    --amp-shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.18);
+    --amp-transition: 220ms ease;
+    --amp-sidebar-expanded: 64px;
+    --amp-sidebar-collapsed: 48px;
+    --el-color-primary: var(--amp-accent);
+    --el-color-success: var(--amp-green);
+    --el-color-danger: var(--amp-danger);
+    --el-bg-color: var(--amp-panel);
+    --el-bg-color-page: var(--amp-canvas);
+    --el-bg-color-overlay: var(--amp-panel);
+    --el-fill-color: rgba(255, 255, 255, 0.04);
+    --el-fill-color-light: rgba(255, 255, 255, 0.06);
+    --el-fill-color-lighter: rgba(255, 255, 255, 0.08);
+    --el-fill-color-dark: rgba(255, 255, 255, 0.12);
+    --el-fill-color-darker: rgba(255, 255, 255, 0.16);
+    --el-fill-color-blank: var(--amp-panel);
+    --el-border-color: var(--amp-border);
+    --el-border-color-light: rgba(255, 255, 255, 0.08);
+    --el-border-color-lighter: rgba(255, 255, 255, 0.06);
+    --el-border-color-hover: var(--amp-border-strong);
+    --el-text-color-primary: var(--amp-text);
+    --el-text-color-regular: var(--amp-text-soft);
+    --el-text-color-secondary: var(--amp-text-muted);
+    --el-text-color-placeholder: var(--amp-text-muted);
+    --el-mask-color: rgba(11, 12, 14, 0.76);
+    --el-box-shadow: var(--amp-shadow);
+    --el-box-shadow-light: var(--amp-shadow-soft);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top right, rgba(217, 119, 87, 0.08), transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.015), transparent 18%),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        var(--amp-canvas);
+    background-size: auto, auto, 28px 28px, 28px 28px, auto;
+    color: var(--amp-text);
+    font: 12px/1.45 "Segoe UI Variable Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+button {
+    border: 0;
+    background: none;
+    color: inherit;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.codicon {
+    font-size: 14px;
+    line-height: 1;
+}
+
+::selection {
+    background: rgba(217, 119, 87, 0.28);
+    color: #fffaf4;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.12);
+    background-clip: padding-box;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}

@@ -11,41 +11,26 @@ import type {
     DashboardGitInfo,
     DashboardWorkspaceInfo,
     DashboardLabels,
-    ModuleHealthStatus,
-    DashboardLauncherInfo,
-    DashboardOpenCodeInfo
+    ModuleHealthStatus
 } from '../shared/contracts';
 import { I18n } from '../../../common/i18n';
 
 export class DashboardBridge {
     async getData(): Promise<DashboardData> {
-        const [stats, moduleHealth, gitInfo, workspaceInfo, launcher, opencode] =
+        const [stats, moduleHealth, gitInfo, workspaceInfo] =
             await Promise.all([
                 this.collectStats(),
                 this.collectModuleHealth(),
                 this.collectGitInfo(),
-                this.collectWorkspaceInfo(),
-                this.getLauncherInfo(),
-                this.getOpenCodeInfo()
+                this.collectWorkspaceInfo()
             ]);
         const quickActions = this.getQuickActions();
         const labels = this.getLabels();
-        return { stats, quickActions, moduleHealth, gitInfo, workspaceInfo, labels, launcher, opencode };
+        return { stats, quickActions, moduleHealth, gitInfo, workspaceInfo, labels };
     }
 
     private async collectStats(): Promise<DashboardStat[]> {
         const stats: DashboardStat[] = [];
-
-        // Launcher 实例数
-        try {
-            const { ConfigManager } = await import('../../launcher/core/configManager');
-            const configManager = new ConfigManager();
-            const config = configManager.getConfig();
-            const count = Object.keys(config.instances).length;
-            stats.push({ label: I18n.get('dashboard.launcherInstances'), value: count, iconId: 'rocket', color: '#6a9bcc', targetSection: 'launcher' });
-        } catch {
-            stats.push({ label: I18n.get('dashboard.launcherInstances'), value: 0, iconId: 'rocket', color: '#6a9bcc', targetSection: 'launcher' });
-        }
 
         // Skills 数量
         try {
@@ -67,16 +52,6 @@ export class DashboardBridge {
             stats.push({ label: I18n.get('dashboard.commandsCount'), value: 0, iconId: 'terminal', color: '#d97757', targetSection: 'commands' });
         }
 
-        // OpenCode Auth 凭据数
-        try {
-            const { OpenCodeCopilotAuthConfigManager } = await import('../../opencode-copilot-auth/core/configManager');
-            const cm = new OpenCodeCopilotAuthConfigManager();
-            const count = cm.getCredentials().length;
-            stats.push({ label: I18n.get('dashboard.opencode'), value: count, iconId: 'key', color: '#c586c0', targetSection: 'opencodeAuth' });
-        } catch {
-            stats.push({ label: I18n.get('dashboard.opencode'), value: 0, iconId: 'key', color: '#c586c0', targetSection: 'opencodeAuth' });
-        }
-
         // Git 状态
         try {
             const { GitManager } = await import('../../../common/git');
@@ -95,16 +70,6 @@ export class DashboardBridge {
 
     private async collectModuleHealth(): Promise<ModuleHealthItem[]> {
         const items: ModuleHealthItem[] = [];
-
-        // Launcher
-        try {
-            const { ConfigManager } = await import('../../launcher/core/configManager');
-            const cm = new ConfigManager();
-            const count = Object.keys(cm.getConfig().instances).length;
-            items.push({ moduleId: 'launcher', label: I18n.get('dashboard.launcher'), status: count > 0 ? 'active' : 'inactive', detail: `${count} ${I18n.get('dashboard.launcherInstances')}`, iconId: 'rocket', color: '#6a9bcc' });
-        } catch {
-            items.push({ moduleId: 'launcher', label: I18n.get('dashboard.launcher'), status: 'error', detail: I18n.get('dashboard.error'), iconId: 'rocket', color: '#f48771' });
-        }
 
         // Skills
         try {
@@ -142,20 +107,6 @@ export class DashboardBridge {
             items.push({ moduleId: 'gitshare', label: I18n.get('dashboard.gitShare'), status: 'error', detail: I18n.get('dashboard.error'), iconId: 'git-merge', color: '#f48771' });
         }
 
-        // OpenCode Auth
-        try {
-            const { OpenCodeCopilotAuthConfigManager } = await import('../../opencode-copilot-auth/core/configManager');
-            const cm = new OpenCodeCopilotAuthConfigManager();
-            const count = cm.getCredentials().length;
-            const activeId = cm.getActiveId();
-            const detail = activeId
-                ? `${count} credentials, active: ${cm.getCredentialById(activeId)?.name || activeId}`
-                : `${count} credentials`;
-            items.push({ moduleId: 'opencodeAuth', label: I18n.get('dashboard.opencode'), status: count > 0 ? 'active' : 'inactive', detail, iconId: 'key', color: '#c586c0' });
-        } catch {
-            items.push({ moduleId: 'opencodeAuth', label: I18n.get('dashboard.opencode'), status: 'inactive', detail: '0 credentials', iconId: 'key', color: '#717171' });
-        }
-
         return items;
     }
 
@@ -190,67 +141,6 @@ export class DashboardBridge {
         }
     }
 
-    private async getLauncherInfo(): Promise<DashboardLauncherInfo | undefined> {
-        try {
-            const { ConfigManager } = await import('../../launcher/core/configManager');
-            const configManager = new ConfigManager();
-            const config = configManager.getConfig();
-            const keys = Object.keys(config.instances);
-            if (keys.length === 0) return undefined;
-
-            const { instanceKey } = await import('../../../extension');
-            const lastKey = config.lastUsedKey;
-            const lastAt = config.lastUsedAt;
-            const lastIndex = lastKey ? keys.indexOf(lastKey) : -1;
-            const nextIndex = (lastIndex + 1) % keys.length;
-            const nextKey = keys[nextIndex];
-            const nextInstance = config.instances[nextKey];
-            const activeKey = instanceKey || lastKey;
-            const activeInstance = activeKey ? config.instances[activeKey] : undefined;
-
-            return {
-                total: keys.length,
-                lastKey,
-                lastLabel: activeKey ? (activeInstance?.description || activeKey) : undefined,
-                lastAt: lastAt,
-                nextKey,
-                nextLabel: nextInstance?.description || nextKey
-            };
-        } catch {
-            return undefined;
-        }
-    }
-
-    private async getOpenCodeInfo(): Promise<DashboardOpenCodeInfo | undefined> {
-        try {
-            const { OpenCodeCopilotAuthConfigManager } = await import('../../opencode-copilot-auth/core/configManager');
-            const cm = new OpenCodeCopilotAuthConfigManager();
-            const credentials = cm.getCredentials();
-            if (credentials.length === 0) return undefined;
-
-            const activeId = cm.getActiveId();
-            const activeCred = activeId ? cm.getCredentialById(activeId) : undefined;
-            const lastSwitchedAt = cm.getLastSwitchedAt();
-
-            const ids = credentials.map(c => c.id);
-            const lastSwitchedId = cm.getLastSwitchedId();
-            const lastIdx = lastSwitchedId ? ids.indexOf(lastSwitchedId) : -1;
-            const nextIdx = (lastIdx + 1) % ids.length;
-            const nextCred = credentials[nextIdx];
-
-            return {
-                total: credentials.length,
-                lastId: activeCred?.id,
-                lastLabel: activeCred?.name,
-                lastAt: lastSwitchedAt,
-                nextId: nextCred?.id,
-                nextLabel: nextCred?.name
-            };
-        } catch {
-            return undefined;
-        }
-    }
-
     private getLabels(): DashboardLabels {
         return {
             moduleHealth: I18n.get('dashboard.moduleHealth'),
@@ -261,18 +151,11 @@ export class DashboardBridge {
             gitPull: I18n.get('dashboard.gitPull'),
             gitPush: I18n.get('dashboard.gitPush'),
             nextUp: I18n.get('dashboard.nextUp'),
-            launcher: I18n.get('dashboard.launcher'),
-            opencode: I18n.get('dashboard.opencode'),
-            switchNow: I18n.get('dashboard.switchNow'),
-            lastSwitched: I18n.get('dashboard.lastSwitched'),
-            nextAccount: I18n.get('dashboard.nextAccount'),
-            activeAccount: I18n.get('dashboard.activeAccount'),
         };
     }
 
     private getQuickActions(): QuickAction[] {
         return [
-            { id: 'launch', label: I18n.get('dashboard.quickLaunch'), iconId: 'rocket', action: 'toolbar', section: 'launcher', actionId: 'add' },
             { id: 'createSkill', label: I18n.get('dashboard.quickCreateSkill'), iconId: 'add', action: 'toolbar', section: 'skills', actionId: 'create' },
             { id: 'createCommand', label: I18n.get('dashboard.quickCreateCommand'), iconId: 'add', action: 'toolbar', section: 'commands', actionId: 'create' },
             { id: 'gitSync', label: I18n.get('dashboard.quickGitSync'), iconId: 'sync', command: 'ampify.gitShare.sync', action: 'command' },

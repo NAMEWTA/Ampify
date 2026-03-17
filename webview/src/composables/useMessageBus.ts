@@ -1,4 +1,4 @@
-import type { AccountCenterData, ExtensionMessage, SectionViewModel, VisibleSectionId } from '@shared/contracts';
+import type { ExtensionMessage, VisibleSectionId } from '@shared/contracts';
 import { ElMessage } from 'element-plus';
 import { router } from '@/router';
 import { postToExtension } from '@/services/vscode';
@@ -9,7 +9,6 @@ import { useSectionsStore } from '@/stores/sections';
 
 const sectionToPath: Record<VisibleSectionId, string> = {
     dashboard: '/dashboard',
-    accountCenter: '/dashboard',
     skills: '/skills',
     commands: '/commands',
     gitshare: '/git-share',
@@ -30,10 +29,6 @@ export function useMessageBus() {
                 break;
             case 'sectionData':
                 sectionsStore.setSection(message.section, message.data);
-                if (message.section === 'accountCenter') {
-                    sectionsStore.setSection('launcher', message.data);
-                    sectionsStore.setSection('opencodeAuth', message.data);
-                }
                 break;
             case 'overlayState':
                 overlayStore.setOverlay(message.data);
@@ -54,19 +49,6 @@ export function useMessageBus() {
             case 'appState':
                 appStore.applyAppState(message.data);
                 await router.replace(sectionToPath[message.data.activeSection]);
-                if (message.data.accountCenterTab) {
-                    const accountCenter = sectionsStore.sections.accountCenter as SectionViewModel | undefined;
-                    if (accountCenter && accountCenter.section === 'accountCenter') {
-                        const next = {
-                            ...accountCenter,
-                            data: {
-                                ...(accountCenter.data as AccountCenterData),
-                                activeTab: message.data.accountCenterTab
-                            }
-                        };
-                        sectionsStore.setSection('accountCenter', next);
-                    }
-                }
                 break;
         }
     };

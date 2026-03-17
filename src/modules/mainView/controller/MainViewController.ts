@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { getHtml } from '../templates/htmlTemplate';
 import {
-    AccountCenterTabId,
     AiTaggingProgressData,
     BootstrapPayload,
     CommandsViewModel,
@@ -9,8 +8,6 @@ import {
     DashboardViewModel,
     ExtensionMessage,
     GitShareViewModel,
-    LauncherViewModel,
-    OpenCodeAuthViewModel,
     OverlayData,
     OverlayField,
     SectionActionPayload,
@@ -23,13 +20,10 @@ import {
     VisibleSectionId
 } from '../shared/contracts';
 import { DashboardBridge } from '../bridges/dashboardBridge';
-import { LauncherBridge } from '../bridges/launcherBridge';
 import { SkillsBridge } from '../bridges/skillsBridge';
 import { CommandsBridge } from '../bridges/commandsBridge';
 import { GitShareBridge } from '../bridges/gitShareBridge';
 import { SettingsBridge } from '../bridges/settingsBridge';
-import { OpenCodeAuthBridge } from '../bridges/opencodeAuthBridge';
-import { AccountCenterBridge } from '../bridges/accountCenterBridge';
 import { GitManager } from '../../../common/git';
 import { I18n } from '../../../common/i18n';
 import { SkillConfigManager } from '../../skills/core/skillConfigManager';
@@ -37,7 +31,6 @@ import { CommandConfigManager } from '../../commands/core/commandConfigManager';
 import { SkillAiTagger } from '../../skills/core/skillAiTagger';
 import { CommandAiTagger } from '../../commands/core/commandAiTagger';
 import { parseTagLibraryText, stringifyTagLibraryText } from '../../../common/tagLibrary';
-import { instanceKey } from '../../../extension';
 import { MessageRouter } from './MessageRouter';
 import { SectionHandlerRegistry } from './SectionHandlerRegistry';
 
@@ -48,13 +41,10 @@ export class MainViewController {
     private readonly aiTaggingProgress = new Map<'skills' | 'commands', AiTaggingProgressData>();
 
     private readonly dashboardBridge = new DashboardBridge();
-    private readonly launcherBridge = new LauncherBridge();
     private readonly skillsBridge = new SkillsBridge();
     private readonly commandsBridge = new CommandsBridge();
     private readonly gitShareBridge = new GitShareBridge();
     private readonly settingsBridge = new SettingsBridge();
-    private readonly opencodeAuthBridge = new OpenCodeAuthBridge();
-    private readonly accountCenterBridge = new AccountCenterBridge();
     private readonly gitManager = new GitManager();
     private readonly router = new MessageRouter(this);
     private readonly registry = new SectionHandlerRegistry(this);
@@ -103,12 +93,6 @@ export class MainViewController {
 
     async handleNavigate(section: SectionId): Promise<void> {
         const normalized = this.normalizeSection(section);
-        if (normalized === 'accountCenter') {
-            const tab = this.getAccountCenterTabBySection(section);
-            if (tab) {
-                this.accountCenterBridge.setActiveTab(tab);
-            }
-        }
         this.activeSection = normalized;
         this.postAppState();
         await this.sendSectionData(normalized);
@@ -171,16 +155,6 @@ export class MainViewController {
         data: await this.dashboardBridge.getData()
     });
 
-    buildAccountCenterViewModel = async (): Promise<SectionViewModel> => {
-        const data = await this.accountCenterBridge.getData();
-        return {
-            section: 'accountCenter',
-            title: data.title,
-            toolbar: data.toolbar,
-            data
-        };
-    };
-
     buildSettingsViewModel = async (): Promise<SettingsViewModel> => ({
         section: 'settings',
         title: I18n.get('nav.settings'),
@@ -189,16 +163,12 @@ export class MainViewController {
 
     buildResourceViewModel = async (section: SectionId): Promise<SectionViewModel> => {
         switch (section) {
-            case 'launcher':
-                return this.buildLauncherViewModel();
             case 'skills':
                 return this.buildSkillsViewModel();
             case 'commands':
                 return this.buildCommandsViewModel();
             case 'gitshare':
                 return this.buildGitShareViewModel();
-            case 'opencodeAuth':
-                return this.buildOpenCodeAuthViewModel();
             default:
                 throw new Error(`Unsupported resource section "${section}"`);
         }
@@ -211,24 +181,14 @@ export class MainViewController {
         }
 
         switch (section) {
-            case 'accountCenter':
-                await this.accountCenterBridge.executeAction(actionId);
-                await this.sendSectionData('accountCenter');
-                return;
             case 'skills':
                 await this.handleSkillsToolbarAction(actionId);
                 return;
             case 'commands':
                 await this.handleCommandsToolbarAction(actionId);
                 return;
-            case 'launcher':
-                await this.handleLauncherToolbarAction(actionId);
-                return;
             case 'gitshare':
                 await this.handleGitShareToolbarAction(actionId);
-                return;
-            case 'opencodeAuth':
-                await this.handleOpenCodeAuthToolbarAction(actionId);
                 return;
             default:
                 return;
@@ -239,9 +199,6 @@ export class MainViewController {
         const node = this.findNodeInTree(section, nodeId);
 
         switch (section) {
-            case 'launcher':
-                await this.launcherBridge.executeAction('switch', nodeId);
-                break;
             case 'skills':
                 if (node?.nodeType === 'skillItem') {
                     await this.skillsBridge.executeAction('preview', nodeId);
@@ -277,12 +234,6 @@ export class MainViewController {
                     }
                 }
                 break;
-            case 'opencodeAuth':
-                if (node?.nodeType === 'credentialItem') {
-                    await this.opencodeAuthBridge.executeAction('switch', nodeId);
-                    await this.sendSectionData('opencodeAuth');
-                }
-                break;
         }
     }
 
@@ -298,9 +249,6 @@ export class MainViewController {
         }
 
         switch (section) {
-            case 'launcher':
-                await this.launcherBridge.executeAction(actionId, nodeId);
-                break;
             case 'skills':
                 await this.skillsBridge.executeAction(actionId, nodeId);
                 break;
@@ -309,9 +257,6 @@ export class MainViewController {
                 break;
             case 'gitshare':
                 await this.gitShareBridge.executeAction(actionId, nodeId);
-                break;
-            case 'opencodeAuth':
-                await this.opencodeAuthBridge.executeAction(actionId, nodeId);
                 break;
         }
 
@@ -333,6 +278,9 @@ export class MainViewController {
                 return;
             }
             await this.skillsBridge.executeAction(actionId, cardId);
+            if (actionId === 'apply') {
+                this.postNotification('Copy to .claude/skills executed', 'info');
+            }
             await this.sendSectionData('skills');
             return;
         }
@@ -343,18 +291,13 @@ export class MainViewController {
                 return;
             }
             await this.commandsBridge.executeAction(actionId, cardId);
+            if (actionId === 'apply') {
+                this.postNotification('Copy to .claude/commands executed', 'info');
+            }
             await this.sendSectionData('commands');
             return;
         }
 
-        if (section === 'opencodeAuth') {
-            if (actionId === 'delete') {
-                await this.handleDeleteWithConfirm(section, cardId);
-                return;
-            }
-            await this.opencodeAuthBridge.executeAction(actionId, cardId);
-            await this.sendSectionData('opencodeAuth');
-        }
     }
 
     async handleCardFileClick(filePath: string): Promise<void> {
@@ -470,24 +413,6 @@ export class MainViewController {
         }
     }
 
-    async handleAccountCenterTabChange(tab: AccountCenterTabId): Promise<void> {
-        this.accountCenterBridge.setActiveTab(tab);
-        if (this.activeSection === 'accountCenter') {
-            this.postAppState();
-            await this.sendSectionData('accountCenter');
-        }
-    }
-
-    async handleAccountCenterAction(tab: AccountCenterTabId, actionId: string, rowId?: string): Promise<void> {
-        this.accountCenterBridge.setActiveTab(tab);
-        await this.accountCenterBridge.executeAction(actionId, rowId);
-        if (this.activeSection === 'accountCenter') {
-            this.postAppState();
-            await this.sendSectionData('accountCenter');
-        }
-        await this.sendSectionData('dashboard');
-    }
-
     async handleSettingsAction(command: string): Promise<void> {
         if (command === 'reloadWindow') {
             await vscode.commands.executeCommand('workbench.action.reloadWindow');
@@ -495,23 +420,10 @@ export class MainViewController {
     }
 
     async handleQuickAction(actionId: string, section: SectionId): Promise<void> {
-        if (section === 'launcher' || section === 'opencodeAuth') {
-            await this.handleToolbarAction(section, actionId);
-            await this.sendSectionData('dashboard');
-            return;
-        }
-
         const normalized = this.normalizeSection(section);
-        if (normalized === 'accountCenter') {
-            const tab = this.getAccountCenterTabBySection(section);
-            if (tab) {
-                this.accountCenterBridge.setActiveTab(tab);
-            }
-        }
-
         this.activeSection = normalized;
         this.postAppState();
-        await this.sendSectionData(normalized);
+        await this.sendSectionData(this.activeSection);
 
         setTimeout(() => {
             void this.handleToolbarAction(normalized, actionId);
@@ -542,7 +454,6 @@ export class MainViewController {
             brandName: 'Ampify',
             brandTagline: vscode.workspace.workspaceFolders?.[0]?.name || 'Workspace Command Center',
             locale: configuredLang,
-            instanceKey: instanceKey || 'default',
             initialSection: this.activeSection,
             navItems: [
                 { id: 'dashboard', label: I18n.get('nav.dashboard'), iconId: 'dashboard' },
@@ -567,8 +478,7 @@ export class MainViewController {
         this.postMessage({
             type: 'appState',
             data: {
-                activeSection: this.activeSection,
-                accountCenterTab: this.accountCenterBridge.getActiveTab()
+                activeSection: this.activeSection
             }
         });
     }
@@ -596,15 +506,6 @@ export class MainViewController {
             type: 'progressState',
             data: this.aiTaggingProgress.get(target) || null
         });
-    }
-
-    private buildLauncherViewModel(): LauncherViewModel {
-        return {
-            section: 'launcher',
-            title: I18n.get('dashboard.launcher'),
-            toolbar: this.launcherBridge.getToolbar(),
-            tree: this.launcherBridge.getTreeData()
-        };
     }
 
     private buildSkillsViewModel(): SkillsViewModel {
@@ -640,16 +541,6 @@ export class MainViewController {
         };
     }
 
-    private buildOpenCodeAuthViewModel(): OpenCodeAuthViewModel {
-        return {
-            section: 'opencodeAuth',
-            title: I18n.get('dashboard.opencode'),
-            toolbar: this.opencodeAuthBridge.getToolbar(),
-            tree: this.opencodeAuthBridge.getTreeData(),
-            cards: this.opencodeAuthBridge.getCardData()
-        };
-    }
-
     private findNodeInTree(section: SectionId, nodeId: string): TreeNode | undefined {
         let tree: TreeNode[] = [];
         switch (section) {
@@ -658,12 +549,6 @@ export class MainViewController {
                 break;
             case 'commands':
                 tree = this.commandsBridge.getTreeData();
-                break;
-            case 'launcher':
-                tree = this.launcherBridge.getTreeData();
-                break;
-            case 'opencodeAuth':
-                tree = this.opencodeAuthBridge.getTreeData();
                 break;
         }
         return this.findNodeRecursive(tree, nodeId);
@@ -690,8 +575,6 @@ export class MainViewController {
                 return this.skillsBridge.getCardData();
             case 'commands':
                 return this.commandsBridge.getCardData();
-            case 'opencodeAuth':
-                return this.opencodeAuthBridge.getCardData();
             default:
                 return [];
         }
@@ -791,32 +674,6 @@ export class MainViewController {
                 break;
             case 'openFolder':
                 await vscode.commands.executeCommand('ampify.commands.openFolder');
-                break;
-        }
-    }
-
-    private async handleLauncherToolbarAction(actionId: string): Promise<void> {
-        if (actionId === 'add') {
-            await this.showLauncherAddOverlay();
-        }
-    }
-
-    private async handleOpenCodeAuthToolbarAction(actionId: string): Promise<void> {
-        switch (actionId) {
-            case 'add':
-                await this.showOpenCodeAuthAddOverlay();
-                break;
-            case 'import':
-                await vscode.commands.executeCommand('ampify.opencodeAuth.import');
-                await this.sendSectionData('opencodeAuth');
-                break;
-            case 'switchNext':
-                await vscode.commands.executeCommand('ampify.opencodeAuth.switchNext');
-                await this.sendSectionData('opencodeAuth');
-                break;
-            case 'clear':
-                await vscode.commands.executeCommand('ampify.opencodeAuth.clear');
-                await this.sendSectionData('opencodeAuth');
                 break;
         }
     }
@@ -1124,83 +981,6 @@ export class MainViewController {
         });
     }
 
-    private async showLauncherAddOverlay(): Promise<void> {
-        const fields: OverlayField[] = [
-            { key: 'name', label: I18n.get('launcher.inputKey'), kind: 'text', required: true, placeholder: 'work' },
-            { key: 'dirName', label: I18n.get('launcher.inputDirName'), kind: 'text', required: true, placeholder: 'github-work' },
-            { key: 'description', label: I18n.get('launcher.inputDesc'), kind: 'text', placeholder: 'Work Account' }
-        ];
-
-        this.showOverlay({
-            overlayId: 'launcher-add',
-            title: I18n.get('dashboard.quickLaunch'),
-            fields,
-            submitLabel: I18n.get('common.add'),
-            cancelLabel: I18n.get('skills.cancel')
-        }, async (values) => {
-            if (!values) {
-                return;
-            }
-            const name = values.name?.trim();
-            const dirName = values.dirName?.trim();
-            const description = values.description?.trim();
-            if (!name || !dirName) {
-                return;
-            }
-
-            const { ConfigManager } = await import('../../launcher/core/configManager');
-            const configManager = new ConfigManager();
-            const config = configManager.getConfig();
-            config.instances[name] = {
-                dirName,
-                description: description || `${name} Account`,
-                vscodeArgs: ['--new-window']
-            };
-            configManager.saveConfig(config);
-        });
-    }
-
-    private async showOpenCodeAuthAddOverlay(): Promise<void> {
-        const fields: OverlayField[] = [
-            { key: 'name', label: I18n.get('opencodeAuth.inputName'), kind: 'text', required: true, placeholder: 'work-account' },
-            { key: 'accessToken', label: I18n.get('opencodeAuth.inputAccess'), kind: 'text', required: true, placeholder: 'ghu_...' },
-            { key: 'refreshToken', label: I18n.get('opencodeAuth.inputRefresh'), kind: 'text', placeholder: 'ghr_...' },
-            { key: 'expiresAt', label: I18n.get('opencodeAuth.inputExpires'), kind: 'text', placeholder: '2026-12-31' }
-        ];
-
-        this.showOverlay({
-            overlayId: 'opencode-add',
-            title: I18n.get('opencodeAuth.add'),
-            fields,
-            submitLabel: I18n.get('common.add'),
-            cancelLabel: I18n.get('skills.cancel')
-        }, async (values) => {
-            if (!values) {
-                return;
-            }
-            const name = values.name?.trim();
-            const accessToken = values.accessToken?.trim();
-            if (!name || !accessToken) {
-                return;
-            }
-
-            const { OpenCodeCopilotAuthConfigManager } = await import('../../opencode-copilot-auth/core/configManager');
-            const configManager = new OpenCodeCopilotAuthConfigManager();
-            const expires = values.expiresAt ? new Date(values.expiresAt).getTime() : 0;
-
-            configManager.addCredential(
-                name,
-                'github-copilot',
-                'oauth',
-                accessToken,
-                values.refreshToken?.trim() || '',
-                expires
-            );
-
-            vscode.window.showInformationMessage(I18n.get('opencodeAuth.addSuccess', name));
-        });
-    }
-
     private async showGitCommitOverlay(): Promise<void> {
         const fields: OverlayField[] = [{
             key: 'message',
@@ -1276,29 +1056,6 @@ export class MainViewController {
 
     private async handleDeleteWithConfirm(section: SectionId, nodeId: string): Promise<void> {
         switch (section) {
-            case 'launcher': {
-                const key = nodeId.replace('launcher-', '');
-                const { ConfigManager } = await import('../../launcher/core/configManager');
-                const configManager = new ConfigManager();
-                const config = configManager.getConfig();
-                const instance = config.instances[key];
-                if (!instance) {
-                    return;
-                }
-
-                this.showConfirm({
-                    confirmId: `delete-launcher-${key}`,
-                    title: I18n.get('launcher.confirmDelete', instance.description || key),
-                    message: I18n.get('launcher.confirmDelete', instance.description || key),
-                    confirmLabel: I18n.get('skills.yes'),
-                    cancelLabel: I18n.get('skills.no'),
-                    danger: true
-                }, async () => {
-                    delete config.instances[key];
-                    configManager.saveConfig(config);
-                });
-                break;
-            }
             case 'skills': {
                 const skillName = nodeId.replace('skill-', '').replace(/-children$/, '');
                 const skills = SkillConfigManager.getInstance().loadAllSkills();
@@ -1343,27 +1100,6 @@ export class MainViewController {
                 });
                 break;
             }
-            case 'opencodeAuth': {
-                const credentialId = nodeId.replace('opencode-', '');
-                const { OpenCodeCopilotAuthConfigManager } = await import('../../opencode-copilot-auth/core/configManager');
-                const configManager = new OpenCodeCopilotAuthConfigManager();
-                const credential = configManager.getCredentialById(credentialId);
-                if (!credential) {
-                    return;
-                }
-
-                this.showConfirm({
-                    confirmId: `delete-opencode-auth-${credential.id}`,
-                    title: I18n.get('opencodeAuth.confirmDelete', credential.name),
-                    message: I18n.get('opencodeAuth.confirmDelete', credential.name),
-                    confirmLabel: I18n.get('skills.yes'),
-                    cancelLabel: I18n.get('skills.no'),
-                    danger: true
-                }, async () => {
-                    await vscode.commands.executeCommand('ampify.opencodeAuth.delete', credential.id);
-                });
-                break;
-            }
         }
     }
 
@@ -1376,25 +1112,21 @@ export class MainViewController {
     }
 
     private normalizeSection(section: SectionId): VisibleSectionId {
-        if (section === 'launcher' || section === 'opencodeAuth') {
-            return 'accountCenter';
+        if (
+            section === 'dashboard'
+            || section === 'skills'
+            || section === 'commands'
+            || section === 'gitshare'
+            || section === 'settings'
+        ) {
+            return section;
         }
-        return section;
-    }
-
-    private getAccountCenterTabBySection(section: SectionId): AccountCenterTabId | undefined {
-        if (section === 'launcher') {
-            return 'launcher';
-        }
-        if (section === 'opencodeAuth') {
-            return 'auth';
-        }
-        return undefined;
+        return 'dashboard';
     }
 
     private async postDependentSectionsAfterSettingChange(): Promise<void> {
         await this.sendSectionData('dashboard');
-        if (this.activeSection !== 'dashboard' && this.activeSection !== 'accountCenter' && this.activeSection !== 'settings') {
+        if (this.activeSection !== 'dashboard' && this.activeSection !== 'settings') {
             if (this.activeSection === 'skills') {
                 await this.sendSectionData('skills');
             } else if (this.activeSection === 'commands') {

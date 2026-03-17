@@ -1,8 +1,8 @@
 <template>
-  <section v-if="viewModel" class="section-page">
-    <ActionToolbar
+  <section v-if="viewModel" class="section-page resource-page">
+    <SectionHeader
       :title="viewModel.title"
-      :actions="viewModel.toolbar || []"
+      :actions="headerActions"
       @action="actions.toolbar"
     />
 
@@ -35,8 +35,8 @@
 <script setup lang="ts">
 import type { CommandsViewModel, GitShareViewModel, SkillsViewModel } from '@shared/contracts';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import ActionToolbar from '@/components/ActionToolbar.vue';
 import ResourceWorkbench from '@/components/ResourceWorkbench.vue';
+import SectionHeader from '@/components/SectionHeader.vue';
 import { useSectionActions } from '@/composables/useSectionActions';
 import { useAppStore } from '@/stores/app';
 import { useProgressStore } from '@/stores/progress';
@@ -60,6 +60,7 @@ const tree = computed(() => ('tree' in (viewModel.value || {})) ? viewModel.valu
 const tags = computed(() => ('tags' in (viewModel.value || {})) ? (viewModel.value as SkillsViewModel | CommandsViewModel).tags : []);
 const activeTags = computed(() => ('activeTags' in (viewModel.value || {})) ? (viewModel.value as SkillsViewModel | CommandsViewModel).activeTags : []);
 const progress = computed(() => props.section === 'skills' || props.section === 'commands' ? progressStore.map[props.section] : null);
+const headerActions = computed(() => (viewModel.value?.toolbar || []).filter((action) => action.id !== 'search'));
 const dropLabel = computed(() => {
   if (appStore.bootstrap?.locale === 'en') {
     return props.section === 'skills'

@@ -1,163 +1,92 @@
 # Ampify
 
-Ampify is an all-in-one VS Code extension for daily engineering workflows. It combines path-and-line copy, account/session tooling, Skills/Commands management, and Git synchronization in one unified MainView.
+Ampify is a compact VS Code extension focused on five capabilities:
 
-## Language
+- Copy file path + line references
+- Skills management
+- Commands management
+- Git Share synchronization
+- Unified MainView webview
 
-- English first in this README.
-- 简体中文请查看下半部分「中文说明」。
+## MainView Sections
 
-## What Ampify Solves
+Visible sections are fixed to:
 
-- Keep cross-tool workflow in one Activity Bar panel (`dashboard`, `accountCenter`, `skills`, `commands`, `gitshare`, `settings`)
-- Reference code precisely in chat/review via copied `` `path:line` `` or `` `path:start-end` ``
-- Manage reusable AI assets (Skills and Commands) with Git-backed storage and project injection
-- Operate OpenCode credentials, Oh-My snapshots, and managed opencode sessions from one place
+- `dashboard`
+- `skills`
+- `commands`
+- `gitshare`
+- `settings`
 
-## Core Modules
+`copier` stays command-driven (no dedicated section).
 
-| Module | Purpose | Typical Actions |
-|---|---|---|
-| Dashboard | Health and quick actions across modules | open section, quick sync, quick import |
-| Account Center | GitHub Launcher + OpenCode domain operations | switch credential, import/apply Oh-My snapshot, start/kill sessions |
-| Skills Manager | Manage `SKILL.md`-based skills library | create/import/search/filter/preview/copy to `.claude/skills`/remove |
-| Commands Manager | Manage markdown command files | create/import/search/filter/preview/copy to `.claude/commands`/remove |
-| Git Share | Version and sync reusable assets | sync/pull/push/commit/show diff/open repo folder |
-| Settings | Extension-wide runtime/storage options | set root dir, language, inject targets |
-
-## Screenshot Walkthrough (Updated)
-
-### Main Entry
-
-![Dashboard](docs/images-en/dashboard.png)
-
-`dashboard` is the default landing section. It shows module health, quick actions, and high-signal runtime stats so you can jump to the next operation without leaving MainView.
-
-### Account Center
-
-![Account Center - GitHub Launcher](docs/images-en/account-center/account-center-github-launcher.png)
-
-Launcher tab for GitHub-domain instances. You can create and manage isolated VS Code launch profiles and switch contexts fast.
-
-![Account Center - OpenCode Auth](docs/images-en/account-center/opencode-auth.png)
-
-Credential tab for provider-based OpenCode auth management: add/import/rename/delete/apply/unapply credentials.
-
-![Account Center - Oh-My Config](docs/images-en/account-center/oh-my-config.png)
-
-Oh-My tab for snapshot import/apply. It helps you persist and restore `oh-my-opencode.json` model/category profile sets.
-
-![Account Center - Session Monitor](docs/images-en/account-center/session-monitor.png)
-
-Sessions tab for managed opencode sessions, with refresh/open terminal/kill lifecycle operations and provider snapshot visibility.
-
-### Skills and Commands
-
-![Skills - Card View](docs/images-en/skills/card.png)
-
-Skills card view focuses on discoverability: descriptions, tags, and action buttons are optimized for browsing and quickly copying into `.claude/skills`.
-
-![Skills - List View](docs/images-en/skills/list.png)
-
-Skills list view is optimized for dense management workflows: compact scanning, filtering, and file-level operations.
-
-![Commands - List View](docs/images-en/commands/list.png)
-
-Commands manager stores one command per markdown file and supports preview/copy/remove with tag filtering.
-
-### Git Sync and Settings
-
-![Git Sync](docs/images-en/git-sync/image.png)
-
-Git Share panel for sync/pull/push/commit/diff against shared repositories that host skills and commands, with startup receive and shutdown flush recovery.
-
-![Settings](docs/images-en/settings/settings.png)
-
-Settings panel centralizes language, storage root, and inject targets.
-
-## Installation
-
-1. Open VS Code.
-2. Install extension: `Ampify` (publisher: `NAMEWTA`).
-3. Reload window if prompted.
-4. Open Activity Bar -> **Ampify**.
-
-## Quick Start
-
-### Copy Path + Line
-
-- Relative: `Ctrl+Alt+C`
-- Absolute: `Ctrl+Alt+V`
-- Output format: single line `` `path:line` ``, range `` `path:start-end` ``
-
-### Account Center Flow
-
-1. Open `accountCenter`.
-2. In `auth`, import or add credentials, then apply one.
-3. In `ohmy`, import/apply snapshot if needed.
-4. In `sessions`, start and monitor managed opencode sessions.
-
-### Skills / Commands Flow
-
-1. Import or create assets in `skills` / `commands`.
-2. Preview, search, and filter by tags.
-3. Copy into your project target directory:
-   - Skills default: `.claude/skills/`
-   - Commands default: `.claude/commands/`
-
-### Git Share Flow
-
-1. Open `gitshare`.
-2. At extension startup, Ampify auto-receives remote changes for `gitshare` (with conflict-recovery handling).
-3. Run sync/pull/push/commit operations as needed.
-3. Use diff preview before commit/push when needed.
-
-## Command Groups
+## Core Commands
 
 ### Copy
 
 - `ampify.copy-relative-path-line`
 - `ampify.copy-absolute-path-line`
 
-### Account Center (Launcher / Auth / Oh-My / Sessions)
+### MainView
 
-- Launcher: `ampify.launcher.add`, `ampify.launcher.refresh`, `ampify.launcher.editConfig`, `ampify.launcher.launch`, `ampify.launcher.switchNext`, `ampify.launcher.delete`
-- OpenCode Auth: `ampify.opencodeAuth.add`, `ampify.opencodeAuth.import`, `ampify.opencodeAuth.apply`, `ampify.opencodeAuth.switch`, `ampify.opencodeAuth.switchNext`, `ampify.opencodeAuth.rename`, `ampify.opencodeAuth.delete`, `ampify.opencodeAuth.clear`, `ampify.opencodeAuth.openAuthJson`, `ampify.opencodeAuth.zeroConfig`
-- Oh-My: `ampify.opencode.ohmy.import`, `ampify.opencode.ohmy.apply`, `ampify.opencode.ohmy.openConfig`
-- Sessions: `ampify.opencode.session.start`, `ampify.opencode.session.open`, `ampify.opencode.session.kill`, `ampify.opencode.session.refresh`, `ampify.opencode.session.openConfig`
+- `ampify.mainView.refresh`
 
 ### Skills
 
-- `ampify.skills.refresh`, `ampify.skills.search`, `ampify.skills.filterByTag`, `ampify.skills.clearFilter`, `ampify.skills.create`, `ampify.skills.import`, `ampify.skills.importFromUris`, `ampify.skills.apply` (copy to `.claude/skills`), `ampify.skills.preview`, `ampify.skills.openFile`, `ampify.skills.openFolder`, `ampify.skills.delete`, `ampify.skills.remove`
+- `ampify.skills.refresh`
+- `ampify.skills.search`
+- `ampify.skills.filterByTag`
+- `ampify.skills.clearFilter`
+- `ampify.skills.create`
+- `ampify.skills.import`
+- `ampify.skills.importFromUris`
+- `ampify.skills.apply`
+- `ampify.skills.preview`
+- `ampify.skills.openFile`
+- `ampify.skills.openFolder`
+- `ampify.skills.delete`
+- `ampify.skills.remove`
 
 ### Commands
 
-- `ampify.commands.refresh`, `ampify.commands.search`, `ampify.commands.filterByTag`, `ampify.commands.clearFilter`, `ampify.commands.create`, `ampify.commands.import`, `ampify.commands.apply` (copy to `.claude/commands`), `ampify.commands.preview`, `ampify.commands.openFolder`, `ampify.commands.delete`, `ampify.commands.remove`
+- `ampify.commands.refresh`
+- `ampify.commands.search`
+- `ampify.commands.filterByTag`
+- `ampify.commands.clearFilter`
+- `ampify.commands.create`
+- `ampify.commands.import`
+- `ampify.commands.apply`
+- `ampify.commands.preview`
+- `ampify.commands.open`
+- `ampify.commands.openFolder`
+- `ampify.commands.delete`
+- `ampify.commands.remove`
 
-### Git Share / MainView
+### Git Share
 
-- Git Share: `ampify.gitShare.refresh`, `ampify.gitShare.sync`, `ampify.gitShare.pull`, `ampify.gitShare.push`, `ampify.gitShare.commit`, `ampify.gitShare.showDiff`, `ampify.gitShare.editConfig`, `ampify.gitShare.openConfigWizard`, `ampify.gitShare.openFolder`
-- MainView: `ampify.mainView.refresh`
+- `ampify.gitShare.refresh`
+- `ampify.gitShare.sync`
+- `ampify.gitShare.pull`
+- `ampify.gitShare.push`
+- `ampify.gitShare.commit`
+- `ampify.gitShare.showDiff`
+- `ampify.gitShare.editConfig`
+- `ampify.gitShare.openConfigWizard`
+- `ampify.gitShare.openFolder`
 
 ## Configuration
 
-| Key | Type | Default | Description |
-|---|---|---|---|
-| `ampify.language` | string | `zh-cn` | UI language (`en` or `zh-cn`) |
-| `ampify.rootDir` | string | empty | Data root (`~/.vscode-ampify/` when empty) |
-| `ampify.skills.injectTarget` | string | `.claude/skills/` | Skills injection target |
-| `ampify.commands.injectTarget` | string | `.claude/commands/` | Commands injection target |
+- `ampify.language`
+- `ampify.rootDir`
+- `ampify.skills.injectTarget`
+- `ampify.commands.injectTarget`
 
 ## Data Directory
 
-Default root is `~/.vscode-ampify/`:
+Default root: `~/.vscode-ampify/`
 
 ```text
 ~/.vscode-ampify/
-|- vscodemultilauncher/
-|  |- config.json
-|  |- userdata/
-|  `- shareExtensions/
 |- gitshare/
 |  |- .git/
 |  |- config.json
@@ -167,9 +96,9 @@ Default root is `~/.vscode-ampify/`:
 |  `- vscodecmdmanager/
 |     |- config.json
 |     `- commands/<command>.md
-|- opencode-copilot-auth/
-|  `- config.json
 ```
+
+Legacy launcher/opencode data may still exist locally but is no longer used by Ampify.
 
 ## Development
 
@@ -180,97 +109,4 @@ npm run lint
 ```
 
 - Watch mode: `npm run watch`
-- Extension debug: use `.vscode/launch.json` -> `调试扩展`
-
-## Notes
-
-- Unsaved documents cannot produce path+line output.
-
----
-
-# 中文说明
-
-Ampify 是一个面向日常工程工作的 VS Code 扩展，把路径行号复制、账户中心、Skills/Commands 管理与 Git 同步集中在一个 MainView 中。
-
-## 核心能力
-
-- 统一入口：`dashboard`、`accountCenter`、`skills`、`commands`、`gitshare`、`settings`
-- 精准引用：复制 `` `path:line` `` 或 `` `path:start-end` ``
-- 资产管理：Skills/Commands 支持搜索、标签过滤、预览、复制到 `.claude` 目录和 Git 同步
-- 账户中心：Launcher、OpenCode Auth、Oh-My 快照、Session Monitor 一体化
-
-## 截图（已完整更新到 `docs/images-en`）
-
-### 主入口（Dashboard）
-
-![仪表盘](docs/images-en/dashboard.png)
-
-默认首页，集中展示模块状态、快捷操作与关键统计，适合快速判断当前工作区状态并跳转到目标模块。
-
-### 账户中心（Account Center）
-
-![账户中心 - GitHub Launcher](docs/images-en/account-center/account-center-github-launcher.png)
-
-GitHub Launcher 子页用于管理多实例启动配置，支持隔离用户目录与快速切换实例。
-
-![账户中心 - OpenCode Auth](docs/images-en/account-center/opencode-auth.png)
-
-OpenCode Auth 子页用于按 provider 管理凭据，支持新增、导入、应用、取消应用、重命名与删除。
-
-![账户中心 - Oh-My Config](docs/images-en/account-center/oh-my-config.png)
-
-Oh-My 子页用于导入/应用 `oh-my-opencode.json` 快照，便于维护模型与分类配置方案。
-
-![账户中心 - Session Monitor](docs/images-en/account-center/session-monitor.png)
-
-Session Monitor 子页用于管理 opencode 会话生命周期，可执行刷新、打开终端、结束会话等操作。
-
-### Skills / Commands
-
-![Skills - 卡片视图](docs/images-en/skills/card.png)
-
-Skills 卡片模式强调可发现性，适合浏览技能描述、标签与操作按钮。
-
-![Skills - 列表视图](docs/images-en/skills/list.png)
-
-Skills 列表模式强调高密度管理，适合批量筛选、搜索与文件级操作。
-
-![Commands - 列表视图](docs/images-en/commands/list.png)
-
-Commands 采用单文件命令定义，支持预览、复制到 `.claude/commands`、移除与标签过滤。
-
-### Git Sync / Settings
-
-![Git Sync](docs/images-en/git-sync/image.png)
-
-Git Share 面板用于对技能与命令共享仓库执行 sync/pull/push/commit/diff 等协作操作。
-
-![Settings](docs/images-en/settings/settings.png)
-
-Settings 面板集中管理语言、数据根目录与注入目标配置。
-
-## 常用命令
-
-- 复制路径行号：`ampify.copy-relative-path-line`、`ampify.copy-absolute-path-line`
-- Launcher：`ampify.launcher.*`
-- OpenCode 认证：`ampify.opencodeAuth.*`
-- Oh-My：`ampify.opencode.ohmy.*`
-- Session：`ampify.opencode.session.*`
-- Skills：`ampify.skills.*`
-- Commands：`ampify.commands.*`
-- Git Share：`ampify.gitShare.*`
-
-## 配置项
-
-- `ampify.language`
-- `ampify.rootDir`
-- `ampify.skills.injectTarget`
-- `ampify.commands.injectTarget`
-
-## 开发命令
-
-```bash
-npm run compile
-npm run watch
-npm run lint
-```
+- Debug entry: `.vscode/launch.json` -> `调试扩展`

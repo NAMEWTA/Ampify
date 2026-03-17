@@ -7,17 +7,13 @@
 
 export type SectionId =
     | 'dashboard'
-    | 'accountCenter'
-    | 'launcher'
     | 'skills'
     | 'commands'
     | 'gitshare'
-    | 'settings'
-    | 'opencodeAuth';
+    | 'settings';
 
 export type VisibleSectionId =
     | 'dashboard'
-    | 'accountCenter'
     | 'skills'
     | 'commands'
     | 'gitshare'
@@ -187,28 +183,8 @@ export interface DashboardData {
     moduleHealth?: ModuleHealthItem[];
     gitInfo?: DashboardGitInfo;
     workspaceInfo?: DashboardWorkspaceInfo;
-    launcher?: DashboardLauncherInfo;
-    opencode?: DashboardOpenCodeInfo;
     activity?: DashboardActivityItem[];
     labels: DashboardLabels;
-}
-
-export interface DashboardLauncherInfo {
-    total: number;
-    lastKey?: string;
-    lastLabel?: string;
-    lastAt?: number;
-    nextKey?: string;
-    nextLabel?: string;
-}
-
-export interface DashboardOpenCodeInfo {
-    total: number;
-    lastId?: string;
-    lastLabel?: string;
-    lastAt?: number;
-    nextId?: string;
-    nextLabel?: string;
 }
 
 export type DashboardActivityType = 'skill' | 'command';
@@ -230,12 +206,6 @@ export interface DashboardLabels {
     gitPull: string;
     gitPush: string;
     nextUp: string;
-    launcher: string;
-    opencode: string;
-    switchNow: string;
-    lastSwitched: string;
-    nextAccount: string;
-    activeAccount: string;
 }
 
 export interface DashboardStat {
@@ -281,91 +251,6 @@ export interface DashboardWorkspaceInfo {
     workspaceName: string;
 }
 
-// ==================== Account Center ====================
-
-export type AccountCenterTabId = 'launcher' | 'auth' | 'ohmy' | 'sessions';
-
-export interface AccountCenterDashboard {
-    providerCount: number;
-    activeProviders: string[];
-    activeOhMyName?: string;
-    activeOhMyHash?: string;
-    modelCount: number;
-    models: string[];
-}
-
-export interface AccountCenterLabels {
-    dashboardProviders: string;
-    dashboardActiveProviders: string;
-    dashboardActiveOhMy: string;
-    dashboardModels: string;
-    dashboardModelsMeaningTitle: string;
-    dashboardModelsMeaningDesc: string;
-    emptyData: string;
-    groupGithub: string;
-    groupOpenCode: string;
-    toolbarRefresh: string;
-    toolbarOpenConfig: string;
-    toolbarActions: string;
-    authZeroConfig: string;
-    sourceManaged: string;
-    sourceExternal: string;
-}
-
-export interface AccountCenterTabMeta {
-    id: AccountCenterTabId;
-    label: string;
-    count: number;
-    domain: 'github' | 'opencode';
-}
-
-export interface AccountCenterRowAction {
-    id: string;
-    label: string;
-    iconId?: string;
-    danger?: boolean;
-    disabled?: boolean;
-}
-
-export interface AccountCenterMetaItem {
-    label: string;
-    value: string;
-    mono?: boolean;
-    full?: boolean;
-}
-
-export interface AccountCenterRow {
-    id: string;
-    name: string;
-    description: string;
-    subtitle?: string;
-    metaLines?: string[];
-    metaItems?: AccountCenterMetaItem[];
-    badges?: string[];
-    status?: 'running' | 'stopped' | 'active' | 'inactive';
-    domain?: 'github' | 'opencode';
-    source?: 'managed' | 'external' | 'internal';
-    launchMode?: 'externalTerminal';
-    pid?: number;
-    actions: AccountCenterRowAction[];
-}
-
-export interface AccountCenterTabData {
-    id: AccountCenterTabId;
-    emptyText: string;
-    rows: AccountCenterRow[];
-}
-
-export interface AccountCenterData {
-    title: string;
-    activeTab: AccountCenterTabId;
-    tabs: AccountCenterTabMeta[];
-    dashboard: AccountCenterDashboard;
-    labels: AccountCenterLabels;
-    sections: Record<AccountCenterTabId, AccountCenterTabData>;
-    toolbar: ToolbarAction[];
-}
-
 // ==================== Section view models ====================
 
 export interface BaseSectionViewModel {
@@ -378,16 +263,6 @@ export interface BaseSectionViewModel {
 export interface DashboardViewModel extends BaseSectionViewModel {
     section: 'dashboard';
     data: DashboardData;
-}
-
-export interface AccountCenterViewModel extends BaseSectionViewModel {
-    section: 'accountCenter';
-    data: AccountCenterData;
-}
-
-export interface LauncherViewModel extends BaseSectionViewModel {
-    section: 'launcher';
-    tree: TreeNode[];
 }
 
 export interface SkillsViewModel extends BaseSectionViewModel {
@@ -411,12 +286,6 @@ export interface GitShareViewModel extends BaseSectionViewModel {
     tree: TreeNode[];
 }
 
-export interface OpenCodeAuthViewModel extends BaseSectionViewModel {
-    section: 'opencodeAuth';
-    tree: TreeNode[];
-    cards: CardItem[];
-}
-
 export interface SettingsViewModel extends BaseSectionViewModel {
     section: 'settings';
     data: SettingsData;
@@ -424,12 +293,9 @@ export interface SettingsViewModel extends BaseSectionViewModel {
 
 export type SectionViewModel =
     | DashboardViewModel
-    | AccountCenterViewModel
-    | LauncherViewModel
     | SkillsViewModel
     | CommandsViewModel
     | GitShareViewModel
-    | OpenCodeAuthViewModel
     | SettingsViewModel;
 
 // ==================== App shell state ====================
@@ -438,14 +304,12 @@ export interface BootstrapPayload {
     brandName: string;
     brandTagline: string;
     locale: 'en' | 'zh-cn';
-    instanceKey: string;
     navItems: NavigationItem[];
     initialSection: VisibleSectionId;
 }
 
 export interface AppStatePayload {
     activeSection: VisibleSectionId;
-    accountCenterTab?: AccountCenterTabId;
 }
 
 export interface NotificationPayload {
@@ -468,8 +332,6 @@ export type SectionActionPayload =
     | { kind: 'toggleTag'; tag: string }
     | { kind: 'dropFiles'; uris: string[] }
     | { kind: 'dropEmpty' }
-    | { kind: 'accountTabChange'; tab: AccountCenterTabId }
-    | { kind: 'accountAction'; tab: AccountCenterTabId; actionId: string; rowId?: string }
     | { kind: 'quickAction'; actionId: string; targetSection: SectionId }
     | { kind: 'executeCommand'; command: string; args?: string }
     | { kind: 'settingsAction'; command: string };

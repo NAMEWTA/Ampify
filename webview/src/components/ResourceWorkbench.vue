@@ -1,51 +1,43 @@
 <template>
-  <div class="resource-workbench">
-    <section class="resource-tools-grid">
-      <article class="admin-panel workbench-panel">
+  <div class="resource-board">
+    <div class="resource-board__top" :class="{ 'has-progress': Boolean(progress) }">
+      <section class="surface-card resource-summary-card">
         <div class="panel-head">
           <div>
             <h3>{{ summaryTitle }}</h3>
-            <p>{{ summaryDescription }}</p>
           </div>
-        </div>
-        <div class="workbench-kpis">
-          <div class="workbench-kpi">
-            <span>{{ text.items }}</span>
-            <strong>{{ totalItems }}</strong>
-          </div>
-          <div v-if="tags.length" class="workbench-kpi">
-            <span>{{ text.tags }}</span>
-            <strong>{{ tags.length }}</strong>
-          </div>
-          <div class="workbench-kpi">
-            <span>{{ text.status }}</span>
-            <strong>{{ progress?.running ? text.running : text.ready }}</strong>
-          </div>
-        </div>
-      </article>
-
-      <article v-if="isFilterable" class="admin-panel workbench-panel">
-        <div class="panel-head">
-          <div>
-            <h3>{{ text.filters }}</h3>
-            <p>{{ text.filterDescription }}</p>
-          </div>
-          <el-button v-if="hasActiveFilters" link @click="resetFilters">{{ text.reset }}</el-button>
+          <el-button v-if="hasActiveFilters" text class="inline-text-action" @click="resetFilters">{{ text.reset }}</el-button>
         </div>
 
-        <el-input
-          v-model="keyword"
-          clearable
-          class="field-full workbench-search"
-          :placeholder="text.searchPlaceholder"
-          @clear="emit('filter-keyword', '')"
-        >
-          <template #prefix>
+        <div class="resource-summary-grid">
+          <div class="summary-metric">
+            <span class="metric-name">{{ text.items }}</span>
+            <strong class="metric-value">{{ totalItems }}</strong>
+          </div>
+          <div class="summary-metric">
+            <span class="metric-name">{{ text.tags }}</span>
+            <strong class="metric-value">{{ tags.length }}</strong>
+          </div>
+          <div class="summary-metric">
+            <span class="metric-name">{{ text.status }}</span>
+            <strong class="metric-value">{{ progress?.running ? text.running : text.ready }}</strong>
+          </div>
+        </div>
+
+        <div v-if="isFilterable" class="resource-filter-row">
+          <label class="resource-search">
             <i class="codicon codicon-search"></i>
-          </template>
-        </el-input>
+            <el-input
+              v-model="keyword"
+              clearable
+              class="field-full"
+              :placeholder="text.searchPlaceholder"
+              @clear="emit('filter-keyword', '')"
+            />
+          </label>
+        </div>
 
-        <div v-if="tags.length" class="tag-cloud">
+        <div v-if="tags.length" class="tag-chip-row">
           <button
             v-for="tag in tags"
             :key="tag"
@@ -56,83 +48,143 @@
             {{ tag }}
           </button>
         </div>
-      </article>
+      </section>
 
       <ProgressPanel v-if="progress" :progress="progress" />
+    </div>
+
+    <section v-if="cards.length > 0" class="surface-card resource-catalog-panel">
+      <div class="panel-head">
+        <div>
+          <h3>{{ primaryGroup?.title || catalogTitle }}</h3>
+        </div>
+        <span class="panel-count">{{ totalItems }}</span>
+      </div>
+
+      <div v-if="totalItems === 0" class="empty-state">
+        {{ emptyText }}
+      </div>
+
+      <div v-else class="resource-card-grid">
+        <article
+          v-for="row in primaryGroup?.rows || []"
+          :key="row.key"
+          class="resource-card"
+          :class="{ clickable: row.clickable }"
+          @click="handleRowClick(row)"
+        >
+          <div class="resource-card__layout">
+            <div class="resource-card__main">
+              <div class="resource-card__head">
+                <span class="resource-card__icon" :style="{ color: row.iconColor || 'var(--amp-accent)' }">
+                  <i class="codicon" :class="`codicon-${row.iconId || 'circle-large-outline'}`"></i>
+                </span>
+                <div class="resource-card__copy">
+                  <div class="resource-card__title-row">
+                    <strong>{{ row.title }}</strong>
+                    <span v-if="row.meta" class="meta-pill">{{ row.meta }}</span>
+                  </div>
+                  <p v-if="row.description">{{ row.description }}</p>
+                </div>
+              </div>
+
+              <div v-if="row.badges.length" class="meta-chip-row">
+                <span v-for="badge in row.badges" :key="`${row.key}-${badge}`" class="meta-chip">{{ badge }}</span>
+              </div>
+            </div>
+
+            <div class="resource-card__actions resource-card__actions--rail">
+              <el-button
+                v-for="action in row.actions"
+                :key="`${row.key}-${action.kind}-${action.id}`"
+                plain
+                size="small"
+                class="resource-action-button"
+                :type="action.danger ? 'danger' : undefined"
+                :title="action.label"
+                :aria-label="action.label"
+                @click.stop="handleRowAction(row, action)"
+              >
+                <i v-if="action.iconId" class="codicon" :class="`codicon-${action.iconId}`"></i>
+              </el-button>
+            </div>
+          </div>
+        </article>
+      </div>
     </section>
 
-    <section class="resource-content">
+    <div v-else class="resource-group-grid">
       <article
         v-for="group in groups"
         :key="group.id"
-        class="admin-panel resource-panel"
+        class="surface-card resource-group-card"
       >
         <div class="panel-head">
           <div>
             <h3>{{ group.title }}</h3>
-            <p v-if="group.description">{{ group.description }}</p>
           </div>
           <span class="panel-count">{{ group.rows.length }}</span>
         </div>
 
-        <div v-if="group.rows.length === 0" class="panel-empty">
-          {{ text.empty }}
+        <div v-if="group.rows.length === 0" class="empty-state">
+          {{ emptyText }}
         </div>
 
-        <div v-else class="resource-list resource-card-list">
+        <div v-else class="resource-status-list">
           <article
             v-for="row in group.rows"
             :key="row.key"
-            class="resource-row"
+            class="resource-status-row"
             :class="{ clickable: row.clickable }"
             @click="handleRowClick(row)"
           >
-            <div class="resource-row-main">
-              <span class="resource-row-icon" :style="{ color: row.iconColor }">
+            <div class="resource-status-row__main">
+              <span class="resource-status-row__icon" :style="{ color: row.iconColor || 'var(--amp-accent)' }">
                 <i class="codicon" :class="`codicon-${row.iconId || 'circle-large-outline'}`"></i>
               </span>
-
-              <div class="resource-row-copy">
-                <div class="resource-row-title">
+              <div class="resource-status-row__copy">
+                <div class="resource-card__title-row">
                   <strong>{{ row.title }}</strong>
-                  <span v-if="row.meta" class="resource-row-meta">{{ row.meta }}</span>
+                  <span v-if="row.meta" class="meta-pill">{{ row.meta }}</span>
                 </div>
                 <p v-if="row.description">{{ row.description }}</p>
-                <div v-if="row.badges.length" class="resource-row-badges">
-                  <span v-for="badge in row.badges" :key="`${row.key}-${badge}`">{{ badge }}</span>
+                <div v-if="row.badges.length" class="meta-chip-row">
+                  <span v-for="badge in row.badges" :key="`${row.key}-${badge}`" class="meta-chip">{{ badge }}</span>
                 </div>
               </div>
             </div>
 
-            <div class="resource-row-actions">
+            <div v-if="row.actions.length" class="resource-status-row__actions">
               <el-button
                 v-for="action in row.actions"
                 :key="`${row.key}-${action.kind}-${action.id}`"
-                text
-                class="resource-action-btn"
+                plain
+                size="small"
+                class="resource-action-button"
                 :type="action.danger ? 'danger' : undefined"
+                :title="action.label"
+                :aria-label="action.label"
                 @click.stop="handleRowAction(row, action)"
               >
                 <i v-if="action.iconId" class="codicon" :class="`codicon-${action.iconId}`"></i>
-                <span>{{ action.label }}</span>
               </el-button>
             </div>
           </article>
         </div>
       </article>
-    </section>
+    </div>
 
     <el-drawer
       v-model="drawerVisible"
       :title="drawerTitle"
-      size="420px"
-      class="brand-dialog"
+      size="440px"
+      class="resource-drawer"
     >
-      <div class="file-list">
+      <div class="drawer-file-list">
         <button
           v-for="file in drawerFiles"
           :key="file.path"
-          class="file-list-item"
+          class="drawer-file-item"
           @click="openDrawerFile(file.path)"
         >
           <i class="codicon codicon-file"></i>
@@ -225,21 +277,22 @@ const text = computed(() => {
       status: 'Status',
       running: 'Running',
       ready: 'Ready',
-      filters: 'Filters',
-      filterDescription: 'Search and refine visible items.',
       reset: 'Reset',
       searchPlaceholder: 'Search by name, description, or tag',
       empty: 'No records in this section yet.',
-      skillsTitle: 'Skills Workspace',
-      skillsDescription: 'Compact operations for import, apply, preview, and tagging.',
-      commandsTitle: 'Commands Workspace',
-      commandsDescription: 'Browse, apply, and maintain command assets in one list.',
-      gitTitle: 'Git Share Workspace',
-      gitDescription: 'Repository status, configuration, and synced modules without tree navigation.',
-      skillsGroup: 'Skill Catalog',
-      skillsGroupDescription: 'All available skills are shown as compact operational rows.',
-      commandsGroup: 'Command Catalog',
-      commandsGroupDescription: 'All available commands are shown as compact operational rows.',
+      emptyFiltered: 'No records match the current search or tags.',
+      skillsTitle: 'Skills workspace',
+      skillsDescription: 'Compact operations for import, apply, preview, and AI tagging.',
+      commandsTitle: 'Commands workspace',
+      commandsDescription: 'Maintain command assets with tighter list density and direct actions.',
+      gitTitle: 'Git Share workspace',
+      gitDescription: 'Repository status, configuration, and synced module visibility.',
+      skillsCatalog: 'Skill catalog',
+      commandsCatalog: 'Command catalog',
+      gitCatalog: 'Repository overview',
+      skillsCatalogDescription: 'All skills are shown as compact operational cards.',
+      commandsCatalogDescription: 'All commands are shown as compact operational cards.',
+      gitCatalogDescription: 'Configuration groups and synced modules are shown as compact status lists.',
       overview: 'Overview',
       files: 'Files'
     };
@@ -251,21 +304,22 @@ const text = computed(() => {
     status: '状态',
     running: '运行中',
     ready: '就绪',
-    filters: '筛选',
-    filterDescription: '按关键字和标签快速收敛列表。',
     reset: '重置',
     searchPlaceholder: '按名称、描述或标签搜索',
     empty: '当前分组下暂无记录。',
+    emptyFiltered: '当前筛选条件下没有匹配记录。',
     skillsTitle: '技能工作台',
-    skillsDescription: '将导入、应用、预览与 AI 标注收拢到一处。',
+    skillsDescription: '将导入、应用、预览与 AI 标注集中在一个紧凑界面中。',
     commandsTitle: '命令工作台',
-    commandsDescription: '用更紧凑的列表管理命令库与应用流程。',
+    commandsDescription: '用更紧凑的列表密度管理命令资产与直接操作。',
     gitTitle: 'Git Share 工作台',
-    gitDescription: '不再使用树结构，直接查看仓库状态、配置与同步模块。',
-    skillsGroup: '技能目录',
-    skillsGroupDescription: '所有技能以紧凑操作行方式展示。',
-    commandsGroup: '命令目录',
-    commandsGroupDescription: '所有命令以紧凑操作行方式展示。',
+    gitDescription: '查看仓库状态、配置与同步模块目录。',
+    skillsCatalog: '技能目录',
+    commandsCatalog: '命令目录',
+    gitCatalog: '仓库总览',
+    skillsCatalogDescription: '所有技能以紧凑操作卡片方式展示。',
+    commandsCatalogDescription: '所有命令以紧凑操作卡片方式展示。',
+    gitCatalogDescription: '配置分组与同步模块以紧凑状态列表展示。',
     overview: '总览',
     files: '文件'
   };
@@ -281,25 +335,23 @@ const summaryTitle = computed(() => {
   return text.value.gitTitle;
 });
 
-const summaryDescription = computed(() => {
+const catalogTitle = computed(() => {
   if (props.section === 'skills') {
-    return text.value.skillsDescription;
+    return text.value.skillsCatalog;
   }
   if (props.section === 'commands') {
-    return text.value.commandsDescription;
+    return text.value.commandsCatalog;
   }
-  return text.value.gitDescription;
+  return text.value.gitCatalog;
 });
 
 const groups = computed<ResourceGroup[]>(() => {
   if (props.cards.length > 0) {
+    const sortedCards = [...props.cards].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
     return [{
       id: `${props.section}-catalog`,
-      title: props.section === 'skills' ? text.value.skillsGroup : text.value.commandsGroup,
-      description: props.section === 'skills'
-        ? text.value.skillsGroupDescription
-        : text.value.commandsGroupDescription,
-      rows: props.cards.map((card) => createCardRow(card))
+      title: catalogTitle.value,
+      rows: sortedCards.map((card) => createCardRow(card))
     }];
   }
 
@@ -330,7 +382,9 @@ const groups = computed<ResourceGroup[]>(() => {
   return grouped;
 });
 
+const primaryGroup = computed(() => groups.value[0]);
 const totalItems = computed(() => groups.value.reduce((count, group) => count + group.rows.length, 0));
+const emptyText = computed(() => hasActiveFilters.value ? text.value.emptyFiltered : text.value.empty);
 
 watch(keyword, (value) => {
   if (!isFilterable.value) {

@@ -1,4 +1,4 @@
-import type { AccountCenterTabId, SectionActionPayload, SectionId, SettingsScope } from '@shared/contracts';
+import type { SectionActionPayload, SectionId, SettingsScope } from '@shared/contracts';
 import { postToExtension } from '@/services/vscode';
 
 export function useSectionActions(section: SectionId) {
@@ -45,12 +45,6 @@ export function useSectionActions(section: SectionId) {
         },
         dropEmpty() {
             send({ kind: 'dropEmpty' });
-        },
-        accountTabChange(tab: AccountCenterTabId) {
-            send({ kind: 'accountTabChange', tab });
-        },
-        accountAction(tab: AccountCenterTabId, actionId: string, rowId?: string) {
-            send({ kind: 'accountAction', tab, actionId, rowId });
         },
         quickAction(actionId: string, targetSection: SectionId) {
             send({ kind: 'quickAction', actionId, targetSection });
