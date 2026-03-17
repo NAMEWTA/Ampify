@@ -5,7 +5,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { CardFileNode, CardItem, TreeNode, ToolbarAction } from '../protocol';
+import { CardFileNode, CardItem, TreeNode, ToolbarAction } from '../shared/contracts';
 import { SkillConfigManager } from '../../skills/core/skillConfigManager';
 import { LoadedSkill, FilterState } from '../../../common/types';
 import { I18n } from '../../../common/i18n';

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { CardItem, TreeNode, ToolbarAction } from '../protocol';
+import { CardItem, TreeNode, ToolbarAction } from '../shared/contracts';
 import { I18n } from '../../../common/i18n';
 import { OpenCodeCopilotAuthConfigManager } from '../../opencode-copilot-auth/core/configManager';
 

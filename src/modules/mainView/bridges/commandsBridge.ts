@@ -3,7 +3,7 @@
  * 将 Commands 模块数据适配为 TreeNode[]
  */
 import * as vscode from 'vscode';
-import { CardItem, TreeNode, ToolbarAction } from '../protocol';
+import { CardItem, TreeNode, ToolbarAction } from '../shared/contracts';
 import { CommandConfigManager } from '../../commands/core/commandConfigManager';
 import { LoadedCommand, FilterState } from '../../../common/types';
 import { I18n } from '../../../common/i18n';

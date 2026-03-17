@@ -11,7 +11,7 @@ import {
     SettingsData,
     SettingsSection,
     SettingsScope
-} from '../protocol';
+} from '../shared/contracts';
 
 export class SettingsBridge {
     private gitManager: GitManager;

@@ -4,7 +4,7 @@
  */
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { TreeNode, ToolbarAction } from '../protocol';
+import { TreeNode, ToolbarAction } from '../shared/contracts';
 import { GitManager } from '../../../common/git';
 import { GitStatus } from '../../../common/types';
 import { I18n } from '../../../common/i18n';

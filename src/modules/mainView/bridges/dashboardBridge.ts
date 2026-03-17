@@ -14,7 +14,7 @@ import type {
     ModuleHealthStatus,
     DashboardLauncherInfo,
     DashboardOpenCodeInfo
-} from '../protocol';
+} from '../shared/contracts';
 import { I18n } from '../../../common/i18n';
 
 export class DashboardBridge {

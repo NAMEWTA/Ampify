@@ -1,131 +1,89 @@
-﻿/**
- * HTML 妯℃澘
- * 缁勮瀹屾暣 HTML 鏂囨。
- */
+import * as fs from 'fs';
 import * as vscode from 'vscode';
-import { getCss } from './cssTemplate';
-import { getJs } from './jsTemplate';
-import { SectionId } from '../protocol';
-import { I18n } from '../../../common/i18n';
-
-interface NavItem {
-    id: SectionId;
-    label: string;
-    iconClass: string;
-}
 
 export function getHtml(
     webview: vscode.Webview,
-    extensionUri: vscode.Uri,
-    activeSection: SectionId = 'dashboard',
-    instanceKey: string = 'default'
+    extensionUri: vscode.Uri
 ): string {
-    // Nonce for CSP
     const nonce = getNonce();
-
-    // Codicon font & CSS URIs
-    const codiconFontUri = webview.asWebviewUri(
-        vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.ttf')
+    const cssUri = webview.asWebviewUri(
+        vscode.Uri.joinPath(extensionUri, 'webview-dist', 'mainView', 'main.css')
+    );
+    const jsUri = webview.asWebviewUri(
+        vscode.Uri.joinPath(extensionUri, 'webview-dist', 'mainView', 'main.js')
     );
     const codiconCssUri = webview.asWebviewUri(
         vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css')
     );
 
-    // Build CSS with codicon font URI injected
-    const css = getCss().replace('{codiconUri}', codiconFontUri.toString());
+    const cssPath = vscode.Uri.joinPath(extensionUri, 'webview-dist', 'mainView', 'main.css').fsPath;
+    const jsPath = vscode.Uri.joinPath(extensionUri, 'webview-dist', 'mainView', 'main.js').fsPath;
 
-    const navItems: NavItem[] = [
-        { id: 'dashboard', label: I18n.get('nav.dashboard'), iconClass: 'codicon-dashboard' },
-        { id: 'accountCenter', label: I18n.get('nav.accountCenter'), iconClass: 'codicon-account' },
-        { id: 'skills', label: I18n.get('nav.skills'), iconClass: 'codicon-library' },
-        { id: 'commands', label: I18n.get('nav.commands'), iconClass: 'codicon-terminal' },
-        { id: 'gitshare', label: I18n.get('nav.gitShare'), iconClass: 'codicon-git-merge' },
-        { id: 'settings', label: I18n.get('nav.settings'), iconClass: 'codicon-settings-gear' },
-    ];
-
-    // Build nav items HTML
-    const navItemsHtml = navItems.map(item => `
-        <button class="nav-item${item.id === activeSection ? ' active' : ''}" data-section="${item.id}" title="${item.label}">
-            <span class="nav-icon"><i class="codicon ${item.iconClass}"></i></span>
-            <span class="nav-label">${item.label}</span>
-        </button>
-    `).join('');
-
-    const js = getJs();
-    const configuredLang = vscode.workspace.getConfiguration('ampify').get<'en' | 'zh-cn'>('language') || 'zh-cn';
-    const htmlLang = configuredLang === 'zh-cn' ? 'zh-CN' : 'en';
-    const i18nMap = {
-        sectionDashboard: I18n.get('nav.dashboard'),
-        sectionAccountCenter: I18n.get('nav.accountCenter'),
-        sectionLauncher: I18n.get('dashboard.launcher'),
-        sectionSkills: I18n.get('nav.skills'),
-        sectionCommands: I18n.get('nav.commands'),
-        sectionGitShare: I18n.get('nav.gitShare'),
-        sectionOpenCodeAuth: I18n.get('dashboard.opencode'),
-        sectionSettings: I18n.get('nav.settings'),
-        viewList: I18n.get('common.list'),
-        viewCards: I18n.get('common.cards'),
-        viewListTitle: I18n.get('common.listView'),
-        viewCardsTitle: I18n.get('common.cardView'),
-        emptySkills: I18n.get('mainView.empty.skillsTitle'),
-        emptyCommands: I18n.get('mainView.empty.commandsTitle'),
-        emptySkillsHint: I18n.get('mainView.empty.skillsHint'),
-        emptyCommandsHint: I18n.get('mainView.empty.commandsHint'),
-        noFiles: I18n.get('common.noFiles'),
-        noData: I18n.get('common.noData'),
-        requiredSuffix: I18n.get('common.requiredSuffix')
-    };
-
-    return `<!DOCTYPE html>
-<html lang="${htmlLang}">
+    if (!fs.existsSync(cssPath) || !fs.existsSync(jsPath)) {
+        return `<!DOCTYPE html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; style-src ${webview.cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}'; connect-src ${webview.cspSource};">
-    <link rel="stylesheet" href="${codiconCssUri}">
-    <style nonce="${nonce}">${css}</style>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+    <style>
+        html, body { height: 100%; margin: 0; }
+        body {
+            display: grid;
+            place-items: center;
+            background: var(--vscode-sideBar-background);
+            color: var(--vscode-foreground);
+            font-family: var(--vscode-font-family);
+        }
+        .fallback {
+            max-width: 420px;
+            padding: 24px;
+            border: 1px solid var(--vscode-panel-border, rgba(128,128,128,0.25));
+            border-radius: 16px;
+            background: var(--vscode-editorWidget-background, rgba(255,255,255,0.03));
+        }
+    </style>
 </head>
 <body>
-    <div class="app">
-        <nav class="nav-rail">
-            <div class="nav-header">
-                <span class="logo-letter">A</span>
-                <span class="logo">mpify</span>
-            </div>
-            <div class="nav-items">
-                ${navItemsHtml}
-            </div>
-            <div class="account-badge" title="${instanceKey || 'default'}">
-                <span class="account-letter">${(instanceKey || 'default').charAt(0).toUpperCase()}</span>
-                <span class="account-label">${instanceKey || 'default'}</span>
-            </div>
-            <button class="nav-toggle" title="${I18n.get('nav.toggleSidebar')}">
-                <i class="codicon codicon-layout-sidebar-left"></i>
-            </button>
-        </nav>
-        <div class="content">
-            <div class="toolbar">
-                <span class="toolbar-title">${I18n.get('nav.dashboard')}</span>
-            </div>
-            <div class="content-body">
-                <div class="empty-state">
-                    <i class="codicon codicon-dashboard"></i>
-                    <p>${I18n.get('common.loading')}</p>
-                </div>
-            </div>
-        </div>
+    <div class="fallback">
+        <h3>MainView assets not built</h3>
+        <p>Run <code>npm run compile</code> to generate the Vue webview bundle.</p>
     </div>
-    <script nonce="${nonce}">window.__ampifyI18n=${JSON.stringify(i18nMap)};</script>
-    <script nonce="${nonce}">${js}</script>
+</body>
+</html>`;
+    }
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src ${webview.cspSource}; img-src ${webview.cspSource} data:; style-src ${webview.cspSource}; script-src ${webview.cspSource} 'nonce-${nonce}';">
+    <link rel="stylesheet" href="${codiconCssUri}">
+    <link rel="stylesheet" href="${cssUri}">
+</head>
+<body>
+    <div id="app"></div>
+    <script nonce="${nonce}">
+        const ampifyGlobal = globalThis;
+        ampifyGlobal.process = ampifyGlobal.process || { env: { NODE_ENV: 'production' } };
+        ampifyGlobal.process.env = ampifyGlobal.process.env || { NODE_ENV: 'production' };
+        ampifyGlobal.process.env.NODE_ENV = ampifyGlobal.process.env.NODE_ENV || 'production';
+        ampifyGlobal.global = ampifyGlobal;
+        ampifyGlobal.__VUE_OPTIONS_API__ = true;
+        ampifyGlobal.__VUE_PROD_DEVTOOLS__ = false;
+        ampifyGlobal.__VUE_PROD_HYDRATION_MISMATCH_DETAILS__ = false;
+    </script>
+    <script nonce="${nonce}" src="${jsUri}"></script>
 </body>
 </html>`;
 }
 
 function getNonce(): string {
     let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 32; i++) {
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i += 1) {
+        text += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return text;
 }

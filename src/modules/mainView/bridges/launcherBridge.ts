@@ -3,7 +3,7 @@
  * 将 Launcher 模块数据适配为 TreeNode[]
  */
 import * as vscode from 'vscode';
-import { TreeNode, ToolbarAction } from '../protocol';
+import { TreeNode, ToolbarAction } from '../shared/contracts';
 import { ConfigManager } from '../../launcher/core/configManager';
 import { I18n } from '../../../common/i18n';
 import { instanceKey } from '../../../extension';

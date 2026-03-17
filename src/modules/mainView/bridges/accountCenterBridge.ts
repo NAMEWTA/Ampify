@@ -7,7 +7,7 @@ import {
     AccountCenterTabData,
     AccountCenterTabId,
     ToolbarAction
-} from '../protocol';
+} from '../shared/contracts';
 import { OpenCodeCopilotAuthConfigManager } from '../../opencode-copilot-auth/core/configManager';
 import { AuthSwitcher } from '../../opencode-copilot-auth/core/authSwitcher';
 import { OhMyProfileManager } from '../../opencode-copilot-auth/core/ohMyProfileManager';
