@@ -11,6 +11,8 @@ const sectionToPath: Record<VisibleSectionId, string> = {
     dashboard: '/dashboard',
     skills: '/skills',
     commands: '/commands',
+    agents: '/agents',
+    rules: '/rules',
     gitshare: '/git-share',
     settings: '/settings'
 };

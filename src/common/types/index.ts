@@ -175,3 +175,57 @@ export interface LoadedCommand {
     content?: string;
 }
 
+// ==================== Agents Manager Types ====================
+
+export interface AgentMeta {
+    /** Agent 名称，小写字母+连字符，≤64字符 */
+    agent: string;
+    /** 简短描述，≤1024字符 */
+    description: string;
+    /** 标签列表 */
+    tags?: string[];
+}
+
+export interface AgentsManagerConfig {
+    /** 默认注入目标目录 */
+    injectTarget?: string;
+}
+
+export interface LoadedAgent {
+    /** Agent 文件名（不含扩展名） */
+    fileName: string;
+    /** Agent 文件完整路径 */
+    path: string;
+    /** MD frontmatter 元数据 */
+    meta: AgentMeta;
+    /** Agent 正文内容 */
+    content?: string;
+}
+
+// ==================== Rules Manager Types ====================
+
+export interface RuleMeta {
+    /** Rule 名称，小写字母+连字符，≤64字符 */
+    rule: string;
+    /** 简短描述，≤1024字符 */
+    description: string;
+    /** 标签列表 */
+    tags?: string[];
+}
+
+export interface RulesManagerConfig {
+    /** 默认注入目标目录 */
+    injectTarget?: string;
+}
+
+export interface LoadedRule {
+    /** Rule 文件名（不含扩展名） */
+    fileName: string;
+    /** Rule 文件完整路径 */
+    path: string;
+    /** MD frontmatter 元数据 */
+    meta: RuleMeta;
+    /** Rule 正文内容 */
+    content?: string;
+}
+

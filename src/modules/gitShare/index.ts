@@ -227,16 +227,26 @@ export async function registerGitShare(context: vscode.ExtensionContext): Promis
         })
     );
 
-    const startupResult = await gitManager.forceReceiveRemote({ conflictsOnly: true, phase: 'startup' });
-    if (!startupResult.success && !startupResult.noRemote) {
-        if (startupResult.networkError) {
-            vscode.window.showWarningMessage(I18n.get('gitShare.networkError'));
-        } else if (startupResult.authError) {
-            vscode.window.showErrorMessage(I18n.get('gitShare.configureAuth'));
-        } else {
-            vscode.window.showErrorMessage(I18n.get('gitShare.startupPullFailed', startupResult.error || 'Unknown error'));
+    void (async () => {
+        try {
+            const startupResult = await gitManager.forceReceiveRemote({ conflictsOnly: true, phase: 'startup' });
+            if (!startupResult.success && !startupResult.noRemote) {
+                if (startupResult.networkError) {
+                    vscode.window.showWarningMessage(I18n.get('gitShare.networkError'));
+                } else if (startupResult.authError) {
+                    vscode.window.showErrorMessage(I18n.get('gitShare.configureAuth'));
+                } else {
+                    vscode.window.showErrorMessage(I18n.get('gitShare.startupPullFailed', startupResult.error || 'Unknown error'));
+                }
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            console.error('Git Share startup sync failed:', message);
+            vscode.window.showErrorMessage(I18n.get('gitShare.startupPullFailed', message));
+        } finally {
+            void vscode.commands.executeCommand('ampify.mainView.refresh');
         }
-    }
+    })();
 
     console.log('Git Share module loaded');
 

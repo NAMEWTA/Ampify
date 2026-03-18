@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CommandsViewModel, GitShareViewModel, SkillsViewModel } from '@shared/contracts';
+import type { AgentsViewModel, CommandsViewModel, GitShareViewModel, RulesViewModel, SkillsViewModel } from '@shared/contracts';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import ResourceWorkbench from '@/components/ResourceWorkbench.vue';
 import SectionHeader from '@/components/SectionHeader.vue';
@@ -43,7 +43,7 @@ import { useProgressStore } from '@/stores/progress';
 import { useSectionsStore } from '@/stores/sections';
 
 const props = defineProps<{
-  section: 'skills' | 'commands' | 'gitshare';
+  section: 'skills' | 'commands' | 'agents' | 'rules' | 'gitshare';
 }>();
 
 const sectionsStore = useSectionsStore();
@@ -53,23 +53,37 @@ const actions = useSectionActions(props.section);
 const dragActive = ref(false);
 const dragDepth = ref(0);
 
-const viewModel = computed(() => sectionsStore.sections[props.section] as SkillsViewModel | CommandsViewModel | GitShareViewModel | undefined);
-const isTaggable = computed(() => props.section === 'skills' || props.section === 'commands');
-const cards = computed(() => ('cards' in (viewModel.value || {})) ? (viewModel.value as SkillsViewModel | CommandsViewModel).cards : []);
+const viewModel = computed(() => sectionsStore.sections[props.section] as SkillsViewModel | CommandsViewModel | AgentsViewModel | RulesViewModel | GitShareViewModel | undefined);
+const isTaggable = computed(() => props.section === 'skills' || props.section === 'commands' || props.section === 'agents' || props.section === 'rules');
+const cards = computed(() => ('cards' in (viewModel.value || {})) ? (viewModel.value as SkillsViewModel | CommandsViewModel | AgentsViewModel | RulesViewModel).cards : []);
 const tree = computed(() => ('tree' in (viewModel.value || {})) ? viewModel.value!.tree : []);
-const tags = computed(() => ('tags' in (viewModel.value || {})) ? (viewModel.value as SkillsViewModel | CommandsViewModel).tags : []);
-const activeTags = computed(() => ('activeTags' in (viewModel.value || {})) ? (viewModel.value as SkillsViewModel | CommandsViewModel).activeTags : []);
+const tags = computed(() => ('tags' in (viewModel.value || {})) ? (viewModel.value as SkillsViewModel | CommandsViewModel | AgentsViewModel | RulesViewModel).tags : []);
+const activeTags = computed(() => ('activeTags' in (viewModel.value || {})) ? (viewModel.value as SkillsViewModel | CommandsViewModel | AgentsViewModel | RulesViewModel).activeTags : []);
 const progress = computed(() => props.section === 'skills' || props.section === 'commands' ? progressStore.map[props.section] : null);
 const headerActions = computed(() => (viewModel.value?.toolbar || []).filter((action) => action.id !== 'search'));
 const dropLabel = computed(() => {
   if (appStore.bootstrap?.locale === 'en') {
-    return props.section === 'skills'
-      ? 'Drop skill folders here to import'
-      : 'Drop command files here to import';
+    if (props.section === 'skills') {
+      return 'Drop skill folders here to import';
+    }
+    if (props.section === 'commands') {
+      return 'Drop command files here to import';
+    }
+    if (props.section === 'agents') {
+      return 'Drop agent files here to import';
+    }
+    return 'Drop rule files here to import';
   }
-  return props.section === 'skills'
-    ? '将技能文件夹拖到这里导入'
-    : '将命令文件拖到这里导入';
+  if (props.section === 'skills') {
+    return '将技能文件夹拖到这里导入';
+  }
+  if (props.section === 'commands') {
+    return '将命令文件拖到这里导入';
+  }
+  if (props.section === 'agents') {
+    return '将 agent 文件拖到这里导入';
+  }
+  return '将 rule 文件拖到这里导入';
 });
 
 function handleDragEnter(event: DragEvent) {

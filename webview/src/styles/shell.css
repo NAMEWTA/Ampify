@@ -42,8 +42,8 @@
 }
 
 .sidebar-brand {
-    min-height: 30px;
-    justify-content: center;
+    min-height: 42px;
+    justify-content: flex-start;
 }
 
 .brand-mark,
@@ -111,9 +111,10 @@
 
 .sidebar-nav__item {
     position: relative;
-    justify-content: center;
-    min-height: 30px;
-    padding: 4px;
+    justify-content: flex-start;
+    gap: 10px;
+    min-height: 46px;
+    padding: 8px 10px;
     border: 1px solid transparent;
     border-radius: 10px;
     color: var(--amp-text-soft);
@@ -148,9 +149,9 @@
 }
 
 .sidebar-nav__icon {
-    width: 16px;
-    height: 16px;
-    border-radius: 5px;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.04);
     color: inherit;
 }
@@ -246,10 +247,15 @@
 
 .shell.is-collapsed .sidebar-copy {
     width: 0;
+    max-width: 0;
+    height: 0;
+    max-height: 0;
+    margin: 0;
     opacity: 0;
     transform: translateX(-8px);
     overflow: hidden;
     pointer-events: none;
+    white-space: nowrap;
 }
 
 .shell.is-collapsed .sidebar-brand,
@@ -257,9 +263,32 @@
     justify-content: center;
 }
 
+.shell.is-collapsed .sidebar-nav {
+    align-items: center;
+    gap: 8px;
+}
+
 .shell.is-collapsed .sidebar-nav__item {
+    flex: 0 0 42px;
+    width: 42px;
     justify-content: center;
+    gap: 0;
+    min-height: 42px;
     padding-inline: 0;
+    padding-block: 0;
+    border-radius: 12px;
+}
+
+.shell.is-collapsed .sidebar-nav__indicator {
+    left: 4px;
+    top: 9px;
+    bottom: 9px;
+}
+
+.shell.is-collapsed .sidebar-nav__icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
 }
 
 @media (max-width: 1180px) {

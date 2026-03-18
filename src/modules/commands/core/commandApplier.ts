@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { ensureDir } from '../../../common/paths';
 import { LoadedCommand } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
+import { getDefaultInjectTargetValue, parseInjectTargets } from '../../../common/injectTarget';
 
 /**
  * 命令应用器
@@ -24,11 +25,11 @@ export class CommandApplier {
     /**
      * 获取注入目标目录
      */
-    public getInjectTarget(workspaceRoot: string): string {
+    public getInjectTargets(workspaceRoot: string): string[] {
         const config = vscode.workspace.getConfiguration('ampify');
-        let target = config.get<string>('commands.injectTarget') || '.claude/commands/';
-        target = this.normalizeInjectTarget(target);
-        return path.join(workspaceRoot, target);
+        const configuredTargets = config.get<string>('commands.injectTarget') || getDefaultInjectTargetValue('commands');
+        return parseInjectTargets(configuredTargets, 'commands')
+            .map((target) => path.join(workspaceRoot, target));
     }
 
     /**
@@ -36,12 +37,11 @@ export class CommandApplier {
      */
     public async apply(command: LoadedCommand, workspaceRoot: string): Promise<boolean> {
         try {
-            const targetDir = this.getInjectTarget(workspaceRoot);
-            ensureDir(targetDir);
-
-            const targetPath = path.join(targetDir, `${command.meta.command}.md`);
-
-            this.copyCommand(command.path, targetPath);
+            for (const targetDir of this.getInjectTargets(workspaceRoot)) {
+                ensureDir(targetDir);
+                const targetPath = path.join(targetDir, `${command.meta.command}.md`);
+                this.copyCommand(command.path, targetPath);
+            }
 
             vscode.window.showInformationMessage(
                 I18n.get('commands.applied', command.meta.command)
@@ -61,11 +61,16 @@ export class CommandApplier {
      */
     public async remove(commandName: string, workspaceRoot: string): Promise<boolean> {
         try {
-            const targetDir = this.getInjectTarget(workspaceRoot);
-            const targetPath = path.join(targetDir, `${commandName}.md`);
+            let removed = false;
+            for (const targetDir of this.getInjectTargets(workspaceRoot)) {
+                const targetPath = path.join(targetDir, `${commandName}.md`);
+                if (fs.existsSync(targetPath)) {
+                    fs.rmSync(targetPath, { force: true });
+                    removed = true;
+                }
+            }
 
-            if (fs.existsSync(targetPath)) {
-                fs.rmSync(targetPath, { force: true });
+            if (removed) {
                 vscode.window.showInformationMessage(
                     I18n.get('commands.removed', commandName)
                 );
@@ -85,31 +90,30 @@ export class CommandApplier {
      * 检查命令是否已应用到项目
      */
     public isApplied(commandName: string, workspaceRoot: string): boolean {
-        const targetDir = this.getInjectTarget(workspaceRoot);
-        const targetPath = path.join(targetDir, `${commandName}.md`);
-        return fs.existsSync(targetPath);
+        return this.getInjectTargets(workspaceRoot)
+            .some((targetDir) => fs.existsSync(path.join(targetDir, `${commandName}.md`)));
     }
 
     /**
      * 获取项目中已应用的命令列表
      */
     public getAppliedCommands(workspaceRoot: string): string[] {
-        const targetDir = this.getInjectTarget(workspaceRoot);
-        if (!fs.existsSync(targetDir)) {
-            return [];
+        const applied = new Set<string>();
+
+        for (const targetDir of this.getInjectTargets(workspaceRoot)) {
+            if (!fs.existsSync(targetDir)) {
+                continue;
+            }
+
+            const files = fs.readdirSync(targetDir);
+            for (const file of files) {
+                if (file.endsWith('.md')) {
+                    applied.add(path.basename(file, '.md'));
+                }
+            }
         }
 
-        const files = fs.readdirSync(targetDir);
-        return files
-            .filter(f => f.endsWith('.md'))
-            .map(f => path.basename(f, '.md'));
-    }
-
-    private normalizeInjectTarget(target: string): string {
-        if (/^\.agents([\\/]|$)/.test(target)) {
-            return target.replace(/^\.agents(?=[\\/]|$)/, '.claude');
-        }
-        return target;
+        return Array.from(applied).sort();
     }
 
     private copyCommand(sourcePath: string, targetPath: string): void {

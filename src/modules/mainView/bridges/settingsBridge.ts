@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { I18n } from '../../../common/i18n';
 import { GitManager } from '../../../common/git';
+import { getDefaultInjectTargetValue, normalizeInjectTargetValue } from '../../../common/injectTarget';
 import {
     SettingsData,
     SettingsSection,
@@ -63,19 +64,37 @@ export class SettingsBridge {
                         key: 'skills.injectTarget',
                         label: I18n.get('settings.skillsInject.label'),
                         description: I18n.get('settings.skillsInject.desc'),
-                        value: config.get<string>('skills.injectTarget') || '.claude/skills/',
+                        value: config.get<string>('skills.injectTarget') || getDefaultInjectTargetValue('skills'),
                         kind: 'text',
                         scope: 'vscode',
-                        placeholder: '.claude/skills/'
+                        placeholder: getDefaultInjectTargetValue('skills')
                     },
                     {
                         key: 'commands.injectTarget',
                         label: I18n.get('settings.commandsInject.label'),
                         description: I18n.get('settings.commandsInject.desc'),
-                        value: config.get<string>('commands.injectTarget') || '.claude/commands/',
+                        value: config.get<string>('commands.injectTarget') || getDefaultInjectTargetValue('commands'),
                         kind: 'text',
                         scope: 'vscode',
-                        placeholder: '.claude/commands/'
+                        placeholder: getDefaultInjectTargetValue('commands')
+                    },
+                    {
+                        key: 'agents.injectTarget',
+                        label: I18n.get('settings.agentsInject.label'),
+                        description: I18n.get('settings.agentsInject.desc'),
+                        value: config.get<string>('agents.injectTarget') || getDefaultInjectTargetValue('agents'),
+                        kind: 'text',
+                        scope: 'vscode',
+                        placeholder: getDefaultInjectTargetValue('agents')
+                    },
+                    {
+                        key: 'rules.injectTarget',
+                        label: I18n.get('settings.rulesInject.label'),
+                        description: I18n.get('settings.rulesInject.desc'),
+                        value: config.get<string>('rules.injectTarget') || getDefaultInjectTargetValue('rules'),
+                        kind: 'text',
+                        scope: 'vscode',
+                        placeholder: getDefaultInjectTargetValue('rules')
                     }
                 ]
             },
@@ -119,7 +138,16 @@ export class SettingsBridge {
         if (scope === 'vscode') {
             const config = vscode.workspace.getConfiguration('ampify');
             const trimmed = value.trim();
-            const finalValue = trimmed.length > 0 ? trimmed : undefined;
+            const injectTargetKeyToKind = {
+                'skills.injectTarget': 'skills',
+                'commands.injectTarget': 'commands',
+                'agents.injectTarget': 'agents',
+                'rules.injectTarget': 'rules'
+            } as const;
+            const injectTargetKind = injectTargetKeyToKind[key as keyof typeof injectTargetKeyToKind];
+            const finalValue = injectTargetKind
+                ? normalizeInjectTargetValue(trimmed, injectTargetKind)
+                : (trimmed.length > 0 ? trimmed : undefined);
             await config.update(key, finalValue, vscode.ConfigurationTarget.Global);
             return;
         }

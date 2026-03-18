@@ -3,6 +3,10 @@
     <aside class="shell-sidebar">
       <div class="sidebar-brand">
         <div class="brand-mark" :title="appStore.bootstrap?.brandName || 'Ampify'">A</div>
+        <div class="sidebar-copy brand-copy">
+          <strong>{{ appStore.bootstrap?.brandName || 'Ampify' }}</strong>
+          <span>{{ appStore.bootstrap?.brandTagline || workspaceLabel }}</span>
+        </div>
       </div>
 
       <nav class="sidebar-nav">
@@ -17,6 +21,10 @@
           <span class="sidebar-nav__indicator"></span>
           <span class="sidebar-nav__icon">
             <i class="codicon" :class="`codicon-${item.iconId}`"></i>
+          </span>
+          <span class="sidebar-copy sidebar-nav__copy">
+            <strong>{{ item.label }}</strong>
+            <small>{{ navDescription(item.id) }}</small>
           </span>
         </button>
       </nav>
@@ -72,8 +80,35 @@ const currentTitle = computed(() => currentView.value?.title || appStore.bootstr
 const localeLabel = computed(() => appStore.bootstrap?.locale === 'en' ? 'EN' : 'zh-CN');
 const refreshLabel = computed(() => isEnglish.value ? 'Refresh' : '刷新');
 const toggleLabel = computed(() => isEnglish.value ? 'Toggle navigation' : '切换导航');
+const workspaceLabel = computed(() => isEnglish.value ? 'Workspace command center' : '工作区指挥台');
 
 function toggleNav() {
   appStore.setNavCollapsed(!appStore.navCollapsed);
+}
+
+function navDescription(section: string) {
+  if (isEnglish.value) {
+    const englishMap: Record<string, string> = {
+      dashboard: 'Search everything',
+      skills: 'Manage skills',
+      commands: 'Manage commands',
+      agents: 'Manage agents',
+      rules: 'Manage rules',
+      gitshare: 'Git sync workspace',
+      settings: 'Tune paths and Git'
+    };
+    return englishMap[section] || 'Open section';
+  }
+
+  const zhMap: Record<string, string> = {
+    dashboard: '全局搜索入口',
+    skills: '管理技能资源',
+    commands: '管理命令资源',
+    agents: '管理 agent 资源',
+    rules: '管理 rule 资源',
+    gitshare: 'Git 同步工作台',
+    settings: '调整路径与 Git'
+  };
+  return zhMap[section] || '打开分区';
 }
 </script>

@@ -6,6 +6,7 @@ import { promisify } from 'util';
 import { SkillConfigManager } from './skillConfigManager';
 import { LoadedSkill, Prerequisite } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
+import { getDefaultInjectTargetValue, parseInjectTargets } from '../../../common/injectTarget';
 
 const execAsync = promisify(exec);
 
@@ -21,11 +22,11 @@ export class SkillApplier {
     /**
      * 获取注入目标路径
      */
-    public getInjectTarget(workspaceRoot: string): string {
+    public getInjectTargets(workspaceRoot: string): string[] {
         const config = vscode.workspace.getConfiguration('ampify');
-        let customTarget = config.get<string>('skills.injectTarget') || '.claude/skills/';
-        customTarget = this.normalizeInjectTarget(customTarget);
-        return path.join(workspaceRoot, customTarget);
+        const configuredTargets = config.get<string>('skills.injectTarget') || getDefaultInjectTargetValue('skills');
+        return parseInjectTargets(configuredTargets, 'skills')
+            .map((target) => path.join(workspaceRoot, target));
     }
 
     /**
@@ -127,15 +128,16 @@ export class SkillApplier {
                 return { success: false, error: 'User cancelled due to prerequisites' };
             }
 
-            const targetDir = this.getInjectTarget(workspaceRoot);
-            const skillTargetPath = path.join(targetDir, skill.meta.name);
+            const targetDirs = this.getInjectTargets(workspaceRoot);
+            for (const targetDir of targetDirs) {
+                const skillTargetPath = path.join(targetDir, skill.meta.name);
 
-            // 确保目标目录存在
-            if (!fs.existsSync(targetDir)) {
-                fs.mkdirSync(targetDir, { recursive: true });
+                if (!fs.existsSync(targetDir)) {
+                    fs.mkdirSync(targetDir, { recursive: true });
+                }
+
+                this.copySkill(skill.path, skillTargetPath);
             }
-
-            this.copySkill(skill.path, skillTargetPath);
 
             return { success: true };
         } catch (error: unknown) {
@@ -149,25 +151,20 @@ export class SkillApplier {
      */
     public remove(skillName: string, workspaceRoot: string): boolean {
         try {
-            const targetDir = this.getInjectTarget(workspaceRoot);
-            const skillTargetPath = path.join(targetDir, skillName);
+            let removed = false;
+            for (const targetDir of this.getInjectTargets(workspaceRoot)) {
+                const skillTargetPath = path.join(targetDir, skillName);
 
-            if (fs.existsSync(skillTargetPath)) {
-                fs.rmSync(skillTargetPath, { recursive: true, force: true });
-                return true;
+                if (fs.existsSync(skillTargetPath)) {
+                    fs.rmSync(skillTargetPath, { recursive: true, force: true });
+                    removed = true;
+                }
             }
-            return false;
+            return removed;
         } catch (error) {
             console.error(`Failed to remove skill ${skillName}:`, error);
             return false;
         }
-    }
-
-    private normalizeInjectTarget(target: string): string {
-        if (/^\.agents([\\/]|$)/.test(target)) {
-            return target.replace(/^\.agents(?=[\\/]|$)/, '.claude');
-        }
-        return target;
     }
 
     private copySkill(sourcePath: string, targetPath: string): void {

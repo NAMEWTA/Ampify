@@ -12,8 +12,12 @@ class DashboardSectionHandler implements MainViewSectionHandler {
     }
 
     async handleAction(action: SectionActionPayload): Promise<void> {
-        if (action.kind === 'quickAction') {
-            await this.controller.handleQuickAction(action.actionId, action.targetSection);
+        if (action.kind === 'dashboardSearch') {
+            await this.controller.handleDashboardSearch(action.query);
+            return;
+        }
+        if (action.kind === 'dashboardResultAction') {
+            await this.controller.handleDashboardResultAction(action.resultId, action.actionId);
             return;
         }
         if (action.kind === 'executeCommand') {
@@ -103,6 +107,8 @@ export class SectionHandlerRegistry {
             new DashboardSectionHandler(controller),
             new ResourceSectionHandler('skills', controller),
             new ResourceSectionHandler('commands', controller),
+            new ResourceSectionHandler('agents', controller),
+            new ResourceSectionHandler('rules', controller),
             new ResourceSectionHandler('gitshare', controller),
             new SettingsSectionHandler(controller)
         ];

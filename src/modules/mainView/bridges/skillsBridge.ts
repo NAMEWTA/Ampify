@@ -169,7 +169,7 @@ export class SkillsBridge {
 
             children.push({
                 id: `skill-${skill.meta.name}-files`,
-                label: 'Files',
+                label: I18n.get('common.files'),
                 iconId: 'folder',
                 collapsible: true,
                 children: fileChildren,
@@ -192,12 +192,12 @@ export class SkillsBridge {
             commandArgs: JSON.stringify({ name: skill.meta.name }),
             tooltip: skill.meta.description,
             inlineActions: [
-                { id: 'apply', label: 'Copy to .claude/skills', iconId: 'play' },
-                { id: 'preview', label: 'Preview', iconId: 'open-preview' }
+                { id: 'apply', label: I18n.get('common.copyToSkills'), iconId: 'play' },
+                { id: 'preview', label: I18n.get('common.preview'), iconId: 'open-preview' }
             ],
             contextActions: [
-                { id: 'openFolder', label: 'Open Folder', iconId: 'folder-opened' },
-                { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
+                { id: 'openFolder', label: I18n.get('common.openFolder'), iconId: 'folder-opened' },
+                { id: 'delete', label: I18n.get('common.delete'), iconId: 'trash', danger: true }
             ]
         };
     }
@@ -213,10 +213,10 @@ export class SkillsBridge {
             primaryFilePath: fs.existsSync(skillMdPath) ? skillMdPath : undefined,
             fileTree: this.buildFileTree(skill.path),
             actions: [
-                { id: 'apply', label: 'Copy to .claude/skills', iconId: 'play' },
-                { id: 'preview', label: 'Preview', iconId: 'open-preview' },
-                { id: 'openFolder', label: 'Open Folder', iconId: 'folder-opened' },
-                { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
+                { id: 'apply', label: I18n.get('common.copyToSkills'), iconId: 'play' },
+                { id: 'preview', label: I18n.get('common.preview'), iconId: 'open-preview' },
+                { id: 'openFolder', label: I18n.get('common.openFolder'), iconId: 'folder-opened' },
+                { id: 'delete', label: I18n.get('common.delete'), iconId: 'trash', danger: true }
             ]
         };
     }

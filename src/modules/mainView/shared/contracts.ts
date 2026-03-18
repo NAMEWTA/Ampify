@@ -9,6 +9,8 @@ export type SectionId =
     | 'dashboard'
     | 'skills'
     | 'commands'
+    | 'agents'
+    | 'rules'
     | 'gitshare'
     | 'settings';
 
@@ -16,6 +18,8 @@ export type VisibleSectionId =
     | 'dashboard'
     | 'skills'
     | 'commands'
+    | 'agents'
+    | 'rules'
     | 'gitshare'
     | 'settings';
 
@@ -122,7 +126,7 @@ export interface ConfirmData {
 }
 
 export type SettingsFieldKind = 'text' | 'select' | 'textarea';
-export type SettingsScope = 'vscode' | 'git' | 'skills' | 'commands';
+export type SettingsScope = 'vscode' | 'git' | 'skills' | 'commands' | 'agents' | 'rules';
 
 export interface SettingsOption {
     label: string;
@@ -175,80 +179,38 @@ export interface AiTaggingProgressData {
     items: AiTaggingProgressItem[];
 }
 
-// ==================== Dashboard ====================
+// ==================== Dashboard Search ====================
+
+export type DashboardSearchScope = 'skills' | 'commands' | 'agents' | 'rules' | 'gitshare' | 'settings';
+
+export type DashboardResultActionKind = 'openFile' | 'navigate' | 'command';
+
+export interface DashboardResultAction {
+    id: string;
+    label: string;
+    iconId: string;
+    kind: DashboardResultActionKind;
+}
+
+export interface DashboardSearchResult {
+    id: string;
+    title: string;
+    description?: string;
+    subtitle?: string;
+    iconId: string;
+    scope: DashboardSearchScope;
+    badges?: string[];
+    actions: DashboardResultAction[];
+}
 
 export interface DashboardData {
-    stats: DashboardStat[];
-    quickActions: QuickAction[];
-    moduleHealth?: ModuleHealthItem[];
-    gitInfo?: DashboardGitInfo;
-    workspaceInfo?: DashboardWorkspaceInfo;
-    activity?: DashboardActivityItem[];
-    labels: DashboardLabels;
-}
-
-export type DashboardActivityType = 'skill' | 'command';
-
-export interface DashboardActivityItem {
-    id: string;
-    type: DashboardActivityType;
-    label: string;
-    description?: string;
-    timestamp: number;
-}
-
-export interface DashboardLabels {
-    moduleHealth: string;
-    gitInfo: string;
-    quickActions: string;
-    viewDetail: string;
-    gitSync: string;
-    gitPull: string;
-    gitPush: string;
-    nextUp: string;
-}
-
-export interface DashboardStat {
-    label: string;
-    value: number | string;
-    iconId: string;
-    color?: string;
-    targetSection?: SectionId;
-}
-
-export interface QuickAction {
-    id: string;
-    label: string;
-    iconId: string;
-    command?: string;
-    action?: 'command' | 'toolbar';
-    section?: SectionId;
-    actionId?: string;
-}
-
-export type ModuleHealthStatus = 'active' | 'inactive' | 'warning' | 'error';
-
-export interface ModuleHealthItem {
-    moduleId: SectionId;
-    label: string;
-    status: ModuleHealthStatus;
-    detail: string;
-    iconId: string;
-    color: string;
-}
-
-export interface DashboardGitInfo {
-    initialized: boolean;
-    branch: string;
-    remoteUrl: string;
-    hasRemote: boolean;
-    unpushedCount: number;
-    hasChanges: boolean;
-    changedFileCount: number;
-}
-
-export interface DashboardWorkspaceInfo {
-    workspaceName: string;
+    query: string;
+    placeholder: string;
+    hint: string;
+    total: number;
+    emptyTitle: string;
+    emptyDescription: string;
+    results: DashboardSearchResult[];
 }
 
 // ==================== Section view models ====================
@@ -281,6 +243,22 @@ export interface CommandsViewModel extends BaseSectionViewModel {
     activeTags: string[];
 }
 
+export interface AgentsViewModel extends BaseSectionViewModel {
+    section: 'agents';
+    tree: TreeNode[];
+    cards: CardItem[];
+    tags: string[];
+    activeTags: string[];
+}
+
+export interface RulesViewModel extends BaseSectionViewModel {
+    section: 'rules';
+    tree: TreeNode[];
+    cards: CardItem[];
+    tags: string[];
+    activeTags: string[];
+}
+
 export interface GitShareViewModel extends BaseSectionViewModel {
     section: 'gitshare';
     tree: TreeNode[];
@@ -295,6 +273,8 @@ export type SectionViewModel =
     | DashboardViewModel
     | SkillsViewModel
     | CommandsViewModel
+    | AgentsViewModel
+    | RulesViewModel
     | GitShareViewModel
     | SettingsViewModel;
 
@@ -332,7 +312,8 @@ export type SectionActionPayload =
     | { kind: 'toggleTag'; tag: string }
     | { kind: 'dropFiles'; uris: string[] }
     | { kind: 'dropEmpty' }
-    | { kind: 'quickAction'; actionId: string; targetSection: SectionId }
+    | { kind: 'dashboardSearch'; query: string }
+    | { kind: 'dashboardResultAction'; resultId: string; actionId: string }
     | { kind: 'executeCommand'; command: string; args?: string }
     | { kind: 'settingsAction'; command: string };
 

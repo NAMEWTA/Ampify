@@ -46,8 +46,11 @@ export function useSectionActions(section: SectionId) {
         dropEmpty() {
             send({ kind: 'dropEmpty' });
         },
-        quickAction(actionId: string, targetSection: SectionId) {
-            send({ kind: 'quickAction', actionId, targetSection });
+        dashboardSearch(query: string) {
+            send({ kind: 'dashboardSearch', query });
+        },
+        dashboardResultAction(resultId: string, actionId: string) {
+            send({ kind: 'dashboardResultAction', resultId, actionId });
         },
         executeCommand(command: string, args?: string) {
             send({ kind: 'executeCommand', command, args });

@@ -22,8 +22,8 @@
     --amp-shadow: 0 18px 40px rgba(0, 0, 0, 0.34);
     --amp-shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.18);
     --amp-transition: 220ms ease;
-    --amp-sidebar-expanded: 64px;
-    --amp-sidebar-collapsed: 48px;
+    --amp-sidebar-expanded: 220px;
+    --amp-sidebar-collapsed: 56px;
     --el-color-primary: var(--amp-accent);
     --el-color-success: var(--amp-green);
     --el-color-danger: var(--amp-danger);

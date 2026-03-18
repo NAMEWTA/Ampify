@@ -12,3 +12,4 @@ node_modules
 branch-audit.txt
 webview/vite.config.js
 webview/vite.config.js.map
+*.log

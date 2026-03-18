@@ -4,6 +4,8 @@ import { registerSkillManager } from './modules/skills';
 import { registerCommandManager } from './modules/commands';
 import { registerMainView } from './modules/mainView';
 import { GitShareLifecycle, registerGitShare } from './modules/gitShare';
+import { registerAgentManager } from './modules/agents';
+import { registerRuleManager } from './modules/rules';
 
 let gitShareLifecycle: GitShareLifecycle | undefined;
 
@@ -41,6 +43,24 @@ export async function activate(context: vscode.ExtensionContext) {
         const message = error instanceof Error ? error.message : String(error);
         console.error('Failed to register Commands module:', message);
         vscode.window.showErrorMessage(`Commands module failed to load: ${message}`);
+    }
+
+    // Register the "Agents" module
+    try {
+        await registerAgentManager(context);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('Failed to register Agents module:', message);
+        vscode.window.showErrorMessage(`Agents module failed to load: ${message}`);
+    }
+
+    // Register the "Rules" module
+    try {
+        await registerRuleManager(context);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('Failed to register Rules module:', message);
+        vscode.window.showErrorMessage(`Rules module failed to load: ${message}`);
     }
 
     console.log('Ampify Extension Activated');

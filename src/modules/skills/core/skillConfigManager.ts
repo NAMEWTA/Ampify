@@ -5,6 +5,7 @@ import { parse as parseYaml } from 'yaml';
 import { getGitShareModuleDir, ensureDir } from '../../../common/paths';
 import { updateFrontmatterTags } from '../../../common/frontmatter';
 import { normalizeTagLibrary } from '../../../common/tagLibrary';
+import { getDefaultInjectTargetValue, normalizeInjectTargetValue } from '../../../common/injectTarget';
 
 /**
  * Skills Manager 配置管理器
@@ -46,7 +47,7 @@ export class SkillConfigManager {
      */
     protected getDefaultConfig(): SkillsManagerConfig {
         return {
-            injectTarget: '.claude/skills/',
+            injectTarget: getDefaultInjectTargetValue('skills'),
             aiTagging: this.getDefaultAiTaggingConfig()
         };
     }
@@ -112,8 +113,8 @@ export class SkillConfigManager {
             }
             const content = fs.readFileSync(this.configPath, 'utf8');
             const config = JSON.parse(content) as SkillsManagerConfig;
-            const fallback = this.getDefaultConfig().injectTarget ?? '.claude/skills/';
-            const normalized = this.normalizeInjectTarget(config.injectTarget ?? fallback);
+            const fallback = this.getDefaultConfig().injectTarget ?? getDefaultInjectTargetValue('skills');
+            const normalized = normalizeInjectTargetValue(config.injectTarget ?? fallback, 'skills');
             const aiTagging = this.normalizeAiTaggingConfig(config.aiTagging);
             let changed = false;
             if (normalized !== config.injectTarget) {
@@ -138,6 +139,7 @@ export class SkillConfigManager {
      * 保存配置
      */
     public saveConfig(config: SkillsManagerConfig): void {
+        config.injectTarget = normalizeInjectTargetValue(config.injectTarget, 'skills');
         config.aiTagging = this.normalizeAiTaggingConfig(config.aiTagging);
         fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf8');
     }
@@ -169,13 +171,6 @@ export class SkillConfigManager {
         }
         fs.writeFileSync(skillMdPath, updated, 'utf8');
         return true;
-    }
-
-    private normalizeInjectTarget(target: string): string {
-        if (/^\.agents([\\/]|$)/.test(target)) {
-            return target.replace(/^\.agents(?=[\\/]|$)/, '.claude');
-        }
-        return target;
     }
 
     /**

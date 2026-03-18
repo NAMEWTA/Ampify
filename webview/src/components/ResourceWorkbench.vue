@@ -201,7 +201,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { useAppStore } from '@/stores/app';
 import ProgressPanel from './ProgressPanel.vue';
 
-type ResourceSectionKind = 'skills' | 'commands' | 'gitshare';
+type ResourceSectionKind = 'skills' | 'commands' | 'agents' | 'rules' | 'gitshare';
 
 interface DrawerFile {
   label: string;
@@ -267,7 +267,7 @@ const drawerCardId = ref('');
 let filterTimer: number | undefined;
 
 const isEnglish = computed(() => appStore.bootstrap?.locale === 'en');
-const isFilterable = computed(() => props.section === 'skills' || props.section === 'commands');
+const isFilterable = computed(() => props.section === 'skills' || props.section === 'commands' || props.section === 'agents' || props.section === 'rules');
 const hasActiveFilters = computed(() => Boolean(keyword.value.trim()) || props.activeTags.length > 0);
 const text = computed(() => {
   if (isEnglish.value) {
@@ -285,13 +285,21 @@ const text = computed(() => {
       skillsDescription: 'Compact operations for import, apply, preview, and AI tagging.',
       commandsTitle: 'Commands workspace',
       commandsDescription: 'Maintain command assets with tighter list density and direct actions.',
+      agentsTitle: 'Agents workspace',
+      agentsDescription: 'Manage reusable agent definitions as single-file managed resources.',
+      rulesTitle: 'Rules workspace',
+      rulesDescription: 'Manage reusable rule files with the same compact resource workflow.',
       gitTitle: 'Git Share workspace',
       gitDescription: 'Repository status, configuration, and synced module visibility.',
       skillsCatalog: 'Skill catalog',
       commandsCatalog: 'Command catalog',
+      agentsCatalog: 'Agent catalog',
+      rulesCatalog: 'Rule catalog',
       gitCatalog: 'Repository overview',
       skillsCatalogDescription: 'All skills are shown as compact operational cards.',
       commandsCatalogDescription: 'All commands are shown as compact operational cards.',
+      agentsCatalogDescription: 'All agents are shown as compact operational cards.',
+      rulesCatalogDescription: 'All rules are shown as compact operational cards.',
       gitCatalogDescription: 'Configuration groups and synced modules are shown as compact status lists.',
       overview: 'Overview',
       files: 'Files'
@@ -312,13 +320,21 @@ const text = computed(() => {
     skillsDescription: '将导入、应用、预览与 AI 标注集中在一个紧凑界面中。',
     commandsTitle: '命令工作台',
     commandsDescription: '用更紧凑的列表密度管理命令资产与直接操作。',
+    agentsTitle: 'Agents 工作台',
+    agentsDescription: '以单文件受管资源方式管理可复用 agent 定义。',
+    rulesTitle: 'Rules 工作台',
+    rulesDescription: '以相同的紧凑资源流程管理可复用 rule 文件。',
     gitTitle: 'Git Share 工作台',
     gitDescription: '查看仓库状态、配置与同步模块目录。',
     skillsCatalog: '技能目录',
     commandsCatalog: '命令目录',
+    agentsCatalog: 'Agent 目录',
+    rulesCatalog: 'Rule 目录',
     gitCatalog: '仓库总览',
     skillsCatalogDescription: '所有技能以紧凑操作卡片方式展示。',
     commandsCatalogDescription: '所有命令以紧凑操作卡片方式展示。',
+    agentsCatalogDescription: '所有 agent 以紧凑操作卡片方式展示。',
+    rulesCatalogDescription: '所有 rule 以紧凑操作卡片方式展示。',
     gitCatalogDescription: '配置分组与同步模块以紧凑状态列表展示。',
     overview: '总览',
     files: '文件'
@@ -332,6 +348,12 @@ const summaryTitle = computed(() => {
   if (props.section === 'commands') {
     return text.value.commandsTitle;
   }
+  if (props.section === 'agents') {
+    return text.value.agentsTitle;
+  }
+  if (props.section === 'rules') {
+    return text.value.rulesTitle;
+  }
   return text.value.gitTitle;
 });
 
@@ -341,6 +363,12 @@ const catalogTitle = computed(() => {
   }
   if (props.section === 'commands') {
     return text.value.commandsCatalog;
+  }
+  if (props.section === 'agents') {
+    return text.value.agentsCatalog;
+  }
+  if (props.section === 'rules') {
+    return text.value.rulesCatalog;
   }
   return text.value.gitCatalog;
 });
@@ -458,7 +486,7 @@ function createCardRow(card: CardItem): ResourceRow {
     actions.push({
       id: 'files',
       label: text.value.files,
-      iconId: 'folder-opened',
+      iconId: 'files',
       kind: 'files'
     });
   }

@@ -156,9 +156,9 @@ export class CommandsBridge {
             iconId: 'terminal',
             primaryFilePath: cmd.path,
             actions: [
-                { id: 'apply', label: 'Copy to .claude/commands', iconId: 'play' },
-                { id: 'preview', label: 'Preview', iconId: 'open-preview' },
-                { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
+                { id: 'apply', label: I18n.get('common.copyToCommands'), iconId: 'play' },
+                { id: 'preview', label: I18n.get('common.preview'), iconId: 'open-preview' },
+                { id: 'delete', label: I18n.get('common.delete'), iconId: 'trash', danger: true }
             ]
         };
     }
@@ -178,12 +178,12 @@ export class CommandsBridge {
             commandArgs: JSON.stringify({ command: cmd.meta.command }),
             tooltip: cmd.meta.description,
             inlineActions: [
-                { id: 'apply', label: 'Copy to .claude/commands', iconId: 'play' },
-                { id: 'preview', label: 'Preview', iconId: 'open-preview' }
+                { id: 'apply', label: I18n.get('common.copyToCommands'), iconId: 'play' },
+                { id: 'preview', label: I18n.get('common.preview'), iconId: 'open-preview' }
             ],
             contextActions: [
-                { id: 'remove', label: 'Remove from Project', iconId: 'close' },
-                { id: 'delete', label: 'Delete', iconId: 'trash', danger: true }
+                { id: 'remove', label: I18n.get('common.removeFromProject'), iconId: 'close' },
+                { id: 'delete', label: I18n.get('common.delete'), iconId: 'trash', danger: true }
             ]
         };
     }

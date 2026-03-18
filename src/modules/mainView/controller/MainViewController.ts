@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { getHtml } from '../templates/htmlTemplate';
 import {
+    AgentsViewModel,
     AiTaggingProgressData,
     BootstrapPayload,
     CommandsViewModel,
@@ -10,6 +11,7 @@ import {
     GitShareViewModel,
     OverlayData,
     OverlayField,
+    RulesViewModel,
     SectionActionPayload,
     SectionId,
     SectionViewModel,
@@ -22,6 +24,8 @@ import {
 import { DashboardBridge } from '../bridges/dashboardBridge';
 import { SkillsBridge } from '../bridges/skillsBridge';
 import { CommandsBridge } from '../bridges/commandsBridge';
+import { AgentsBridge } from '../bridges/agentsBridge';
+import { RulesBridge } from '../bridges/rulesBridge';
 import { GitShareBridge } from '../bridges/gitShareBridge';
 import { SettingsBridge } from '../bridges/settingsBridge';
 import { GitManager } from '../../../common/git';
@@ -43,6 +47,8 @@ export class MainViewController {
     private readonly dashboardBridge = new DashboardBridge();
     private readonly skillsBridge = new SkillsBridge();
     private readonly commandsBridge = new CommandsBridge();
+    private readonly agentsBridge = new AgentsBridge();
+    private readonly rulesBridge = new RulesBridge();
     private readonly gitShareBridge = new GitShareBridge();
     private readonly settingsBridge = new SettingsBridge();
     private readonly gitManager = new GitManager();
@@ -167,6 +173,10 @@ export class MainViewController {
                 return this.buildSkillsViewModel();
             case 'commands':
                 return this.buildCommandsViewModel();
+            case 'agents':
+                return this.buildAgentsViewModel();
+            case 'rules':
+                return this.buildRulesViewModel();
             case 'gitshare':
                 return this.buildGitShareViewModel();
             default:
@@ -186,6 +196,12 @@ export class MainViewController {
                 return;
             case 'commands':
                 await this.handleCommandsToolbarAction(actionId);
+                return;
+            case 'agents':
+                await this.handleAgentsToolbarAction(actionId);
+                return;
+            case 'rules':
+                await this.handleRulesToolbarAction(actionId);
                 return;
             case 'gitshare':
                 await this.handleGitShareToolbarAction(actionId);
@@ -215,6 +231,22 @@ export class MainViewController {
                 } else if (node?.nodeType === 'filterInfo') {
                     this.commandsBridge.clearFilter();
                     await this.sendSectionData('commands');
+                }
+                break;
+            case 'agents':
+                if (node?.nodeType === 'agentItem') {
+                    await this.agentsBridge.executeAction('open', nodeId);
+                } else if (node?.nodeType === 'filterInfo') {
+                    this.agentsBridge.clearFilter();
+                    await this.sendSectionData('agents');
+                }
+                break;
+            case 'rules':
+                if (node?.nodeType === 'ruleItem') {
+                    await this.rulesBridge.executeAction('open', nodeId);
+                } else if (node?.nodeType === 'filterInfo') {
+                    this.rulesBridge.clearFilter();
+                    await this.sendSectionData('rules');
                 }
                 break;
             case 'gitshare':
@@ -255,6 +287,12 @@ export class MainViewController {
             case 'commands':
                 await this.commandsBridge.executeAction(actionId, nodeId);
                 break;
+            case 'agents':
+                await this.agentsBridge.executeAction(actionId, nodeId);
+                break;
+            case 'rules':
+                await this.rulesBridge.executeAction(actionId, nodeId);
+                break;
             case 'gitshare':
                 await this.gitShareBridge.executeAction(actionId, nodeId);
                 break;
@@ -279,7 +317,7 @@ export class MainViewController {
             }
             await this.skillsBridge.executeAction(actionId, cardId);
             if (actionId === 'apply') {
-                this.postNotification('Copy to .claude/skills executed', 'info');
+                this.postNotification(I18n.get('common.copyToSkillsDone'), 'info');
             }
             await this.sendSectionData('skills');
             return;
@@ -292,9 +330,35 @@ export class MainViewController {
             }
             await this.commandsBridge.executeAction(actionId, cardId);
             if (actionId === 'apply') {
-                this.postNotification('Copy to .claude/commands executed', 'info');
+                this.postNotification(I18n.get('common.copyToCommandsDone'), 'info');
             }
             await this.sendSectionData('commands');
+            return;
+        }
+
+        if (section === 'agents') {
+            if (actionId === 'delete') {
+                await this.handleDeleteWithConfirm(section, cardId);
+                return;
+            }
+            await this.agentsBridge.executeAction(actionId, cardId);
+            if (actionId === 'apply') {
+                this.postNotification(I18n.get('common.copyToAgentsDone'), 'info');
+            }
+            await this.sendSectionData('agents');
+            return;
+        }
+
+        if (section === 'rules') {
+            if (actionId === 'delete') {
+                await this.handleDeleteWithConfirm(section, cardId);
+                return;
+            }
+            await this.rulesBridge.executeAction(actionId, cardId);
+            if (actionId === 'apply') {
+                this.postNotification(I18n.get('common.copyToRulesDone'), 'info');
+            }
+            await this.sendSectionData('rules');
             return;
         }
 
@@ -318,6 +382,14 @@ export class MainViewController {
             const current = this.commandsBridge.getFilterState();
             this.commandsBridge.setFilter(keyword || undefined, current.tags);
             await this.sendSectionData('commands');
+        } else if (section === 'agents') {
+            const current = this.agentsBridge.getFilterState();
+            this.agentsBridge.setFilter(keyword || undefined, current.tags);
+            await this.sendSectionData('agents');
+        } else if (section === 'rules') {
+            const current = this.rulesBridge.getFilterState();
+            this.rulesBridge.setFilter(keyword || undefined, current.tags);
+            await this.sendSectionData('rules');
         }
     }
 
@@ -330,6 +402,14 @@ export class MainViewController {
             const current = this.commandsBridge.getFilterState();
             this.commandsBridge.setFilter(current.keyword, tags);
             await this.sendSectionData('commands');
+        } else if (section === 'agents') {
+            const current = this.agentsBridge.getFilterState();
+            this.agentsBridge.setFilter(current.keyword, tags);
+            await this.sendSectionData('agents');
+        } else if (section === 'rules') {
+            const current = this.rulesBridge.getFilterState();
+            this.rulesBridge.setFilter(current.keyword, tags);
+            await this.sendSectionData('rules');
         }
     }
 
@@ -340,6 +420,12 @@ export class MainViewController {
         } else if (section === 'commands') {
             this.commandsBridge.clearFilter();
             await this.sendSectionData('commands');
+        } else if (section === 'agents') {
+            this.agentsBridge.clearFilter();
+            await this.sendSectionData('agents');
+        } else if (section === 'rules') {
+            this.rulesBridge.clearFilter();
+            await this.sendSectionData('rules');
         }
     }
 
@@ -348,7 +434,11 @@ export class MainViewController {
             ? this.skillsBridge
             : section === 'commands'
                 ? this.commandsBridge
-                : null;
+                : section === 'agents'
+                    ? this.agentsBridge
+                    : section === 'rules'
+                        ? this.rulesBridge
+                        : null;
 
         if (!bridge) {
             return;
@@ -396,6 +486,10 @@ export class MainViewController {
                 await vscode.commands.executeCommand('ampify.skills.importFromUris', validUris);
             } else if (section === 'commands') {
                 await vscode.commands.executeCommand('ampify.commands.importFromUris', validUris);
+            } else if (section === 'agents') {
+                await vscode.commands.executeCommand('ampify.agents.importFromUris', validUris);
+            } else if (section === 'rules') {
+                await vscode.commands.executeCommand('ampify.rules.importFromUris', validUris);
             }
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
@@ -410,6 +504,10 @@ export class MainViewController {
             await vscode.commands.executeCommand('ampify.skills.import');
         } else if (section === 'commands') {
             await vscode.commands.executeCommand('ampify.commands.import');
+        } else if (section === 'agents') {
+            await vscode.commands.executeCommand('ampify.agents.import');
+        } else if (section === 'rules') {
+            await vscode.commands.executeCommand('ampify.rules.import');
         }
     }
 
@@ -419,15 +517,20 @@ export class MainViewController {
         }
     }
 
-    async handleQuickAction(actionId: string, section: SectionId): Promise<void> {
-        const normalized = this.normalizeSection(section);
-        this.activeSection = normalized;
-        this.postAppState();
-        await this.sendSectionData(this.activeSection);
+    async handleDashboardSearch(query: string): Promise<void> {
+        this.dashboardBridge.setQuery(query);
+        if (this.activeSection === 'dashboard') {
+            await this.sendSectionData('dashboard');
+        }
+    }
 
-        setTimeout(() => {
-            void this.handleToolbarAction(normalized, actionId);
-        }, 150);
+    async handleDashboardResultAction(resultId: string, actionId: string): Promise<void> {
+        const execution = await this.dashboardBridge.executeResultAction(resultId, actionId);
+        if (execution.navigateTo) {
+            await this.handleNavigate(execution.navigateTo);
+            return;
+        }
+        await this.refresh();
     }
 
     async executeCommand(command: string, args?: string): Promise<void> {
@@ -459,6 +562,8 @@ export class MainViewController {
                 { id: 'dashboard', label: I18n.get('nav.dashboard'), iconId: 'dashboard' },
                 { id: 'skills', label: I18n.get('nav.skills'), iconId: 'library' },
                 { id: 'commands', label: I18n.get('nav.commands'), iconId: 'terminal' },
+                { id: 'agents', label: I18n.get('nav.agents'), iconId: 'hubot' },
+                { id: 'rules', label: I18n.get('nav.rules'), iconId: 'law' },
                 { id: 'gitshare', label: I18n.get('nav.gitShare'), iconId: 'git-merge' },
                 { id: 'settings', label: I18n.get('nav.settings'), iconId: 'settings-gear' }
             ]
@@ -532,6 +637,30 @@ export class MainViewController {
         };
     }
 
+    private buildAgentsViewModel(): AgentsViewModel {
+        return {
+            section: 'agents',
+            title: I18n.get('nav.agents'),
+            toolbar: this.agentsBridge.getToolbar(),
+            tree: this.agentsBridge.getTreeData(),
+            cards: this.agentsBridge.getCardData(),
+            tags: this.agentsBridge.getAllTags(),
+            activeTags: this.agentsBridge.getActiveTags()
+        };
+    }
+
+    private buildRulesViewModel(): RulesViewModel {
+        return {
+            section: 'rules',
+            title: I18n.get('nav.rules'),
+            toolbar: this.rulesBridge.getToolbar(),
+            tree: this.rulesBridge.getTreeData(),
+            cards: this.rulesBridge.getCardData(),
+            tags: this.rulesBridge.getAllTags(),
+            activeTags: this.rulesBridge.getActiveTags()
+        };
+    }
+
     private async buildGitShareViewModel(): Promise<GitShareViewModel> {
         return {
             section: 'gitshare',
@@ -549,6 +678,12 @@ export class MainViewController {
                 break;
             case 'commands':
                 tree = this.commandsBridge.getTreeData();
+                break;
+            case 'agents':
+                tree = this.agentsBridge.getTreeData();
+                break;
+            case 'rules':
+                tree = this.rulesBridge.getTreeData();
                 break;
         }
         return this.findNodeRecursive(tree, nodeId);
@@ -575,6 +710,10 @@ export class MainViewController {
                 return this.skillsBridge.getCardData();
             case 'commands':
                 return this.commandsBridge.getCardData();
+            case 'agents':
+                return this.agentsBridge.getCardData();
+            case 'rules':
+                return this.rulesBridge.getCardData();
             default:
                 return [];
         }
@@ -680,11 +819,108 @@ export class MainViewController {
 
     private async handleGitShareToolbarAction(actionId: string): Promise<void> {
         switch (actionId) {
+            case 'sync':
+                await vscode.commands.executeCommand('ampify.gitShare.sync');
+                break;
+            case 'pull':
+                await vscode.commands.executeCommand('ampify.gitShare.pull');
+                break;
+            case 'push':
+                await vscode.commands.executeCommand('ampify.gitShare.push');
+                break;
             case 'commit':
                 await this.showGitCommitOverlay();
                 break;
+            case 'showDiff':
+                await vscode.commands.executeCommand('ampify.gitShare.showDiff');
+                break;
+            case 'openFolder':
+                await vscode.commands.executeCommand('ampify.gitShare.openFolder');
+                break;
             case 'configWizard':
                 await this.showGitConfigOverlay();
+                break;
+        }
+    }
+
+    private async handleAgentsToolbarAction(actionId: string): Promise<void> {
+        switch (actionId) {
+            case 'search': {
+                const currentFilter = this.agentsBridge.getFilterState();
+                const fields: OverlayField[] = [{
+                    key: 'keyword',
+                    label: I18n.get('agents.searchPlaceholder'),
+                    kind: 'text',
+                    value: currentFilter.keyword || '',
+                    placeholder: I18n.get('agents.searchPlaceholder')
+                }];
+
+                this.showOverlay({
+                    overlayId: 'agents-search',
+                    title: I18n.get('agents.searchTitle'),
+                    fields,
+                    submitLabel: I18n.get('common.search'),
+                    cancelLabel: I18n.get('skills.cancel')
+                }, async (values) => {
+                    const keyword = values?.keyword?.trim();
+                    if (keyword) {
+                        this.agentsBridge.setFilter(keyword);
+                    } else {
+                        this.agentsBridge.clearFilter();
+                    }
+                    await this.sendSectionData('agents');
+                });
+                break;
+            }
+            case 'create':
+                await vscode.commands.executeCommand('ampify.agents.create');
+                break;
+            case 'import':
+                await vscode.commands.executeCommand('ampify.agents.import');
+                break;
+            case 'openFolder':
+                await vscode.commands.executeCommand('ampify.agents.openFolder');
+                break;
+        }
+    }
+
+    private async handleRulesToolbarAction(actionId: string): Promise<void> {
+        switch (actionId) {
+            case 'search': {
+                const currentFilter = this.rulesBridge.getFilterState();
+                const fields: OverlayField[] = [{
+                    key: 'keyword',
+                    label: I18n.get('rules.searchPlaceholder'),
+                    kind: 'text',
+                    value: currentFilter.keyword || '',
+                    placeholder: I18n.get('rules.searchPlaceholder')
+                }];
+
+                this.showOverlay({
+                    overlayId: 'rules-search',
+                    title: I18n.get('rules.searchTitle'),
+                    fields,
+                    submitLabel: I18n.get('common.search'),
+                    cancelLabel: I18n.get('skills.cancel')
+                }, async (values) => {
+                    const keyword = values?.keyword?.trim();
+                    if (keyword) {
+                        this.rulesBridge.setFilter(keyword);
+                    } else {
+                        this.rulesBridge.clearFilter();
+                    }
+                    await this.sendSectionData('rules');
+                });
+                break;
+            }
+            case 'create':
+                await vscode.commands.executeCommand('ampify.rules.create');
+                break;
+            case 'import':
+                await vscode.commands.executeCommand('ampify.rules.import');
+                break;
+            case 'openFolder':
+                await vscode.commands.executeCommand('ampify.rules.openFolder');
                 break;
         }
     }
@@ -1100,6 +1336,50 @@ export class MainViewController {
                 });
                 break;
             }
+            case 'agents': {
+                const agentName = nodeId.replace('agent-', '').replace(/-children$/, '');
+                const { AgentConfigManager } = await import('../../agents/core/agentConfigManager');
+                const agents = AgentConfigManager.getInstance().loadAllAgents();
+                const agent = agents.find((item) => item.meta.agent === agentName);
+                if (!agent) {
+                    return;
+                }
+
+                this.showConfirm({
+                    confirmId: `delete-agent-${agentName}`,
+                    title: I18n.get('agents.confirmDelete', agentName),
+                    message: I18n.get('agents.confirmDelete', agentName),
+                    confirmLabel: I18n.get('skills.yes'),
+                    cancelLabel: I18n.get('skills.no'),
+                    danger: true
+                }, async () => {
+                    AgentConfigManager.getInstance().deleteAgent(agentName);
+                    vscode.window.showInformationMessage(I18n.get('agents.deleted', agentName));
+                });
+                break;
+            }
+            case 'rules': {
+                const ruleName = nodeId.replace('rule-', '').replace(/-children$/, '');
+                const { RuleConfigManager } = await import('../../rules/core/ruleConfigManager');
+                const rules = RuleConfigManager.getInstance().loadAllRules();
+                const rule = rules.find((item) => item.meta.rule === ruleName);
+                if (!rule) {
+                    return;
+                }
+
+                this.showConfirm({
+                    confirmId: `delete-rule-${ruleName}`,
+                    title: I18n.get('rules.confirmDelete', ruleName),
+                    message: I18n.get('rules.confirmDelete', ruleName),
+                    confirmLabel: I18n.get('skills.yes'),
+                    cancelLabel: I18n.get('skills.no'),
+                    danger: true
+                }, async () => {
+                    RuleConfigManager.getInstance().deleteRule(ruleName);
+                    vscode.window.showInformationMessage(I18n.get('rules.deleted', ruleName));
+                });
+                break;
+            }
         }
     }
 
@@ -1116,6 +1396,8 @@ export class MainViewController {
             section === 'dashboard'
             || section === 'skills'
             || section === 'commands'
+            || section === 'agents'
+            || section === 'rules'
             || section === 'gitshare'
             || section === 'settings'
         ) {
@@ -1131,6 +1413,10 @@ export class MainViewController {
                 await this.sendSectionData('skills');
             } else if (this.activeSection === 'commands') {
                 await this.sendSectionData('commands');
+            } else if (this.activeSection === 'agents') {
+                await this.sendSectionData('agents');
+            } else if (this.activeSection === 'rules') {
+                await this.sendSectionData('rules');
             } else if (this.activeSection === 'gitshare') {
                 await this.sendSectionData('gitshare');
             }

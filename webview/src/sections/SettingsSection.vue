@@ -4,26 +4,37 @@
 
     <div class="settings-tabs-layout">
       <aside class="surface-card settings-tabs-card">
-        <div class="panel-head">
+        <div class="settings-switcher-intro">
           <div>
             <h3>{{ tabTitle }}</h3>
+            <p>{{ tabDescription }}</p>
           </div>
+          <span class="panel-count">{{ sectionCountText }}</span>
         </div>
 
-        <el-tabs v-model="activeSectionId" class="settings-tabs">
-          <el-tab-pane
+        <div class="settings-tab-grid" role="tablist" :aria-label="tabTitle">
+          <button
             v-for="section in viewModel.data.sections"
             :key="section.id"
-            :name="section.id"
+            type="button"
+            class="settings-tab-button"
+            :class="{ active: section.id === activeSectionId }"
+            :title="section.title"
+            :aria-selected="section.id === activeSectionId"
+            @click="activeSectionId = section.id"
           >
-            <template #label>
-              <span class="settings-tab-label" :title="section.title">
-                <strong>{{ section.title }}</strong>
-                <small>{{ section.fields.length }} {{ fieldCountLabel }}</small>
-              </span>
-            </template>
-          </el-tab-pane>
-        </el-tabs>
+            <span class="settings-tab-button__icon">
+              <i class="codicon" :class="`codicon-${sectionMeta(section.id).icon}`"></i>
+            </span>
+            <span class="settings-tab-button__copy">
+              <strong>{{ section.title }}</strong>
+              <small>{{ sectionMeta(section.id).description }}</small>
+            </span>
+            <span class="settings-tab-button__count">
+              {{ section.fields.length }} {{ fieldCountLabel }}
+            </span>
+          </button>
+        </div>
 
         <p class="settings-support-copy">{{ autosaveHint }}</p>
       </aside>
@@ -32,9 +43,9 @@
         <div class="panel-head">
           <div>
             <h3>{{ activeSection.title }}</h3>
-            <p>{{ detailDescription }}</p>
+            <p>{{ activeSectionMeta.description }}</p>
           </div>
-          <span class="panel-count">{{ activeSection.fields.length }}</span>
+          <span class="panel-count">{{ activeSection.fields.length }} {{ fieldCountLabel }}</span>
         </div>
 
         <div class="settings-form-grid">
@@ -111,12 +122,18 @@ const activeSectionId = ref('');
 const isEnglish = computed(() => appStore.bootstrap?.locale === 'en');
 const activeSection = computed(() => viewModel.value?.data.sections.find((section) => section.id === activeSectionId.value));
 const tabTitle = computed(() => isEnglish.value ? 'Settings tabs' : '设置标签页');
+const tabDescription = computed(() => isEnglish.value
+  ? 'Choose a configuration area first, then edit values directly on the right.'
+  : '先选择一个配置分组，再在右侧直接编辑具体字段。');
 const autosaveHint = computed(() => isEnglish.value ? 'Values are saved when you change or blur each field.' : '字段在变更或失焦时会自动保存。');
-const detailDescription = computed(() => isEnglish.value ? 'Current configuration is edited in place. Some fields may require a reload to take effect.' : '当前配置会直接更新，部分字段修改后可能需要重载窗口。');
 const fieldCountLabel = computed(() => isEnglish.value ? 'fields' : '项');
+const sectionCountText = computed(() => isEnglish.value
+  ? `${viewModel.value?.data.sections.length || 0} groups`
+  : `${viewModel.value?.data.sections.length || 0} 组`);
 const pageSubtitle = computed(() => isEnglish.value
-  ? 'Adjust workspace paths and Git settings from a single compact dark form surface.'
-  : '在统一紧凑的深色表单界面中调整工作区路径与 Git 配置。');
+  ? 'Switch between configuration groups with a clearer workspace-oriented layout.'
+  : '通过更清晰的工作区布局在不同配置分组之间切换。');
+const activeSectionMeta = computed(() => sectionMeta(activeSection.value?.id));
 
 watch(viewModel, (value) => {
   const sections = value?.data.sections || [];
@@ -136,5 +153,48 @@ function fieldKey(field: SettingsField) {
 
 function updateField(scope: SettingsScope, key: string, value: string) {
   actions.settingChange(scope, key, value);
+}
+
+function sectionMeta(sectionId?: string) {
+  if (isEnglish.value) {
+    const englishMap: Record<string, { icon: string; description: string }> = {
+      general: {
+        icon: 'settings-gear',
+        description: 'Language and storage preferences for the extension itself.'
+      },
+      paths: {
+        icon: 'folder-library',
+        description: 'Injection targets and workspace-relative paths for managed assets.'
+      },
+      git: {
+        icon: 'git-branch',
+        description: 'Git identity and remote repository details used by sync actions.'
+      }
+    };
+    return englishMap[sectionId || ''] || {
+      icon: 'settings',
+      description: 'Edit configuration values for this group.'
+    };
+  }
+
+  const zhMap: Record<string, { icon: string; description: string }> = {
+    general: {
+      icon: 'settings-gear',
+      description: '设置扩展本身的语言与存储偏好。'
+    },
+    paths: {
+      icon: 'folder-library',
+      description: '设置各类资源注入目录与工作区相关路径。'
+    },
+    git: {
+      icon: 'git-branch',
+      description: '管理 Git 身份信息与远程仓库地址，供同步操作直接使用。'
+    }
+  };
+
+  return zhMap[sectionId || ''] || {
+    icon: 'settings',
+    description: '编辑当前分组中的配置项。'
+  };
 }
 </script>

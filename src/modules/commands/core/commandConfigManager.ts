@@ -5,6 +5,7 @@ import { CommandsManagerConfig, LoadedCommand, AiTaggingConfig } from '../../../
 import { parseCommandMd } from '../templates/commandMdTemplate';
 import { updateFrontmatterTags } from '../../../common/frontmatter';
 import { normalizeTagLibrary } from '../../../common/tagLibrary';
+import { getDefaultInjectTargetValue, normalizeInjectTargetValue } from '../../../common/injectTarget';
 
 /**
  * Commands Manager 配置管理器
@@ -40,7 +41,7 @@ export class CommandConfigManager {
 
     protected getDefaultConfig(): CommandsManagerConfig {
         return {
-            injectTarget: '.claude/commands/',
+            injectTarget: getDefaultInjectTargetValue('commands'),
             aiTagging: this.getDefaultAiTaggingConfig()
         };
     }
@@ -100,8 +101,8 @@ export class CommandConfigManager {
             }
             const content = fs.readFileSync(this.configPath, 'utf8');
             const config = JSON.parse(content) as CommandsManagerConfig;
-            const fallback = this.getDefaultConfig().injectTarget ?? '.claude/commands/';
-            const normalized = this.normalizeInjectTarget(config.injectTarget ?? fallback);
+            const fallback = this.getDefaultConfig().injectTarget ?? getDefaultInjectTargetValue('commands');
+            const normalized = normalizeInjectTargetValue(config.injectTarget ?? fallback, 'commands');
             const aiTagging = this.normalizeAiTaggingConfig(config.aiTagging);
             let changed = false;
             if (normalized !== config.injectTarget) {
@@ -123,6 +124,7 @@ export class CommandConfigManager {
     }
 
     public saveConfig(config: CommandsManagerConfig): void {
+        config.injectTarget = normalizeInjectTargetValue(config.injectTarget, 'commands');
         config.aiTagging = this.normalizeAiTaggingConfig(config.aiTagging);
         fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2), 'utf8');
     }
@@ -154,13 +156,6 @@ export class CommandConfigManager {
         }
         fs.writeFileSync(commandPath, updated, 'utf8');
         return true;
-    }
-
-    private normalizeInjectTarget(target: string): string {
-        if (/^\.agents([\\/]|$)/.test(target)) {
-            return target.replace(/^\.agents(?=[\\/]|$)/, '.claude');
-        }
-        return target;
     }
 
     /**

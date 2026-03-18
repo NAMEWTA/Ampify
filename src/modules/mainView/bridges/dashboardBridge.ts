@@ -1,164 +1,329 @@
-/**
- * Dashboard 数据桥接
- * 从各模块收集统计信息并组装仪表盘数据
- */
 import * as vscode from 'vscode';
 import type {
     DashboardData,
-    DashboardStat,
-    QuickAction,
-    ModuleHealthItem,
-    DashboardGitInfo,
-    DashboardWorkspaceInfo,
-    DashboardLabels,
-    ModuleHealthStatus
+    DashboardResultAction,
+    DashboardResultActionKind,
+    DashboardSearchResult,
+    SectionId
 } from '../shared/contracts';
+import { SkillConfigManager } from '../../skills/core/skillConfigManager';
+import { CommandConfigManager } from '../../commands/core/commandConfigManager';
+import { AgentConfigManager } from '../../agents/core/agentConfigManager';
+import { RuleConfigManager } from '../../rules/core/ruleConfigManager';
+import type { LoadedAgent, LoadedRule, LoadedSkill } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
+import { rankByWeightedSearch } from './dashboardSearchRanking';
+
+type SearchActionRuntime = {
+    kind: DashboardResultActionKind;
+    section?: SectionId;
+    filePath?: string;
+    command?: string;
+    commandArgs?: unknown;
+};
+
+type IndexedResult = DashboardSearchResult & {
+    searchTitle: string;
+    searchTags: string[];
+    searchDescription: string;
+    searchSubtitle: string;
+    searchScope: string;
+    searchExtraKeywords: string[];
+    runtimeActions: Record<string, SearchActionRuntime>;
+};
 
 export class DashboardBridge {
+    private query = '';
+    private readonly resultMap = new Map<string, IndexedResult>();
+
+    setQuery(nextQuery: string): void {
+        this.query = nextQuery.trim();
+    }
+
     async getData(): Promise<DashboardData> {
-        const [stats, moduleHealth, gitInfo, workspaceInfo] =
-            await Promise.all([
-                this.collectStats(),
-                this.collectModuleHealth(),
-                this.collectGitInfo(),
-                this.collectWorkspaceInfo()
-            ]);
-        const quickActions = this.getQuickActions();
-        const labels = this.getLabels();
-        return { stats, quickActions, moduleHealth, gitInfo, workspaceInfo, labels };
-    }
+        const indexed = await this.buildSearchIndex();
+        const results = this.filterResults(indexed, this.query).slice(0, 120);
 
-    private async collectStats(): Promise<DashboardStat[]> {
-        const stats: DashboardStat[] = [];
-
-        // Skills 数量
-        try {
-            const { SkillConfigManager } = await import('../../skills/core/skillConfigManager');
-            const configManager = SkillConfigManager.getInstance();
-            const skills = configManager.loadAllSkills();
-            stats.push({ label: I18n.get('dashboard.skillsCount'), value: skills.length, iconId: 'library', color: '#788c5d', targetSection: 'skills' });
-        } catch {
-            stats.push({ label: I18n.get('dashboard.skillsCount'), value: 0, iconId: 'library', color: '#788c5d', targetSection: 'skills' });
+        this.resultMap.clear();
+        for (const item of results) {
+            this.resultMap.set(item.id, item);
         }
 
-        // Commands 数量
-        try {
-            const { CommandConfigManager } = await import('../../commands/core/commandConfigManager');
-            const configManager = CommandConfigManager.getInstance();
-            const commands = configManager.loadAllCommands();
-            stats.push({ label: I18n.get('dashboard.commandsCount'), value: commands.length, iconId: 'terminal', color: '#d97757', targetSection: 'commands' });
-        } catch {
-            stats.push({ label: I18n.get('dashboard.commandsCount'), value: 0, iconId: 'terminal', color: '#d97757', targetSection: 'commands' });
-        }
-
-        // Git 状态
-        try {
-            const { GitManager } = await import('../../../common/git');
-            const gitManager = new GitManager();
-            const status = await gitManager.getStatus();
-            const statusText = status.initialized
-                ? (status.hasUncommittedChanges ? I18n.get('dashboard.gitHasChanges') : I18n.get('dashboard.gitClean'))
-                : I18n.get('dashboard.gitNotInit');
-            stats.push({ label: I18n.get('dashboard.gitStatus'), value: statusText, iconId: 'git-merge', color: status.hasUncommittedChanges ? '#d97757' : '#788c5d', targetSection: 'gitshare' });
-        } catch {
-            stats.push({ label: I18n.get('dashboard.gitStatus'), value: '-', iconId: 'git-merge', targetSection: 'gitshare' });
-        }
-
-        return stats;
-    }
-
-    private async collectModuleHealth(): Promise<ModuleHealthItem[]> {
-        const items: ModuleHealthItem[] = [];
-
-        // Skills
-        try {
-            const { SkillConfigManager } = await import('../../skills/core/skillConfigManager');
-            const cm = SkillConfigManager.getInstance();
-            const count = cm.loadAllSkills().length;
-            items.push({ moduleId: 'skills', label: I18n.get('dashboard.skills'), status: count > 0 ? 'active' : 'inactive', detail: `${count} ${I18n.get('dashboard.skillsCount')}`, iconId: 'library', color: '#788c5d' });
-        } catch {
-            items.push({ moduleId: 'skills', label: I18n.get('dashboard.skills'), status: 'error', detail: I18n.get('dashboard.error'), iconId: 'library', color: '#f48771' });
-        }
-
-        // Commands
-        try {
-            const { CommandConfigManager } = await import('../../commands/core/commandConfigManager');
-            const cm = CommandConfigManager.getInstance();
-            const count = cm.loadAllCommands().length;
-            items.push({ moduleId: 'commands', label: I18n.get('dashboard.commands'), status: count > 0 ? 'active' : 'inactive', detail: `${count} ${I18n.get('dashboard.commandsCount')}`, iconId: 'terminal', color: '#d97757' });
-        } catch {
-            items.push({ moduleId: 'commands', label: I18n.get('dashboard.commands'), status: 'error', detail: I18n.get('dashboard.error'), iconId: 'terminal', color: '#f48771' });
-        }
-
-        // Git Share
-        try {
-            const { GitManager } = await import('../../../common/git');
-            const gm = new GitManager();
-            const status = await gm.getStatus();
-            let healthStatus: ModuleHealthStatus = 'inactive';
-            let detail = I18n.get('dashboard.gitNotInit');
-            if (status.initialized) {
-                if (status.hasUncommittedChanges) { healthStatus = 'warning'; detail = I18n.get('dashboard.gitHasChanges'); }
-                else { healthStatus = 'active'; detail = I18n.get('dashboard.gitClean'); }
-            }
-            items.push({ moduleId: 'gitshare', label: I18n.get('dashboard.gitShare'), status: healthStatus, detail, iconId: 'git-merge', color: healthStatus === 'warning' ? '#d97757' : healthStatus === 'active' ? '#788c5d' : '#717171' });
-        } catch {
-            items.push({ moduleId: 'gitshare', label: I18n.get('dashboard.gitShare'), status: 'error', detail: I18n.get('dashboard.error'), iconId: 'git-merge', color: '#f48771' });
-        }
-
-        return items;
-    }
-
-    private async collectGitInfo(): Promise<DashboardGitInfo> {
-        const defaultInfo: DashboardGitInfo = { initialized: false, branch: '', remoteUrl: '', hasRemote: false, unpushedCount: 0, hasChanges: false, changedFileCount: 0 };
-        try {
-            const { GitManager } = await import('../../../common/git');
-            const gm = new GitManager();
-            const status = await gm.getStatus();
-            return {
-                initialized: status.initialized,
-                branch: status.branch || '',
-                remoteUrl: status.remoteUrl || '',
-                hasRemote: status.hasRemote,
-                unpushedCount: status.unpushedCommitCount,
-                hasChanges: status.hasUncommittedChanges,
-                changedFileCount: status.changedFiles
-            };
-        } catch {
-            return defaultInfo;
-        }
-    }
-
-    private async collectWorkspaceInfo(): Promise<DashboardWorkspaceInfo> {
-        const defaultInfo: DashboardWorkspaceInfo = { workspaceName: I18n.get('dashboard.noWorkspace') };
-        try {
-            const folders = vscode.workspace.workspaceFolders;
-            if (!folders || folders.length === 0) { return defaultInfo; }
-            return { workspaceName: folders[0].name };
-        } catch {
-            return defaultInfo;
-        }
-    }
-
-    private getLabels(): DashboardLabels {
+        const isSearching = this.query.length > 0;
         return {
-            moduleHealth: I18n.get('dashboard.moduleHealth'),
-            gitInfo: I18n.get('dashboard.gitInfo'),
-            quickActions: I18n.get('dashboard.quickActions'),
-            viewDetail: I18n.get('dashboard.viewDetail'),
-            gitSync: I18n.get('dashboard.gitSync'),
-            gitPull: I18n.get('dashboard.gitPull'),
-            gitPush: I18n.get('dashboard.gitPush'),
-            nextUp: I18n.get('dashboard.nextUp'),
+            query: this.query,
+            placeholder: I18n.get('dashboard.searchPlaceholder'),
+            hint: I18n.get('dashboard.searchHint'),
+            total: results.length,
+            emptyTitle: isSearching
+                ? I18n.get('dashboard.searchEmptyTitle')
+                : I18n.get('dashboard.searchIdleTitle'),
+            emptyDescription: isSearching
+                ? I18n.get('dashboard.searchEmptyDescription')
+                : I18n.get('dashboard.searchIdleDescription'),
+            results: results.map(({ runtimeActions: _runtimeActions, searchTitle: _searchTitle, searchTags: _searchTags, searchDescription: _searchDescription, searchSubtitle: _searchSubtitle, searchScope: _searchScope, searchExtraKeywords: _searchExtraKeywords, ...view }) => view)
         };
     }
 
-    private getQuickActions(): QuickAction[] {
-        return [
-            { id: 'createSkill', label: I18n.get('dashboard.quickCreateSkill'), iconId: 'add', action: 'toolbar', section: 'skills', actionId: 'create' },
-            { id: 'createCommand', label: I18n.get('dashboard.quickCreateCommand'), iconId: 'add', action: 'toolbar', section: 'commands', actionId: 'create' },
-            { id: 'gitSync', label: I18n.get('dashboard.quickGitSync'), iconId: 'sync', command: 'ampify.gitShare.sync', action: 'command' },
+    async executeResultAction(resultId: string, actionId: string): Promise<{ navigateTo?: SectionId }> {
+        const result = this.resultMap.get(resultId);
+        if (!result) {
+            return {};
+        }
+
+        const action = result.runtimeActions[actionId];
+        if (!action) {
+            return {};
+        }
+
+        if (action.kind === 'navigate' && action.section) {
+            return { navigateTo: action.section };
+        }
+
+        if (action.kind === 'openFile' && action.filePath) {
+            const document = await vscode.workspace.openTextDocument(vscode.Uri.file(action.filePath));
+            await vscode.window.showTextDocument(document, { preview: true });
+            return {};
+        }
+
+        if (action.kind === 'command' && action.command) {
+            await vscode.commands.executeCommand(action.command, action.commandArgs);
+            return {};
+        }
+
+        return {};
+    }
+
+    private async buildSearchIndex(): Promise<IndexedResult[]> {
+        const results: IndexedResult[] = [];
+
+        const skills = this.flattenSkills(SkillConfigManager.getInstance().loadAllSkills());
+        for (const skill of skills) {
+            results.push(this.createSkillEntry(skill));
+        }
+
+        const commands = CommandConfigManager.getInstance().loadAllCommands();
+        for (const command of commands) {
+            results.push(this.createCommandEntry(command));
+        }
+
+        const agents = AgentConfigManager.getInstance().loadAllAgents();
+        for (const agent of agents) {
+            results.push(this.createAgentEntry(agent));
+        }
+
+        const rules = RuleConfigManager.getInstance().loadAllRules();
+        for (const rule of rules) {
+            results.push(this.createRuleEntry(rule));
+        }
+
+        return results;
+    }
+
+    private createSkillEntry(skill: LoadedSkill): IndexedResult {
+        const tags = skill.meta.tags || [];
+        const prerequisites = (skill.meta.prerequisites || []).map((item) => `${item.type} ${item.name}`);
+        const description = skill.meta.description || I18n.get('common.noData');
+        const subtitle = skill.relativePath || skill.dirName;
+
+        const actions: Array<{ action: DashboardResultAction; runtime: SearchActionRuntime }> = [
+            this.createAction('apply-skill', I18n.get('common.copyToSkills'), 'play', {
+                kind: 'command',
+                command: 'ampify.skills.apply',
+                commandArgs: { itemType: 'skillItem', data: skill }
+            }),
+            this.createAction('goto-skills', I18n.get('dashboard.action.openInSkills'), 'arrow-right', { kind: 'navigate', section: 'skills' })
         ];
+
+        if (skill.skillMdPath) {
+            actions.unshift(this.createAction('preview-skill', I18n.get('common.preview'), 'go-to-file', { kind: 'openFile', filePath: skill.skillMdPath }));
+        }
+
+        return this.createEntry({
+            id: `skill:${skill.meta.name}:${subtitle}`,
+            title: skill.meta.name,
+            description,
+            subtitle,
+            iconId: 'library',
+            scope: 'skills',
+            badges: tags,
+            searchTags: tags,
+            searchDescription: description,
+            searchSubtitle: subtitle,
+            searchScope: I18n.get('dashboard.scope.skills'),
+            searchExtraKeywords: prerequisites,
+            actions
+        });
+    }
+
+    private createCommandEntry(command: ReturnType<CommandConfigManager['loadAllCommands']>[number]): IndexedResult {
+        const tags = command.meta.tags || [];
+        const description = command.meta.description || I18n.get('common.noData');
+        const filePath = command.path;
+
+        const actions: Array<{ action: DashboardResultAction; runtime: SearchActionRuntime }> = [
+            this.createAction('apply-command', I18n.get('common.copyToCommands'), 'play', {
+                kind: 'command',
+                command: 'ampify.commands.apply',
+                commandArgs: { itemType: 'commandItem', data: command }
+            }),
+            this.createAction('preview-command', I18n.get('common.preview'), 'go-to-file', { kind: 'openFile', filePath }),
+            this.createAction('goto-commands', I18n.get('dashboard.action.openInCommands'), 'arrow-right', { kind: 'navigate', section: 'commands' })
+        ];
+
+        return this.createEntry({
+            id: `command:${command.meta.command}`,
+            title: command.meta.command,
+            description,
+            subtitle: command.fileName,
+            iconId: 'terminal',
+            scope: 'commands',
+            badges: tags,
+            searchTags: tags,
+            searchDescription: description,
+            searchSubtitle: command.fileName,
+            searchScope: I18n.get('dashboard.scope.commands'),
+            searchExtraKeywords: [],
+            actions
+        });
+    }
+
+    private createAgentEntry(agent: LoadedAgent): IndexedResult {
+        const tags = agent.meta.tags || [];
+        const description = agent.meta.description || I18n.get('common.noData');
+        const filePath = agent.path;
+
+        const actions: Array<{ action: DashboardResultAction; runtime: SearchActionRuntime }> = [
+            this.createAction('apply-agent', I18n.get('common.copyToAgents'), 'play', {
+                kind: 'command',
+                command: 'ampify.agents.apply',
+                commandArgs: { itemType: 'agentItem', data: agent }
+            }),
+            this.createAction('preview-agent', I18n.get('common.preview'), 'go-to-file', { kind: 'openFile', filePath }),
+            this.createAction('goto-agents', I18n.get('dashboard.action.openInAgents'), 'arrow-right', { kind: 'navigate', section: 'agents' })
+        ];
+
+        return this.createEntry({
+            id: `agent:${agent.meta.agent}`,
+            title: agent.meta.agent,
+            description,
+            subtitle: agent.fileName,
+            iconId: 'hubot',
+            scope: 'agents',
+            badges: tags,
+            searchTags: tags,
+            searchDescription: description,
+            searchSubtitle: agent.fileName,
+            searchScope: I18n.get('dashboard.scope.agents'),
+            searchExtraKeywords: [],
+            actions
+        });
+    }
+
+    private createRuleEntry(rule: LoadedRule): IndexedResult {
+        const tags = rule.meta.tags || [];
+        const description = rule.meta.description || I18n.get('common.noData');
+        const filePath = rule.path;
+
+        const actions: Array<{ action: DashboardResultAction; runtime: SearchActionRuntime }> = [
+            this.createAction('apply-rule', I18n.get('common.copyToRules'), 'play', {
+                kind: 'command',
+                command: 'ampify.rules.apply',
+                commandArgs: { itemType: 'ruleItem', data: rule }
+            }),
+            this.createAction('preview-rule', I18n.get('common.preview'), 'go-to-file', { kind: 'openFile', filePath }),
+            this.createAction('goto-rules', I18n.get('dashboard.action.openInRules'), 'arrow-right', { kind: 'navigate', section: 'rules' })
+        ];
+
+        return this.createEntry({
+            id: `rule:${rule.meta.rule}`,
+            title: rule.meta.rule,
+            description,
+            subtitle: rule.fileName,
+            iconId: 'law',
+            scope: 'rules',
+            badges: tags,
+            searchTags: tags,
+            searchDescription: description,
+            searchSubtitle: rule.fileName,
+            searchScope: I18n.get('dashboard.scope.rules'),
+            searchExtraKeywords: [],
+            actions
+        });
+    }
+
+
+    private createEntry(input: {
+        id: string;
+        title: string;
+        description?: string;
+        subtitle?: string;
+        iconId: string;
+        scope: DashboardSearchResult['scope'];
+        badges?: string[];
+        searchTags?: string[];
+        searchDescription?: string;
+        searchSubtitle?: string;
+        searchScope?: string;
+        searchExtraKeywords?: string[];
+        actions: Array<{ action: DashboardResultAction; runtime: SearchActionRuntime }>;
+    }): IndexedResult {
+        const runtimeActions: Record<string, SearchActionRuntime> = {};
+        const actions = input.actions.map(({ action, runtime }) => {
+            runtimeActions[action.id] = runtime;
+            return action;
+        });
+
+        return {
+            id: input.id,
+            title: input.title,
+            description: input.description,
+            subtitle: input.subtitle,
+            iconId: input.iconId,
+            scope: input.scope,
+            badges: input.badges,
+            actions,
+            searchTitle: input.title,
+            searchTags: input.searchTags || input.badges || [],
+            searchDescription: input.searchDescription || input.description || '',
+            searchSubtitle: input.searchSubtitle || input.subtitle || '',
+            searchScope: input.searchScope || '',
+            searchExtraKeywords: input.searchExtraKeywords || [],
+            runtimeActions
+        };
+    }
+
+    private createAction(
+        id: string,
+        label: string,
+        iconId: string,
+        runtime: SearchActionRuntime
+    ): { action: DashboardResultAction; runtime: SearchActionRuntime } {
+        return {
+            action: { id, label, iconId, kind: runtime.kind },
+            runtime
+        };
+    }
+
+    private filterResults(results: IndexedResult[], query: string): IndexedResult[] {
+        return rankByWeightedSearch(results, query, (item) => ({
+            title: item.searchTitle,
+            tags: item.searchTags,
+            description: item.searchDescription,
+            subtitle: item.searchSubtitle,
+            scope: item.searchScope,
+            extraKeywords: item.searchExtraKeywords
+        })).map((entry) => entry.item);
+    }
+
+    private flattenSkills(skills: LoadedSkill[]): LoadedSkill[] {
+        const list: LoadedSkill[] = [];
+        for (const skill of skills) {
+            list.push(skill);
+            if (skill.children && skill.children.length > 0) {
+                list.push(...this.flattenSkills(skill.children));
+            }
+        }
+        return list;
     }
 }

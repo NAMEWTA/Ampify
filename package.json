@@ -91,7 +91,7 @@
       },
       {
         "command": "ampify.skills.apply",
-        "title": "Copy to .claude/skills",
+        "title": "Copy to .agents/skills and .claude/skills",
         "icon": "$(play)"
       },
       {
@@ -151,7 +151,7 @@
       },
       {
         "command": "ampify.commands.apply",
-        "title": "Copy to .claude/commands",
+        "title": "Copy to .agents/commands and .claude/commands",
         "icon": "$(play)"
       },
       {
@@ -172,6 +172,126 @@
       {
         "command": "ampify.commands.remove",
         "title": "Remove from Project",
+        "icon": "$(close)"
+      },
+      {
+        "command": "ampify.agents.refresh",
+        "title": "Refresh Agents",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ampify.agents.search",
+        "title": "Search Agents",
+        "icon": "$(search)"
+      },
+      {
+        "command": "ampify.agents.filterByTag",
+        "title": "Filter Agents by Tag",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "ampify.agents.clearFilter",
+        "title": "Clear Agents Filter",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "ampify.agents.create",
+        "title": "Create New Agent",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ampify.agents.import",
+        "title": "Import Agent",
+        "icon": "$(folder-library)"
+      },
+      {
+        "command": "ampify.agents.apply",
+        "title": "Copy to .agents/agents and .claude/agents",
+        "icon": "$(play)"
+      },
+      {
+        "command": "ampify.agents.preview",
+        "title": "Preview Agent",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "ampify.agents.open",
+        "title": "Open Agent",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "ampify.agents.openFolder",
+        "title": "Open Agent Source Folder",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "ampify.agents.delete",
+        "title": "Delete Agent",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ampify.agents.remove",
+        "title": "Remove Agent from Project",
+        "icon": "$(close)"
+      },
+      {
+        "command": "ampify.rules.refresh",
+        "title": "Refresh Rules",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ampify.rules.search",
+        "title": "Search Rules",
+        "icon": "$(search)"
+      },
+      {
+        "command": "ampify.rules.filterByTag",
+        "title": "Filter Rules by Tag",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "ampify.rules.clearFilter",
+        "title": "Clear Rules Filter",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "ampify.rules.create",
+        "title": "Create New Rule",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ampify.rules.import",
+        "title": "Import Rule",
+        "icon": "$(folder-library)"
+      },
+      {
+        "command": "ampify.rules.apply",
+        "title": "Copy to .agents/rules and .claude/rules",
+        "icon": "$(play)"
+      },
+      {
+        "command": "ampify.rules.preview",
+        "title": "Preview Rule",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "ampify.rules.open",
+        "title": "Open Rule",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "ampify.rules.openFolder",
+        "title": "Open Rule Source Folder",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "ampify.rules.delete",
+        "title": "Delete Rule",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ampify.rules.remove",
+        "title": "Remove Rule from Project",
         "icon": "$(close)"
       },
       {
@@ -265,13 +385,23 @@
         },
         "ampify.skills.injectTarget": {
           "type": "string",
-          "default": ".claude/skills/",
-          "description": "Default target directory to inject skills into projects (默认 Skill 注入目标目录)"
+          "default": ".agents/skills/, .claude/skills/",
+          "description": "Default target directories to inject skills into projects. Separate multiple directories with commas. (默认 Skill 注入目标目录，多个目录请用逗号分隔)"
         },
         "ampify.commands.injectTarget": {
           "type": "string",
-          "default": ".claude/commands/",
-          "description": "Default target directory to inject commands into projects (默认 Command 注入目标目录)"
+          "default": ".agents/commands/, .claude/commands/",
+          "description": "Default target directories to inject commands into projects. Separate multiple directories with commas. (默认 Command 注入目标目录，多个目录请用逗号分隔)"
+        },
+        "ampify.agents.injectTarget": {
+          "type": "string",
+          "default": ".agents/agents/, .claude/agents/",
+          "description": "Default target directories to inject agents into projects. Separate multiple directories with commas. (默认 Agent 注入目标目录，多个目录请用逗号分隔)"
+        },
+        "ampify.rules.injectTarget": {
+          "type": "string",
+          "default": ".agents/rules/, .claude/rules/",
+          "description": "Default target directories to inject rules into projects. Separate multiple directories with commas. (默认 Rule 注入目标目录，多个目录请用逗号分隔)"
         }
       }
     }
@@ -281,6 +411,7 @@
     "compile": "npm run compile:extension && npm run build:webview",
     "compile:extension": "tsc -p ./",
     "build:webview": "npm run typecheck:webview && vite build --config webview/vite.config.ts",
+    "test:dashboard-search": "npm run compile:extension && node --test out/modules/mainView/bridges/dashboardSearchRanking.test.js",
     "typecheck:webview": "vue-tsc -p webview/tsconfig.json --noEmit",
     "watch": "concurrently \"npm:watch:extension\" \"npm:watch:webview\"",
     "watch:extension": "tsc -watch -p ./",
