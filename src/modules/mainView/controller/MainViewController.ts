@@ -37,6 +37,7 @@ import { CommandAiTagger } from '../../commands/core/commandAiTagger';
 import { parseTagLibraryText, stringifyTagLibraryText } from '../../../common/tagLibrary';
 import { MessageRouter } from './MessageRouter';
 import { SectionHandlerRegistry } from './SectionHandlerRegistry';
+import { normalizeDroppedUriInput } from './dropUriInput';
 
 export class MainViewController {
     private view?: vscode.WebviewView;
@@ -466,8 +467,18 @@ export class MainViewController {
 
         const validUris: vscode.Uri[] = [];
         for (const value of uris) {
+            const normalized = normalizeDroppedUriInput(value);
+            if (!normalized) {
+                continue;
+            }
+
             try {
-                const parsed = vscode.Uri.parse(value);
+                if (normalized.kind === 'filePath') {
+                    validUris.push(vscode.Uri.file(normalized.value));
+                    continue;
+                }
+
+                const parsed = vscode.Uri.parse(normalized.value);
                 if (parsed.scheme === 'file' || parsed.scheme === '' || parsed.scheme === 'untitled') {
                     validUris.push(parsed);
                 }
