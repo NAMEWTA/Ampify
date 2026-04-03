@@ -9,30 +9,7 @@ import { GitManager } from '../../../common/git';
 import { GitStatus } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
 import { getGitShareDir } from '../../../common/paths';
-
-interface SyncedModule {
-    name: string;
-    displayName: string;
-    relativePath: string;
-    description: string;
-}
-
-function getSyncedModules(): SyncedModule[] {
-    return [
-        {
-            name: 'vscodeskillsmanager',
-            displayName: 'Skills',
-            relativePath: 'vscodeskillsmanager/skills',
-            description: 'AI Skills 技能库'
-        },
-        {
-            name: 'vscodecmdmanager',
-            displayName: 'Commands',
-            relativePath: 'vscodecmdmanager/commands',
-            description: '自定义命令库'
-        }
-    ];
-}
+import { buildSyncedModules } from './gitShareModules';
 
 export class GitShareBridge {
     private gitManager: GitManager;
@@ -182,12 +159,12 @@ export class GitShareBridge {
     }
 
     private getSyncedModulesNodes(): TreeNode[] {
-        const modules = getSyncedModules();
+        const modules = buildSyncedModules((key) => I18n.get(key));
         return modules.map(mod => ({
             id: `gitshare-module-${mod.name}`,
             label: mod.displayName,
             description: mod.relativePath,
-            iconId: mod.name === 'vscodeskillsmanager' ? 'book' : 'terminal',
+            iconId: mod.iconId,
             nodeType: 'syncedModuleItem',
             tooltip: `${mod.description}\n路径: ${path.join(getGitShareDir(), mod.relativePath)}`
         }));

@@ -2,6 +2,7 @@
     display: grid;
     grid-template-columns: var(--amp-sidebar-expanded) minmax(0, 1fr);
     height: 100%;
+    min-height: 0;
     transition: grid-template-columns var(--amp-transition);
 }
 
@@ -14,6 +15,7 @@
     flex-direction: column;
     gap: 8px;
     min-width: 0;
+    min-height: 0;
     padding: 8px 6px 6px;
     border-right: 1px solid var(--amp-border);
     background:
@@ -107,6 +109,9 @@
     flex: 1;
     flex-direction: column;
     gap: 3px;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .sidebar-nav__item {

@@ -38,6 +38,7 @@ import { parseTagLibraryText, stringifyTagLibraryText } from '../../../common/ta
 import { MessageRouter } from './MessageRouter';
 import { SectionHandlerRegistry } from './SectionHandlerRegistry';
 import { normalizeDroppedUriInput } from './dropUriInput';
+import { resolveChatModels } from './chatModelsResolver';
 
 export class MainViewController {
     private view?: vscode.WebviewView;
@@ -998,9 +999,26 @@ export class MainViewController {
         }
 
         const aiConfig = configManager.getAiTaggingConfig();
-        const chatModels = await vscode.lm.selectChatModels();
+        const modelResult = await resolveChatModels(() => vscode.lm.selectChatModels());
+        const chatModels = modelResult.models;
         const modelOptions = chatModels.map((model) => ({ label: model.name, value: model.id }));
         const defaultModelId = aiConfig.vscodeModelId || (chatModels[0]?.id || '');
+        const modelField: OverlayField = modelOptions.length > 0
+            ? { key: 'vscodeModelId', label: I18n.get('aiTagging.vscodeModelId'), kind: 'select', value: defaultModelId, options: modelOptions }
+            : {
+                key: 'vscodeModelId',
+                label: I18n.get('aiTagging.vscodeModelId'),
+                kind: 'text',
+                value: aiConfig.vscodeModelId || '',
+                placeholder: I18n.get('aiTagging.vscodeModelIdFallbackPlaceholder')
+            };
+
+        if (modelResult.timedOut) {
+            vscode.window.showWarningMessage(I18n.get('aiTagging.modelsLoadTimeout'));
+        } else if (modelResult.failed) {
+            vscode.window.showWarningMessage(I18n.get('aiTagging.modelsLoadFailed'));
+        }
+
         const fields: OverlayField[] = [
             {
                 key: 'provider',
@@ -1012,7 +1030,7 @@ export class MainViewController {
                     { label: I18n.get('aiTagging.provider.openaiCompatible'), value: 'openai-compatible' }
                 ]
             },
-            { key: 'vscodeModelId', label: I18n.get('aiTagging.vscodeModelId'), kind: 'select', value: defaultModelId, options: modelOptions },
+            modelField,
             { key: 'openaiBaseUrl', label: I18n.get('aiTagging.openaiBaseUrl'), kind: 'text', value: aiConfig.openaiBaseUrl || '', placeholder: 'https://api.openai.com/v1' },
             { key: 'openaiApiKey', label: I18n.get('aiTagging.openaiApiKey'), kind: 'text', value: aiConfig.openaiApiKey || '' },
             { key: 'openaiModel', label: I18n.get('aiTagging.openaiModel'), kind: 'text', value: aiConfig.openaiModel || '' },
@@ -1141,9 +1159,26 @@ export class MainViewController {
         }
 
         const aiConfig = configManager.getAiTaggingConfig();
-        const chatModels = await vscode.lm.selectChatModels();
+        const modelResult = await resolveChatModels(() => vscode.lm.selectChatModels());
+        const chatModels = modelResult.models;
         const modelOptions = chatModels.map((model) => ({ label: model.name, value: model.id }));
         const defaultModelId = aiConfig.vscodeModelId || (chatModels[0]?.id || '');
+        const modelField: OverlayField = modelOptions.length > 0
+            ? { key: 'vscodeModelId', label: I18n.get('aiTagging.vscodeModelId'), kind: 'select', value: defaultModelId, options: modelOptions }
+            : {
+                key: 'vscodeModelId',
+                label: I18n.get('aiTagging.vscodeModelId'),
+                kind: 'text',
+                value: aiConfig.vscodeModelId || '',
+                placeholder: I18n.get('aiTagging.vscodeModelIdFallbackPlaceholder')
+            };
+
+        if (modelResult.timedOut) {
+            vscode.window.showWarningMessage(I18n.get('aiTagging.modelsLoadTimeout'));
+        } else if (modelResult.failed) {
+            vscode.window.showWarningMessage(I18n.get('aiTagging.modelsLoadFailed'));
+        }
+
         const fields: OverlayField[] = [
             {
                 key: 'provider',
@@ -1155,7 +1190,7 @@ export class MainViewController {
                     { label: I18n.get('aiTagging.provider.openaiCompatible'), value: 'openai-compatible' }
                 ]
             },
-            { key: 'vscodeModelId', label: I18n.get('aiTagging.vscodeModelId'), kind: 'select', value: defaultModelId, options: modelOptions },
+            modelField,
             { key: 'openaiBaseUrl', label: I18n.get('aiTagging.openaiBaseUrl'), kind: 'text', value: aiConfig.openaiBaseUrl || '', placeholder: 'https://api.openai.com/v1' },
             { key: 'openaiApiKey', label: I18n.get('aiTagging.openaiApiKey'), kind: 'text', value: aiConfig.openaiApiKey || '' },
             { key: 'openaiModel', label: I18n.get('aiTagging.openaiModel'), kind: 'text', value: aiConfig.openaiModel || '' },

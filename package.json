@@ -409,6 +409,7 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "npm run compile:extension && npm run build:webview",
+    "precompile:extension": "node scripts/windows-out-precheck.js",
     "compile:extension": "tsc -p ./",
     "build:webview": "npm run typecheck:webview && vite build --config webview/vite.config.ts",
     "test:dashboard-search": "npm run compile:extension && node --test out/modules/mainView/bridges/dashboardSearchRanking.test.js",
