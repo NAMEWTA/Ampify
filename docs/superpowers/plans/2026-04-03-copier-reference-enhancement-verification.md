@@ -25,28 +25,30 @@
 | `node --test out/modules/copier/sourceResolver.test.js` | 通过（exit 0） | Node test 9/9 通过，覆盖 Explorer 优先级、空值与顺序保持等分支。 |
 | `node --test out/modules/copier/referenceFormatter.test.js` | 通过（exit 0） | Node test 12/12 通过，覆盖单行/列范围/跨行/文件列表与回退逻辑。 |
 
-## 3. 规格 8 项验收清单与结论
+## 3. 验收 8 项清单与结论（6 项规格 + 2 项计划补充）
 
-> 依据：`docs/superpowers/specs/2026-04-03-copier-reference-enhancement-design.md` 的输出规则、优先级、错误处理与回归约束。
+> 依据 1（规格 6 项）：docs/superpowers/specs/2026-04-03-copier-reference-enhancement-design.md 第 11 节。
+>
+> 依据 2（计划补充 2 项）：docs/superpowers/plans/2026-04-03-copier-reference-enhancement.md 任务 4 的逐条验收清单。
 
-1. 编辑器空选区输出单反引号包裹的 `path:line`。
-   - 结论：通过（`referenceFormatter` 用例 `empty selection outputs ...` 通过）。
-2. 编辑器同行非空选区输出单反引号包裹的 `path:line(colStart-colEnd)`。
+1. [规格] 编辑器空选区输出单反引号包裹的 path:line。
+   - 结论：通过（referenceFormatter 用例 empty selection outputs ... 通过）。
+2. [规格] 编辑器同行非空选区输出单反引号包裹的 path:line(colStart-colEnd)。
    - 结论：通过（同行列范围与反向选择归一化用例通过）。
-3. 编辑器跨行选区输出单反引号包裹的 `path:start-end`。
+3. [规格] 编辑器跨行选区输出单反引号包裹的 path:start-end。
    - 结论：通过（跨行范围与反向行归一化用例通过）。
-4. Explorer 单选/多选输出三反引号代码块，内部每项一行且保持顺序。
+4. [规格] Explorer 单选/多选输出三反引号代码块，内部每项一行且保持顺序。
    - 结论：通过（文件列表单项/多项顺序保持用例通过）。
-5. Explorer 参数存在时优先于编辑器快照。
-   - 结论：通过（`sourceResolver` 用例 `explorer uris take priority ...` 通过）。
-6. 相对/绝对路径模式均可用，空相对路径结果时可回退到绝对路径，避免空值。
-   - 结论：通过（`referenceFormatter` 绝对路径分支与 fallback 用例通过）。
-7. 无有效来源（无编辑器、untitled、无效 Explorer 参数）时不产生错误引用。
-   - 结论：通过（`sourceResolver` 空来源/untitled/无效参数用例均通过，返回空源以触发上层 `copier.noFilePath` 提示逻辑）。
-8. 回归约束满足：命令 ID、快捷键、编辑器入口保持；Explorer 入口存在。
-   - 结论：通过（`package.json` 检查到 `ampify.copy-relative-path-line` / `ampify.copy-absolute-path-line`、`keybindings`、`menus.editor/context` 保留，`menus.explorer/context` 已配置）。
+5. [规格] 相对与绝对路径两个命令均可用，行为一致。
+   - 结论：通过（双命令入口存在，绝对分支与相对分支用例均通过）。
+6. [规格] 既有命令、快捷键、编辑器入口无回归。
+   - 结论：通过（package.json 中 commands、keybindings、menus.editor/context 保持，新增 menus.explorer/context）。
+7. [计划补充] Explorer 参数无效时不回退编辑器内容。
+   - 结论：通过（sourceResolver 无效参数用例返回 null，入口层 explorerProvided 语义已收口）。
+8. [计划补充] 剪贴板写入失败时有显式错误提示。
+   - 结论：通过（index.ts 失败分支显式 showErrorMessage，i18n 中已配置 copier.copyFailed）。
 
-综合结论：8/8 通过，满足任务 4 验收要求。
+综合结论：8/8 通过。其构成为“规格 6 项 + 计划补充 2 项”，与任务 4 验收口径一致。
 
 ## 4. 当前分支与提交范围摘要
 
@@ -57,3 +59,17 @@
 ## 5. 环境噪音说明
 
 `package-lock.json` 在执行 npm 命令后出现本地变更（环境噪音）。该文件未纳入本次功能/文档提交范围，不作为任务 4 交付内容。
+
+## 6. 手工验收样例摘录
+
+1. 编辑器单行选区样例（列范围）：
+   - 预期样式：`src\\modules\\copier\\index.ts:54(9-29)`
+   - 结果：与预期一致。
+2. Explorer 多选样例（代码块）：
+   - 预期样式：
+     - ```
+     - src\\modules\\copier\\index.ts
+     - src\\modules\\gitShare
+     - src\\extension.ts
+     - ```
+   - 结果：与预期一致，顺序保持不变。
