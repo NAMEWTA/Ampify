@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import type { CopySourceSnapshot, EditorSelectionSnapshot } from './copierTypes';
 
 export interface EditorSnapshotInput {
@@ -52,6 +53,15 @@ function toEditorSelection(editor: EditorSnapshotInput): EditorSelectionSnapshot
     };
 }
 
+function normalizeFilePath(filePath: string): string {
+    const normalized = path.normalize(filePath);
+    return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+function isSameFilePath(left: string, right: string): boolean {
+    return normalizeFilePath(left) === normalizeFilePath(right);
+}
+
 export function resolveCopySource(
     explorerInput: unknown,
     editorInput?: EditorSnapshotInput,
@@ -59,6 +69,15 @@ export function resolveCopySource(
 ): CopySourceSnapshot | null {
     const explorerPaths = normalizeExplorerPaths(explorerInput);
     if (explorerPaths.length > 0) {
+        // VS Code passes a URI from both explorer/context and editor/context.
+        // If the URI matches the active editor document, treat it as editor selection
+        // so line/column references are not downgraded to a file-list block.
+        if (explorerPaths.length === 1 && editorInput && !editorInput.isUntitled) {
+            if (isSameFilePath(explorerPaths[0], editorInput.absolutePath)) {
+                return toEditorSelection(editorInput);
+            }
+        }
+
         return {
             kind: 'fileList',
             absolutePaths: explorerPaths
