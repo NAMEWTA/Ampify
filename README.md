@@ -1,10 +1,12 @@
 # Ampify
 
-Ampify is a compact VS Code extension focused on five capabilities:
+Ampify is a compact VS Code extension focused on seven capabilities:
 
 - Copy file path + line references
 - Skills management
 - Commands management
+- Agents management
+- Rules management
 - Git Share synchronization
 - Unified MainView webview
 
@@ -15,6 +17,8 @@ Visible sections are fixed to:
 - `dashboard`
 - `skills`
 - `commands`
+- `agents`
+- `rules`
 - `gitshare`
 - `settings`
 
@@ -62,6 +66,14 @@ Visible sections are fixed to:
 - `ampify.commands.delete`
 - `ampify.commands.remove`
 
+### Agents
+
+- `ampify.agents.*`
+
+### Rules
+
+- `ampify.rules.*`
+
 ### Git Share
 
 - `ampify.gitShare.refresh`
@@ -80,6 +92,8 @@ Visible sections are fixed to:
 - `ampify.rootDir`
 - `ampify.skills.injectTarget`
 - `ampify.commands.injectTarget`
+- `ampify.agents.injectTarget`
+- `ampify.rules.injectTarget`
 
 ## Data Directory
 
@@ -96,6 +110,12 @@ Default root: `~/.vscode-ampify/`
 |  `- vscodecmdmanager/
 |     |- config.json
 |     `- commands/<command>.md
+|  |- vscodeagentmanager/
+|  |  |- config.json
+|  |  `- agents/<agent>.md
+|  `- vscoderulemanager/
+|     |- config.json
+|     `- rules/<rule>.md
 ```
 
 Legacy launcher/opencode data may still exist locally but is no longer used by Ampify.

@@ -6,10 +6,12 @@ Ampify 是一个 VS Code 扩展，当前能力收敛为：
 1. Copier：复制 `path:line` / `path:start-end`
 2. Skills Manager：管理全局 skills 并复制到项目 `.claude/skills/`
 3. Commands Manager：管理全局 commands 并复制到项目 `.claude/commands/`
-4. Git Share：同步 skills/commands 共享仓库并支持 diff
-5. MainView：Vue 3 Webview 统一入口（5 个 section）
+4. Agents Manager：管理全局 agents 并复制到项目 `.claude/agents/`
+5. Rules Manager：管理全局 rules 并复制到项目 `.claude/rules/`
+6. Git Share：同步 skills/commands/agents/rules 共享仓库并支持 diff
+7. MainView：Vue 3 Webview 统一入口（7 个 section）
 
-扩展激活顺序：`MainView -> Copier -> GitShare -> Skills -> Commands`
+扩展激活顺序：`MainView -> Copier -> GitShare -> Skills -> Commands -> Agents -> Rules`
 
 ## 目录结构
 
@@ -18,6 +20,8 @@ Ampify 是一个 VS Code 扩展，当前能力收敛为：
 - `src/modules/copier/`：复制路径与行号
 - `src/modules/skills/`：技能管理
 - `src/modules/commands/`：命令管理
+- `src/modules/agents/`：智能体管理
+- `src/modules/rules/`：规则管理
 - `src/modules/gitShare/`：Git 同步与 diff
 - `src/modules/mainView/`：宿主控制层（controller/bridges/contracts）
 - `webview/`：MainView 前端（Vue 3 + Pinia + Element Plus）
@@ -30,12 +34,13 @@ Ampify 是一个 VS Code 扩展，当前能力收敛为：
 - `dashboard`
 - `skills`
 - `commands`
+- `agents`
+- `rules`
 - `gitshare`
 - `settings`
 
 说明：
 
-- 不再存在 `accountCenter`、`launcher`、`opencodeAuth` 相关 UI 与契约。
 - `copier` 仍以命令形式存在，不提供独立 section。
 
 ## 命令组
@@ -44,6 +49,8 @@ Ampify 是一个 VS Code 扩展，当前能力收敛为：
 - MainView：`ampify.mainView.refresh`
 - Skills：`ampify.skills.*`
 - Commands：`ampify.commands.*`
+- Agents：`ampify.agents.*`
+- Rules：`ampify.rules.*`
 - Git Share：`ampify.gitShare.*`
 
 ## 配置项
@@ -52,6 +59,8 @@ Ampify 是一个 VS Code 扩展，当前能力收敛为：
 - `ampify.rootDir`
 - `ampify.skills.injectTarget`
 - `ampify.commands.injectTarget`
+- `ampify.agents.injectTarget`
+- `ampify.rules.injectTarget`
 
 ## 开发命令
 
@@ -66,4 +75,4 @@ Ampify 是一个 VS Code 扩展，当前能力收敛为：
 
 - 不要手工修改 `webview-dist/`，通过构建生成。
 - 注入目标统一为 `.claude/` 体系。
-- 历史 launcher/opencode 本地数据目录不会自动删除，但扩展不再读取。
+- Windows 下 `compile:extension` 前会执行 `scripts/windows-out-precheck.js` 预检并尝试修复 out 目录占用问题。

@@ -1,25 +1,15 @@
 # Change Log
 
-## 3.6.0 - 2026-03-17
+## 3.6.0 - 2026-04-03
+### Added
+- feat(workflow): add superpowers skills and mainview reliability updates
+- feat: add normalizeDroppedUriInput function and corresponding tests for URI handling
+- feat: implement rule management system with search, create, import, and apply functionalities
+- feat: add settings section with dynamic fields and navigation
+
 ### Changed
-- Narrow extension scope to MainView + Copier + GitShare + Skills + Commands only
-- Remove launcher/opencode/account-center integration from MainView host contracts, controller actions, and settings payload
-- Compact MainView UI with smaller typography/sidebar density and stable two-column cards for skills/commands
-- Fix vertical scroll chain in shell/section/resource layers and keep action buttons pinned on the right rail
-- Refresh README and AGENTS documentation to match current modules and public command surface
-
-### Release Notes (Bilingual)
-#### 中文
-- 能力收敛：Ampify 现聚焦 MainView、Copier、Skills、Commands、Git Share 五大模块。
-- 架构清理：移除 launcher/opencode/account-center 相关宿主契约、控制器分支与设置负担。
-- UI 紧凑化：缩小字号与侧栏密度，资源卡片稳定为双列并采用右侧操作栏。
-- 体验修复：修复主视图滚动链路，统一暗色表单与弹层风格。
-
-#### English
-- Scope reduction: Ampify now focuses on MainView, Copier, Skills, Commands, and Git Share only.
-- Architecture cleanup: Removed launcher/opencode/account-center related host contracts, controller branches, and settings overhead.
-- Compact UI refresh: Smaller typography and denser sidebar, with stable two-column resource cards and right-side action rail.
-- UX fixes: Resolved scroll chaining across the main view and unified dark styling for forms and overlays.
+- Add new styles for Element Plus components and layout
+- Update repository ignore rules
 
 ## 3.5.0 - 2026-03-09
 ### Changed
