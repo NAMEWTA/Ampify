@@ -22,23 +22,39 @@ function toEditorSnapshot(editor: vscode.TextEditor | undefined): EditorSnapshot
     };
 }
 
-interface UriWithFsPath {
-    fsPath: string;
+type ExplorerInput = vscode.Uri | vscode.Uri[];
+
+function isValidUri(value: unknown): value is vscode.Uri {
+    const uriCtor = vscode.Uri as unknown as {
+        isUri?: (candidate: unknown) => candidate is vscode.Uri;
+    };
+
+    if (typeof uriCtor.isUri === 'function') {
+        return uriCtor.isUri(value);
+    }
+
+    return value instanceof vscode.Uri;
 }
 
-type ExplorerInput = UriWithFsPath | UriWithFsPath[];
-
-function isUriWithFsPath(value: unknown): value is UriWithFsPath {
-    if (!value || typeof value !== 'object') {
+function isExplorerSemanticArg(value: unknown): boolean {
+    if (value === null || value === undefined) {
         return false;
     }
 
-    const candidate = value as { fsPath?: unknown };
-    return typeof candidate.fsPath === 'string';
+    return typeof value === 'object' || Array.isArray(value);
 }
 
-function isUriWithFsPathArray(value: unknown): value is UriWithFsPath[] {
-    return Array.isArray(value) && value.length > 0 && value.every((item) => isUriWithFsPath(item));
+function toExplorerInput(value: unknown): ExplorerInput | undefined {
+    if (Array.isArray(value)) {
+        const uris = value.filter((item): item is vscode.Uri => isValidUri(item));
+        return uris.length > 0 ? uris : undefined;
+    }
+
+    if (isValidUri(value)) {
+        return value;
+    }
+
+    return undefined;
 }
 
 function pickExplorerInput(args: unknown[]): { explorerInput: ExplorerInput | undefined; explorerProvided: boolean } {
@@ -47,17 +63,19 @@ function pickExplorerInput(args: unknown[]): { explorerInput: ExplorerInput | un
     }
 
     const multiSelectionArg = args[1];
-    if (isUriWithFsPathArray(multiSelectionArg)) {
+    if (isExplorerSemanticArg(multiSelectionArg)) {
+        const explorerInput = toExplorerInput(multiSelectionArg);
         return {
-            explorerInput: multiSelectionArg,
+            explorerInput,
             explorerProvided: true
         };
     }
 
     const primaryArg = args[0];
-    if (isUriWithFsPath(primaryArg) || isUriWithFsPathArray(primaryArg)) {
+    if (isExplorerSemanticArg(primaryArg)) {
+        const explorerInput = toExplorerInput(primaryArg);
         return {
-            explorerInput: primaryArg,
+            explorerInput,
             explorerProvided: true
         };
     }
