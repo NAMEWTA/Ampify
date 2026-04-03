@@ -363,6 +363,14 @@
           "command": "ampify.copy-absolute-path-line"
         }
       ],
+      "explorer/context": [
+        {
+          "command": "ampify.copy-relative-path-line"
+        },
+        {
+          "command": "ampify.copy-absolute-path-line"
+        }
+      ],
       "view/title": [],
       "view/item/context": []
     },
