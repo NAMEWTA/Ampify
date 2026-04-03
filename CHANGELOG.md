@@ -1,5 +1,20 @@
 # Change Log
 
+## 3.7.0 - 2026-04-03
+### Added
+- feat: wire copier source/formatter and add explorer context menu
+
+### Changed
+- merge: integrate `feature/copier-reference-enhancement` into `main`
+- chore(lockfile): sync package-lock version metadata
+- docs: add and align copier enhancement verification evidence
+- test: expand copier formatter/source resolver coverage and edge-case guards
+
+### Fixed
+- fix(copier): preserve editor selection when explorer URI matches active editor
+- fix: harden copier command argument detection and i18n error paths
+- fix: align and narrow explorer semantic argument detection logic
+
 ## 3.6.0 - 2026-04-03
 ### Added
 - feat(workflow): add superpowers skills and mainview reliability updates

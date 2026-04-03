@@ -2,7 +2,7 @@
 
 Ampify is a compact VS Code extension focused on seven capabilities:
 
-- Copy file path + line references
+- Copy file path + line references with smart explorer/editor context resolution
 - Skills management
 - Commands management
 - Agents management
@@ -30,6 +30,7 @@ Visible sections are fixed to:
 
 - `ampify.copy-relative-path-line`
 - `ampify.copy-absolute-path-line`
+- Explorer context invocation keeps editor line/column selections when the URI matches the active document
 
 ### MainView
 
