@@ -36,14 +36,6 @@ function isValidUri(value: unknown): value is vscode.Uri {
     return value instanceof vscode.Uri;
 }
 
-function isExplorerSemanticArg(value: unknown): boolean {
-    if (value === null || value === undefined) {
-        return false;
-    }
-
-    return typeof value === 'object' || Array.isArray(value);
-}
-
 function toExplorerInput(value: unknown): ExplorerInput | undefined {
     if (Array.isArray(value)) {
         const uris = value.filter((item): item is vscode.Uri => isValidUri(item));
@@ -63,7 +55,7 @@ function pickExplorerInput(args: unknown[]): { explorerInput: ExplorerInput | un
     }
 
     const multiSelectionArg = args[1];
-    if (isExplorerSemanticArg(multiSelectionArg)) {
+    if (Array.isArray(multiSelectionArg)) {
         const explorerInput = toExplorerInput(multiSelectionArg);
         return {
             explorerInput,
@@ -72,7 +64,7 @@ function pickExplorerInput(args: unknown[]): { explorerInput: ExplorerInput | un
     }
 
     const primaryArg = args[0];
-    if (isExplorerSemanticArg(primaryArg)) {
+    if (Array.isArray(primaryArg) || isValidUri(primaryArg)) {
         const explorerInput = toExplorerInput(primaryArg);
         return {
             explorerInput,
