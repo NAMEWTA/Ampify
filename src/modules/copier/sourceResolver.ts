@@ -21,7 +21,7 @@ function toFsPath(value: unknown): string | null {
     }
 
     const maybeUri = value as UriLike;
-    if (typeof maybeUri.fsPath !== 'string' || maybeUri.fsPath.length === 0) {
+    if (typeof maybeUri.fsPath !== 'string' || maybeUri.fsPath.trim().length === 0) {
         return null;
     }
 

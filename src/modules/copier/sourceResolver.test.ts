@@ -39,6 +39,15 @@ test('explorer uris take priority over active editor snapshot', () => {
     } satisfies CopySourceSnapshot);
 });
 
+test('supports single explorer uri input (non-array)', () => {
+    const source = resolveCopySource({ fsPath: 'D:\\repo\\single.ts' }, createEditorInput(), true);
+
+    assert.deepEqual(source, {
+        kind: 'fileList',
+        absolutePaths: ['D:\\repo\\single.ts']
+    } satisfies CopySourceSnapshot);
+});
+
 test('falls back to editor when explorer input is not provided', () => {
     const source = resolveCopySource(undefined, createEditorInput(), false);
 
@@ -56,6 +65,16 @@ test('falls back to editor when explorer input is not provided', () => {
 
 test('returns null when explorer argument exists but has no valid fsPath', () => {
     const source = resolveCopySource([{ nope: 'x' }], createEditorInput(), true);
+    assert.equal(source, null);
+});
+
+test('returns null when explorer fsPath is whitespace only', () => {
+    const source = resolveCopySource({ fsPath: '   \t  ' }, createEditorInput(), true);
+    assert.equal(source, null);
+});
+
+test('returns null when explorer argument is an empty array with explorerProvided=true', () => {
+    const source = resolveCopySource([], createEditorInput(), true);
     assert.equal(source, null);
 });
 
