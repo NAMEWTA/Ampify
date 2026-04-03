@@ -22,22 +22,49 @@ function toEditorSnapshot(editor: vscode.TextEditor | undefined): EditorSnapshot
     };
 }
 
-function pickExplorerInput(args: unknown[]): { explorerInput: unknown; explorerProvided: boolean } {
+interface UriWithFsPath {
+    fsPath: string;
+}
+
+type ExplorerInput = UriWithFsPath | UriWithFsPath[];
+
+function isUriWithFsPath(value: unknown): value is UriWithFsPath {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const candidate = value as { fsPath?: unknown };
+    return typeof candidate.fsPath === 'string';
+}
+
+function isUriWithFsPathArray(value: unknown): value is UriWithFsPath[] {
+    return Array.isArray(value) && value.length > 0 && value.every((item) => isUriWithFsPath(item));
+}
+
+function pickExplorerInput(args: unknown[]): { explorerInput: ExplorerInput | undefined; explorerProvided: boolean } {
     if (args.length === 0) {
         return { explorerInput: undefined, explorerProvided: false };
     }
 
     const multiSelectionArg = args[1];
-    if (Array.isArray(multiSelectionArg)) {
+    if (isUriWithFsPathArray(multiSelectionArg)) {
         return {
             explorerInput: multiSelectionArg,
             explorerProvided: true
         };
     }
 
+    const primaryArg = args[0];
+    if (isUriWithFsPath(primaryArg) || isUriWithFsPathArray(primaryArg)) {
+        return {
+            explorerInput: primaryArg,
+            explorerProvided: true
+        };
+    }
+
     return {
-        explorerInput: args[0],
-        explorerProvided: true
+        explorerInput: undefined,
+        explorerProvided: false
     };
 }
 
@@ -49,12 +76,8 @@ export function registerCopier(context: vscode.ExtensionContext) {
     };
 
     const showCopyFailedMessage = (error: unknown) => {
-        if (error instanceof Error && error.message.trim().length > 0) {
-            vscode.window.showErrorMessage(error.message);
-            return;
-        }
-
-        vscode.window.showErrorMessage('Failed to copy reference to clipboard.');
+        const reason = error instanceof Error && error.message.trim().length > 0 ? error.message : String(error ?? '-');
+        vscode.window.showErrorMessage(I18n.get('copier.copyFailed', reason));
     };
 
     const runCopyCommand = async (useRelativePath: boolean, args: unknown[]) => {

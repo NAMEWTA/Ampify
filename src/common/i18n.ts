@@ -6,6 +6,7 @@ const translations = {
     'en': {
         'copier.noFilePath': 'Unable to get file path',
         'copier.copied': 'Copied: "{0}"',
+        'copier.copyFailed': 'Failed to copy reference to clipboard: {0}',
         'common.loading': 'Loading...',
         'nav.dashboard': 'Search',
         'nav.skills': 'Skills',
@@ -371,6 +372,7 @@ const translations = {
     'zh-cn': {
         'copier.noFilePath': '无法获取文件路径',
         'copier.copied': '已复制："{0}"',
+        'copier.copyFailed': '复制引用到剪贴板失败：{0}',
         'common.loading': '加载中...',
         'nav.dashboard': '统一搜索',
         'nav.skills': '技能',
