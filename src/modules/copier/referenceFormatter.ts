@@ -21,6 +21,32 @@ function resolvePath(absolutePath: string, useRelativePath: boolean, transformPa
     return transformed;
 }
 
+function normalizeSelectionBounds(source: EditorSelectionSnapshot): {
+    startLine: number;
+    endLine: number;
+    startCharacter: number;
+    endCharacter: number;
+} {
+    const startLine = Math.min(source.startLine, source.endLine);
+    const endLine = Math.max(source.startLine, source.endLine);
+
+    if (startLine !== endLine) {
+        return {
+            startLine,
+            endLine,
+            startCharacter: source.startCharacter,
+            endCharacter: source.endCharacter
+        };
+    }
+
+    return {
+        startLine,
+        endLine,
+        startCharacter: Math.min(source.startCharacter, source.endCharacter),
+        endCharacter: Math.max(source.startCharacter, source.endCharacter)
+    };
+}
+
 function formatEditorSelection(
     source: EditorSelectionSnapshot,
     useRelativePath: boolean,
@@ -32,15 +58,16 @@ function formatEditorSelection(
         return toInlineReference(`${path}:${source.activeLine + 1}`);
     }
 
-    const startLine = source.startLine + 1;
-    const endLine = source.endLine + 1;
+    const normalized = normalizeSelectionBounds(source);
+    const startLine = normalized.startLine + 1;
+    const endLine = normalized.endLine + 1;
 
     if (startLine !== endLine) {
         return toInlineReference(`${path}:${startLine}-${endLine}`);
     }
 
-    const startCol = source.startCharacter + 1;
-    const endCol = source.endCharacter + 1;
+    const startCol = normalized.startCharacter + 1;
+    const endCol = normalized.endCharacter + 1;
     return toInlineReference(`${path}:${startLine}(${startCol}-${endCol})`);
 }
 
