@@ -1,5 +1,9 @@
 # Change Log
 
+## 3.8.0 - 2026-04-14
+### Fixed
+- fix(skills): 支持 SKILL.md 导入源解析与去重
+
 ## 3.7.0 - 2026-04-03
 ### Added
 - feat: wire copier source/formatter and add explorer context menu
