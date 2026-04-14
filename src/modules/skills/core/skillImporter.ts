@@ -5,6 +5,7 @@ import { SkillConfigManager } from './skillConfigManager';
 import { SkillMeta } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
 import { copyDir } from '../../../common/paths';
+import { normalizeSkillImportSource } from './skillImportSource';
 
 export class SkillImporter {
     constructor(private configManager: SkillConfigManager) {}
@@ -55,8 +56,15 @@ export class SkillImporter {
      * 导入 Skill 到全局管理目录
      */
     public async import(sourcePath: string): Promise<{ success: boolean; skillName?: string; error?: string }> {
+        const sourceResolution = normalizeSkillImportSource(sourcePath);
+        if (!sourceResolution.ok) {
+            return { success: false, error: sourceResolution.error };
+        }
+
+        const sourceDir = sourceResolution.directoryPath;
+
         // 验证源目录
-        const validation = this.validateSkillDir(sourcePath);
+        const validation = this.validateSkillDir(sourceDir);
         if (!validation.valid || !validation.meta) {
             return { success: false, error: validation.error };
         }
@@ -83,7 +91,7 @@ export class SkillImporter {
         try {
             // 复制到全局目录
             const targetPath = this.configManager.getSkillPath(skillName);
-            copyDir(sourcePath, targetPath);
+            copyDir(sourceDir, targetPath);
 
             return { success: true, skillName };
         } catch (error: unknown) {
@@ -97,19 +105,25 @@ export class SkillImporter {
      */
     public async importFromUris(uris: vscode.Uri[]): Promise<{ success: number; failed: number; errors: string[] }> {
         const result = { success: 0, failed: 0, errors: [] as string[] };
+        const importedDirs = new Set<string>();
 
         for (const uri of uris) {
             const sourcePath = uri.fsPath;
-            
-            // 检查是否是目录
-            const stat = fs.statSync(sourcePath);
-            if (!stat.isDirectory()) {
+
+            const sourceResolution = normalizeSkillImportSource(sourcePath);
+            if (!sourceResolution.ok) {
                 result.failed++;
-                result.errors.push(`${path.basename(sourcePath)}: Not a directory`);
+                result.errors.push(`${path.basename(sourcePath)}: ${sourceResolution.error}`);
                 continue;
             }
 
-            const importResult = await this.import(sourcePath);
+            const sourceDir = sourceResolution.directoryPath;
+            if (importedDirs.has(sourceDir)) {
+                continue;
+            }
+            importedDirs.add(sourceDir);
+
+            const importResult = await this.import(sourceDir);
             if (importResult.success) {
                 result.success++;
             } else {
