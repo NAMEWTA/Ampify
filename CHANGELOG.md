@@ -1,5 +1,9 @@
 # Change Log
 
+## 3.9.0 - 2026-04-17
+### Fixed
+- fix(copier): remove line suffix for single-file copy
+
 ## 3.8.0 - 2026-04-14
 ### Fixed
 - fix(skills): 支持 SKILL.md 导入源解析与去重

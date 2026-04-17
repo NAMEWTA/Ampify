@@ -2,7 +2,7 @@
   "name": "ampify",
   "displayName": "Ampify",
   "description": "Ampify: A practical VS Code extension for copier, skills, commands, git share, and compact MainView.",
-  "version": "3.8.0",
+  "version": "3.9.0",
   "publisher": "NAMEWTA",
   "repository": {
     "type": "git",
