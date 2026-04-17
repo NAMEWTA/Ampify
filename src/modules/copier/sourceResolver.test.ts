@@ -78,7 +78,7 @@ test('returns null when explorer argument is an empty array with explorerProvide
     assert.equal(source, null);
 });
 
-test('prefers editor selection when single URI matches active editor path', () => {
+test('keeps explorer single-file selection as fileList even when it matches active editor path', () => {
     const source = resolveCopySource(
         { fsPath: 'D:\\repo\\editor.ts' },
         createEditorInput({
@@ -93,14 +93,8 @@ test('prefers editor selection when single URI matches active editor path', () =
     );
 
     assert.deepEqual(source, {
-        kind: 'editorSelection',
-        absolutePath: 'D:\\repo\\editor.ts',
-        isEmptySelection: false,
-        activeLine: 9,
-        startLine: 4,
-        endLine: 7,
-        startCharacter: 2,
-        endCharacter: 9
+        kind: 'fileList',
+        absolutePaths: ['D:\\repo\\editor.ts']
     } satisfies CopySourceSnapshot);
 });
 

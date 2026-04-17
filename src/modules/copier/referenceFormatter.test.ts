@@ -13,7 +13,7 @@ function toRelativePath(absolutePath: string): string {
     return absolutePath;
 }
 
-test('empty selection outputs `path:line` with inline backticks', () => {
+test('empty selection outputs `path` with inline backticks', () => {
     const source: CopySourceSnapshot = {
         kind: 'editorSelection',
         absolutePath: 'D:\\Data\\01-Code\\toolCode\\Ampify\\src\\modules\\copier\\index.ts',
@@ -26,10 +26,10 @@ test('empty selection outputs `path:line` with inline backticks', () => {
     };
 
     const text = formatCopyReference(source, true, toRelativePath);
-    assert.equal(text, '`src\\modules\\copier\\index.ts:55`');
+    assert.equal(text, '`src\\modules\\copier\\index.ts`');
 });
 
-test('editor selection uses absolute path when useRelativePath is false', () => {
+test('empty selection uses absolute path when useRelativePath is false', () => {
     const source: CopySourceSnapshot = {
         kind: 'editorSelection',
         absolutePath: 'D:\\Data\\01-Code\\toolCode\\Ampify\\src\\modules\\copier\\index.ts',
@@ -45,7 +45,7 @@ test('editor selection uses absolute path when useRelativePath is false', () => 
         throw new Error('transformer should not be called when useRelativePath=false');
     });
 
-    assert.equal(text, '`D:\\Data\\01-Code\\toolCode\\Ampify\\src\\modules\\copier\\index.ts:11`');
+    assert.equal(text, '`D:\\Data\\01-Code\\toolCode\\Ampify\\src\\modules\\copier\\index.ts`');
 });
 
 test('single-line non-empty selection outputs `path:line(colStart-colEnd)`', () => {
@@ -171,7 +171,7 @@ test('falls back to absolute path when relative transformer returns empty string
     };
 
     const text = formatCopyReference(source, true, () => '');
-    assert.equal(text, '`D:\\Data\\01-Code\\toolCode\\Ampify\\src\\modules\\copier\\index.ts:11`');
+    assert.equal(text, '`D:\\Data\\01-Code\\toolCode\\Ampify\\src\\modules\\copier\\index.ts`');
 });
 
 test('falls back to absolute path when relative transformer returns whitespace only', () => {
@@ -187,7 +187,7 @@ test('falls back to absolute path when relative transformer returns whitespace o
     };
 
     const text = formatCopyReference(source, true, () => '   ');
-    assert.equal(text, '`D:\\Data\\01-Code\\toolCode\\Ampify\\src\\modules\\copier\\index.ts:2`');
+    assert.equal(text, '`D:\\Data\\01-Code\\toolCode\\Ampify\\src\\modules\\copier\\index.ts`');
 });
 
 test('file list branch falls back to absolute path for empty and whitespace transformer results', () => {

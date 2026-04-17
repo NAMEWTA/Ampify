@@ -55,7 +55,7 @@ function formatEditorSelection(
     const path = resolvePath(source.absolutePath, useRelativePath, transformPath);
 
     if (source.isEmptySelection) {
-        return toInlineReference(`${path}:${source.activeLine + 1}`);
+        return toInlineReference(path);
     }
 
     const normalized = normalizeSelectionBounds(source);
