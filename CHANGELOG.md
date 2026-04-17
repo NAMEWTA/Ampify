@@ -1,5 +1,9 @@
 # Change Log
 
+## 3.9.1 - 2026-04-17
+### Fixed
+- fix(skills): harden prerequisite and path validation
+
 ## 3.9.0 - 2026-04-17
 ### Fixed
 - fix(copier): remove line suffix for single-file copy
