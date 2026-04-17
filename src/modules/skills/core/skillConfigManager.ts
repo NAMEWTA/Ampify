@@ -6,6 +6,7 @@ import { getGitShareModuleDir, ensureDir } from '../../../common/paths';
 import { updateFrontmatterTags } from '../../../common/frontmatter';
 import { normalizeTagLibrary } from '../../../common/tagLibrary';
 import { getDefaultInjectTargetValue, normalizeInjectTargetValue } from '../../../common/injectTarget';
+import { isValidSkillName, resolveSafeSkillPath, resolveSkillMetaName } from './skillSecurity';
 
 /**
  * Skills Manager 配置管理器
@@ -198,7 +199,7 @@ export class SkillConfigManager {
      * 获取单个 Skill 的目录路径
      */
     public getSkillPath(skillName: string): string {
-        return path.join(this.skillsDir, skillName);
+        return resolveSafeSkillPath(this.skillsDir, skillName);
     }
 
     /**
@@ -283,6 +284,10 @@ export class SkillConfigManager {
      * 保存 SKILL.md 内容
      */
     public saveSkillMd(skillName: string, content: string): void {
+        if (!SkillConfigManager.validateSkillName(skillName)) {
+            throw new Error(`Invalid skill name: ${skillName}`);
+        }
+
         const skillPath = this.getSkillPath(skillName);
         ensureDir(skillPath);
         const skillMdPath = path.join(skillPath, 'SKILL.md');
@@ -309,8 +314,13 @@ export class SkillConfigManager {
                 return null;
             }
 
+            const parsedName = resolveSkillMetaName(data.name, fallbackName);
+            if (!parsedName) {
+                return null;
+            }
+
             const meta: SkillMeta = {
-                name: typeof data.name === 'string' ? data.name : fallbackName,
+                name: parsedName,
                 description: typeof data.description === 'string' ? data.description : '',
                 tags: Array.isArray(data.tags) ? data.tags as string[] : undefined,
                 allowedTools: Array.isArray(data.allowedTools) ? data.allowedTools as string[] : undefined,
@@ -336,12 +346,15 @@ export class SkillConfigManager {
      * 删除 Skill
      */
     public deleteSkill(skillName: string): boolean {
-        const skillPath = this.getSkillPath(skillName);
-        if (!fs.existsSync(skillPath)) {
-            return false;
-        }
-
         try {
+            if (!SkillConfigManager.validateSkillName(skillName)) {
+                return false;
+            }
+
+            const skillPath = this.getSkillPath(skillName);
+            if (!fs.existsSync(skillPath)) {
+                return false;
+            }
             fs.rmSync(skillPath, { recursive: true, force: true });
             return true;
         } catch (error) {
@@ -354,7 +367,15 @@ export class SkillConfigManager {
      * 检查 Skill 是否存在
      */
     public skillExists(skillName: string): boolean {
+        if (!SkillConfigManager.validateSkillName(skillName)) {
+            return false;
+        }
+
         return fs.existsSync(this.getSkillPath(skillName));
+    }
+
+    public static validateSkillName(name: string): boolean {
+        return isValidSkillName(name);
     }
 
     /**

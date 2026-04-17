@@ -36,11 +36,8 @@ export class SkillImporter {
         }
 
         // 验证 name 格式
-        if (!/^[a-z0-9-]+$/.test(meta.name)) {
+        if (!SkillConfigManager.validateSkillName(meta.name)) {
             return { valid: false, error: 'Invalid skill name: must be lowercase letters, numbers, and hyphens only' };
-        }
-        if (meta.name.length > 64) {
-            return { valid: false, error: 'Invalid skill name: max 64 characters' };
         }
 
         // 验证目录名一致性

@@ -1,14 +1,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import { SkillConfigManager } from './skillConfigManager';
 import { LoadedSkill, Prerequisite } from '../../../common/types';
 import { I18n } from '../../../common/i18n';
 import { getDefaultInjectTargetValue, parseInjectTargets } from '../../../common/injectTarget';
-
-const execAsync = promisify(exec);
+import { evaluatePrerequisite, resolveSafeSkillPath } from './skillSecurity';
 
 export interface PrerequisiteCheckResult {
     prerequisite: Prerequisite;
@@ -40,29 +37,12 @@ export class SkillApplier {
         }
 
         for (const prereq of skill.meta.prerequisites) {
+            const evaluated = evaluatePrerequisite(prereq);
             const result: PrerequisiteCheckResult = {
                 prerequisite: prereq,
-                met: false
+                met: evaluated.met,
+                message: evaluated.message
             };
-
-            if (prereq.checkCommand) {
-                try {
-                    const { stdout } = await execAsync(prereq.checkCommand);
-                    result.met = true;
-                    result.message = stdout.trim();
-                } catch {
-                    result.met = false;
-                    result.message = prereq.installHint || `${prereq.name} not found`;
-                }
-            } else if (prereq.type === 'manual') {
-                // 手动步骤总是显示
-                result.met = false;
-                result.message = prereq.installHint || prereq.name;
-            } else {
-                // 无法检查的依赖，标记为未知
-                result.met = true;
-                result.message = 'Unable to verify automatically';
-            }
 
             results.push(result);
         }
@@ -128,9 +108,13 @@ export class SkillApplier {
                 return { success: false, error: 'User cancelled due to prerequisites' };
             }
 
+            if (!SkillConfigManager.validateSkillName(skill.meta.name)) {
+                return { success: false, error: `Invalid skill name: ${skill.meta.name}` };
+            }
+
             const targetDirs = this.getInjectTargets(workspaceRoot);
             for (const targetDir of targetDirs) {
-                const skillTargetPath = path.join(targetDir, skill.meta.name);
+                const skillTargetPath = resolveSafeSkillPath(targetDir, skill.meta.name);
 
                 if (!fs.existsSync(targetDir)) {
                     fs.mkdirSync(targetDir, { recursive: true });
@@ -151,9 +135,13 @@ export class SkillApplier {
      */
     public remove(skillName: string, workspaceRoot: string): boolean {
         try {
+            if (!SkillConfigManager.validateSkillName(skillName)) {
+                return false;
+            }
+
             let removed = false;
             for (const targetDir of this.getInjectTargets(workspaceRoot)) {
-                const skillTargetPath = path.join(targetDir, skillName);
+                const skillTargetPath = resolveSafeSkillPath(targetDir, skillName);
 
                 if (fs.existsSync(skillTargetPath)) {
                     fs.rmSync(skillTargetPath, { recursive: true, force: true });
